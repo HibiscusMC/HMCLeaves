@@ -7,6 +7,7 @@ import io.github.fisher2911.hmcleaves.LeafCache;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.util.Position;
 import io.github.fisher2911.hmcleaves.util.Position2D;
+import io.github.fisher2911.hmcleaves.util.PositionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
@@ -93,11 +94,17 @@ public class ChunkListener implements Listener {
             if (state == null) continue;
             state.setDistance(distance);
             state.setPersistent(persistent == 1);
-            this.cache.addData(
-                    chunkPos,
-                    new Position(block.getX() % 16, block.getY(), block.getZ() % 16),
-                    state
-            );
+            try {
+                this.cache.addData(
+                        chunkPos,
+                        new Position(PositionUtil.getCoordInChunk(block.getX()), block.getY(), PositionUtil.getCoordInChunk(block.getZ())),
+                        state
+                );
+            } catch (Exception e) {
+                this.plugin.getLogger().severe("Block threw error: " + block.getX() + ", " + block.getY() + ", " + block.getZ());
+
+                e.printStackTrace();
+            }
         }
     }
 

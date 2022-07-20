@@ -9,6 +9,7 @@ import io.github.fisher2911.hmcleaves.packet.PacketHelper;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.util.Position;
 import io.github.fisher2911.hmcleaves.util.Position2D;
+import io.github.fisher2911.hmcleaves.util.PositionUtil;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.Tag;
@@ -60,93 +61,68 @@ public class PlaceListener implements Listener {
         PacketHelper.sendLeaf(toPlace.getX(), toPlace.getY(), toPlace.getZ(), defaultState);
         final Chunk chunk = toPlace.getChunk();
         final Position2D chunkPos = new Position2D(toPlace.getWorld().getUID(), chunk.getX(), chunk.getZ());
-        final Position position = new Position(toPlace.getX() % 16, toPlace.getY(), toPlace.getZ() % 16);
+        final Position position = new Position(PositionUtil.getCoordInChunk(toPlace.getX()), toPlace.getY(), PositionUtil.getCoordInChunk(toPlace.getZ()));
         this.plugin.getLeafCache().addData(chunkPos, position, defaultState);
         final CustomBlockData customBlockData = new CustomBlockData(toPlace, this.plugin);
         customBlockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, leafItem.persistent() ? (byte) 1 : (byte) 0);
         customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) leafItem.distance());
+        itemStack.setAmount(itemStack.getAmount() - 1);
+    }
+
+    private void removeBlock(Block block) {
+        final Material material = block.getType();
+        if (!Tag.LEAVES.isTagged(material)) return;
+        final var state = this.plugin.config().getDefaultState(material).clone();
+        PacketHelper.sendLeaf(block.getX(), block.getY(), block.getZ(), state);
+        final CustomBlockData customBlockData = new CustomBlockData(block, this.plugin);
+        customBlockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, state.isPersistent() ? (byte) 1 : (byte) 0);
+        customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) state.getDistance());
+        this.plugin.getLeafCache().addData(new Position2D(block.getWorld().getUID(), block.getChunk().getX(), block.getChunk().getZ()), new Position(PositionUtil.getCoordInChunk(block.getX()), block.getY(), PositionUtil.getCoordInChunk(block.getZ())), state);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onTreeGrow(StructureGrowEvent event) {
         for (BlockState block : event.getBlocks()) {
-            final Material material = block.getType();
-            if (!Tag.LEAVES.isTagged(material)) continue;
-            final var state = this.plugin.config().getDefaultState(material).clone();
-            PacketHelper.sendLeaf(block.getX(), block.getY(), block.getZ(), state);
-            final CustomBlockData customBlockData = new CustomBlockData(block.getBlock(), this.plugin);
-            customBlockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, state.isPersistent() ? (byte) 1 : (byte) 0);
-            customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) state.getDistance());
-            this.plugin.getLeafCache().addData(new Position2D(block.getWorld().getUID(), block.getChunk().getX(), block.getChunk().getZ()), new Position(block.getX() % 16, block.getY(), block.getZ() % 16), state);
+            this.removeBlock(block.getBlock());
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onCustomBlockBreak(CustomBlockDataRemoveEvent event) {
         final Block block = event.getBlock();
-        if (!Tag.LEAVES.isTagged(block.getType())) return;
-        final Chunk chunk = block.getChunk();
-        final Position2D chunkPos = new Position2D(block.getWorld().getUID(), chunk.getX(), chunk.getZ());
-        final Position position = new Position(block.getX() % 16, block.getY(), block.getZ() % 16);
-        this.plugin.getLeafCache().remove(chunkPos, position);
-        PacketHelper.sendBlock(block.getX(), block.getY(), block.getZ(), this.plugin.config().getDefaultState(block.getType()).clone());
+        this.removeBlock(block);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onRemove(BlockBreakEvent event) {
         final Block block = event.getBlock();
-        if (!Tag.LEAVES.isTagged(block.getType())) return;
-        final Chunk chunk = block.getChunk();
-        final Position2D chunkPos = new Position2D(block.getWorld().getUID(), chunk.getX(), chunk.getZ());
-        final Position position = new Position(block.getX() % 16, block.getY(), block.getZ() % 16);
-        this.plugin.getLeafCache().remove(chunkPos, position);
-        PacketHelper.sendBlock(block.getX(), block.getY(), block.getZ(), this.plugin.config().getDefaultState(block.getType()).clone());
+        this.removeBlock(block);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onRemove(BlockDestroyEvent event) {
         final Block block = event.getBlock();
-        if (!Tag.LEAVES.isTagged(block.getType())) return;
-        final Chunk chunk = block.getChunk();
-        final Position2D chunkPos = new Position2D(block.getWorld().getUID(), chunk.getX(), chunk.getZ());
-        final Position position = new Position(block.getX() % 16, block.getY(), block.getZ() % 16);
-        this.plugin.getLeafCache().remove(chunkPos, position);
-        PacketHelper.sendBlock(block.getX(), block.getY(), block.getZ(), this.plugin.config().getDefaultState(block.getType()).clone());
+        this.removeBlock(block);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onRemove(BlockExplodeEvent event) {
         for (Block block : event.blockList()) {
-            if (!Tag.LEAVES.isTagged(block.getType())) continue;
-            final Chunk chunk = block.getChunk();
-            final Position2D chunkPos = new Position2D(block.getWorld().getUID(), chunk.getX(), chunk.getZ());
-            final Position position = new Position(block.getX() % 16, block.getY(), block.getZ() % 16);
-            this.plugin.getLeafCache().remove(chunkPos, position);
-            PacketHelper.sendBlock(block.getX(), block.getY(), block.getZ(), this.plugin.config().getDefaultState(block.getType()).clone());
+            this.removeBlock(block);
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onRemove(EntityExplodeEvent event) {
         for (Block block : event.blockList()) {
-            if (!Tag.LEAVES.isTagged(block.getType())) continue;
-            final Chunk chunk = block.getChunk();
-            final Position2D chunkPos = new Position2D(block.getWorld().getUID(), chunk.getX(), chunk.getZ());
-            final Position position = new Position(block.getX() % 16, block.getY(), block.getZ() % 16);
-            this.plugin.getLeafCache().remove(chunkPos, position);
-            PacketHelper.sendBlock(block.getX(), block.getY(), block.getZ(), this.plugin.config().getDefaultState(block.getType()).clone());
+            this.removeBlock(block);
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onRemove(LeavesDecayEvent event) {
         final Block block = event.getBlock();
-        if (!Tag.LEAVES.isTagged(block.getType())) return;
-        final Chunk chunk = block.getChunk();
-        final Position2D chunkPos = new Position2D(block.getWorld().getUID(), chunk.getX(), chunk.getZ());
-        final Position position = new Position(block.getX() % 16, block.getY(), block.getZ() % 16);
-        this.plugin.getLeafCache().remove(chunkPos, position);
-        PacketHelper.sendBlock(block.getX(), block.getY(), block.getZ(), this.plugin.config().getDefaultState(block.getType()).clone());
+        this.removeBlock(block);
     }
 
 }

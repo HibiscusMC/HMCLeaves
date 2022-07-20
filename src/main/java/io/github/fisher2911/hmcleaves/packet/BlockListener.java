@@ -12,9 +12,11 @@ import com.github.retrooper.packetevents.util.Vector3i;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBlockChange;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerChunkData;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMultiBlockChange;
+import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.LeafCache;
 import io.github.fisher2911.hmcleaves.util.Position;
 import io.github.fisher2911.hmcleaves.util.Position2D;
+import io.github.fisher2911.hmcleaves.util.PositionUtil;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
@@ -66,7 +68,7 @@ public class BlockListener {
                 final int difference = y - worldY;
                 if (difference < 0 || difference > 15) continue;
                 final WrappedBlockState state = entry.getValue();
-                final int actualY = Math.abs(position.y() % 16);
+                final int actualY = Math.abs(PositionUtil.getCoordInChunk(position.y()));
                 try {
                     chunk.set(
                             PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
@@ -76,7 +78,7 @@ public class BlockListener {
                             state.getGlobalId()
                     );
                 } catch (Exception e) {
-                    System.out.println("Could not set blocks at " + position.x() + ", " + actualY + ", " + position.z());
+                    HMCLeaves.getPlugin(HMCLeaves.class).getLogger().severe("Could not set blocks at " + position.x() + ", " + actualY + ", " + position.z());
                 }
             }
         }
@@ -87,7 +89,7 @@ public class BlockListener {
         final int x = position.getX();
         final int z = position.getZ();
         final Position2D chunkPos = new Position2D(world, x >> 4, z >> 4);
-        final Position position2D = new Position(x % 16, position.getY(), z % 16);
+        final Position position2D = new Position(PositionUtil.getCoordInChunk(x), position.getY(), PositionUtil.getCoordInChunk(z));
         final var state = this.leafCache.getAt(chunkPos, position2D);
         if (state == null) return;
         event.setCancelled(true);
@@ -106,7 +108,7 @@ public class BlockListener {
             final int chunkX = x >> 4;
             final int chunkZ = z >> 4;
             final Position2D chunkPos = new Position2D(world, chunkX, chunkZ);
-            final Position position = new Position(x % 16, y, z % 16);
+            final Position position = new Position(PositionUtil.getCoordInChunk(x), y, PositionUtil.getCoordInChunk(z));
             final WrappedBlockState state = this.leafCache.getAt(chunkPos, position);
             if (state == null) continue;
             block.setBlockState(state);

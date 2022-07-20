@@ -4,6 +4,14 @@ import java.util.Objects;
 
 public record Position(int x, int y, int z) {
 
+    public int getXInChunk() {
+        return x & 15;
+    }
+
+    public int getZInChunk() {
+        return z & 15;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

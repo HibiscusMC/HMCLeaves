@@ -25,7 +25,16 @@ public class LeafCache {
 
     public void addData(Position2D chunk, Position position, WrappedBlockState state) {
         final var map = this.cache.computeIfAbsent(chunk, k -> new HashMap<>());
+        if (!this.inBounds(position)) throw new IllegalArgumentException(position + " not in bounds");
         map.put(position, state);
+    }
+
+    private boolean inBounds(Position position) {
+        return this.inBounds(position.x()) && this.inBounds(position.z());
+    }
+
+    private boolean inBounds(int i) {
+        return i >= 0 && i < 16;
     }
 
     public void remove(Position2D chunk, Position position) {
