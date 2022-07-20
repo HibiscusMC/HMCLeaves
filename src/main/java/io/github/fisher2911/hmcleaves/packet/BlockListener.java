@@ -66,14 +66,18 @@ public class BlockListener {
                 final int difference = y - worldY;
                 if (difference < 0 || difference > 15) continue;
                 final WrappedBlockState state = entry.getValue();
-                final int actualY = position.y() % 16;
-                chunk.set(
-                        PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
-                        position.x(),
-                        actualY,
-                        position.z(),
-                        state.getGlobalId()
-                );
+                final int actualY = Math.abs(position.y() % 16);
+                try {
+                    chunk.set(
+                            PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
+                            position.x(),
+                            actualY,
+                            position.z(),
+                            state.getGlobalId()
+                    );
+                } catch (Exception e) {
+                    System.out.println("Could not set blocks at " + position.x() + ", " + actualY + ", " + position.z());
+                }
             }
         }
     }
