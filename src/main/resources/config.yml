@@ -1,0 +1,11 @@
+enabled: false
+default-state:
+  persistent: true
+  distance: 7
+items:
+  "test":
+    leaf-material: OAK_LEAVES
+    material: PAPER
+    model-data: 1
+    persistent: true
+    distance: 4

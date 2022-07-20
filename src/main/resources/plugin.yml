@@ -1,0 +1,12 @@
+name: HMCLeaves
+version: '${version}'
+main: io.github.fisher2911.hmcleaves.HMCLeaves
+api-version: 1.16
+permissions:
+  hmcleaves.command.item:
+    description: "Allows the player to use the /leaf command"
+    default: op
+commands:
+  "leaf":
+    description: "Allows the player to use the /leaf command"
+    permission: hmcleaves.command.item
