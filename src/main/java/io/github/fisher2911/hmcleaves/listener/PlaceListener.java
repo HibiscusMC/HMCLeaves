@@ -10,12 +10,14 @@ import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.util.Position;
 import io.github.fisher2911.hmcleaves.util.Position2D;
 import io.github.fisher2911.hmcleaves.util.PositionUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.data.type.Leaves;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -29,6 +31,9 @@ import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+
+import java.util.Collection;
+import java.util.List;
 
 public class PlaceListener implements Listener {
 
@@ -69,60 +74,65 @@ public class PlaceListener implements Listener {
         itemStack.setAmount(itemStack.getAmount() - 1);
     }
 
-    private void removeBlock(Block block) {
-        final Material material = block.getType();
-        if (!Tag.LEAVES.isTagged(material)) return;
-        final var state = this.plugin.config().getDefaultState(material).clone();
-        PacketHelper.sendLeaf(block.getX(), block.getY(), block.getZ(), state);
-        final CustomBlockData customBlockData = new CustomBlockData(block, this.plugin);
-        customBlockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, state.isPersistent() ? (byte) 1 : (byte) 0);
-        customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) state.getDistance());
-        this.plugin.getLeafCache().addData(new Position2D(block.getWorld().getUID(), block.getChunk().getX(), block.getChunk().getZ()), new Position(PositionUtil.getCoordInChunk(block.getX()), block.getY(), PositionUtil.getCoordInChunk(block.getZ())), state);
+    private void removeBlock(Block block, Collection<? extends Player> players) {
+        if (!Tag.LEAVES.isTagged(block.getType())) return;
+        final Chunk chunk = block.getChunk();
+        final Position2D chunkPos = new Position2D(block.getWorld().getUID(), chunk.getX(), chunk.getZ());
+        final Position position = new Position(PositionUtil.getCoordInChunk(block.getX()), block.getY(),PositionUtil.getCoordInChunk(block.getZ()));
+        this.plugin.getLeafCache().remove(chunkPos, position);
+        PacketHelper.sendBlock(block.getX(), block.getY(), block.getZ(), this.plugin.config().getDefaultState(block.getType()).clone(), players.toArray(new Player[0]));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onTreeGrow(StructureGrowEvent event) {
         for (BlockState block : event.getBlocks()) {
-            this.removeBlock(block.getBlock());
+            final Material material = block.getType();
+            if (!Tag.LEAVES.isTagged(material)) continue;
+            final var state = this.plugin.config().getDefaultState(material).clone();
+            PacketHelper.sendLeaf(block.getX(), block.getY(), block.getZ(), state);
+            final CustomBlockData customBlockData = new CustomBlockData(block.getBlock(), this.plugin);
+            customBlockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, state.isPersistent() ? (byte) 1 : (byte) 0);
+            customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) state.getDistance());
+            this.plugin.getLeafCache().addData(new Position2D(block.getWorld().getUID(), block.getChunk().getX(), block.getChunk().getZ()), new Position(PositionUtil.getCoordInChunk(block.getX()), block.getY(), PositionUtil.getCoordInChunk(block.getZ())), state);
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onCustomBlockBreak(CustomBlockDataRemoveEvent event) {
         final Block block = event.getBlock();
-        this.removeBlock(block);
+        this.removeBlock(block, Bukkit.getOnlinePlayers());
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onRemove(BlockBreakEvent event) {
         final Block block = event.getBlock();
-        this.removeBlock(block);
+        this.removeBlock(block, List.of(event.getPlayer()));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onRemove(BlockDestroyEvent event) {
         final Block block = event.getBlock();
-        this.removeBlock(block);
+        this.removeBlock(block, Bukkit.getOnlinePlayers());
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onRemove(BlockExplodeEvent event) {
         for (Block block : event.blockList()) {
-            this.removeBlock(block);
+            this.removeBlock(block, Bukkit.getOnlinePlayers());
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onRemove(EntityExplodeEvent event) {
         for (Block block : event.blockList()) {
-            this.removeBlock(block);
+            this.removeBlock(block, Bukkit.getOnlinePlayers());
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onRemove(LeavesDecayEvent event) {
         final Block block = event.getBlock();
-        this.removeBlock(block);
+        this.removeBlock(block, Bukkit.getOnlinePlayers());
     }
 
 }

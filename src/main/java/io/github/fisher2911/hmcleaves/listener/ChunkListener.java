@@ -102,7 +102,6 @@ public class ChunkListener implements Listener {
                 );
             } catch (Exception e) {
                 this.plugin.getLogger().severe("Block threw error: " + block.getX() + ", " + block.getY() + ", " + block.getZ());
-
                 e.printStackTrace();
             }
         }
