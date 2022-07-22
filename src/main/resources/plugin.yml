@@ -2,6 +2,8 @@ name: HMCLeaves
 version: '${version}'
 main: io.github.fisher2911.hmcleaves.HMCLeaves
 api-version: 1.16
+loadbefore:
+  - RoseLoot
 permissions:
   hmcleaves.command.item:
     description: "Allows the player to use the /leaf command"

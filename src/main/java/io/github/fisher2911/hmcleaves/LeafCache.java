@@ -37,10 +37,11 @@ public class LeafCache {
         return i >= 0 && i < 16;
     }
 
-    public void remove(Position2D chunk, Position position) {
+    @Nullable
+    public WrappedBlockState remove(Position2D chunk, Position position) {
         final var map = this.cache.get(chunk);
-        if (map == null) return;
-        map.remove(position);
+        if (map == null) return null;
+        return map.remove(position);
     }
 
     public Map<Position, WrappedBlockState> getOrAddChunkData(Position2D chunk) {
