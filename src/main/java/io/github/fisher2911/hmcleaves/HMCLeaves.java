@@ -53,14 +53,6 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
                 forEach(listener -> this.getServer().getPluginManager().registerEvents(listener, this));
     }
 
-    @EventHandler
-    public void test(PlayerInteractEvent event) {
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
-        if (!(event.getClickedBlock().getBlockData() instanceof Leaves leaves)) return;
-        event.getPlayer().sendMessage("Actual distance: " + leaves.getDistance());
-    }
-
-
     @Override
     public void onDisable() {
     }

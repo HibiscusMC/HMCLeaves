@@ -81,6 +81,7 @@ public class PlaceListener implements Listener {
         customBlockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, leafItem.persistent() ? (byte) 1 : (byte) 0);
         customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) leafItem.distance());
         itemStack.setAmount(itemStack.getAmount() - 1);
+        PacketHelper.sendArmSwing(event.getPlayer(), Bukkit.getOnlinePlayers());
     }
 
     @Nullable
