@@ -16,6 +16,7 @@ import io.github.fisher2911.hmcleaves.util.PositionUtil;
 import io.papermc.paper.event.block.BlockBreakBlockEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
@@ -83,7 +84,9 @@ public class PlaceListener implements Listener {
         final CustomBlockData customBlockData = new CustomBlockData(toPlace, this.plugin);
         customBlockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, leafItem.persistent() ? (byte) 1 : (byte) 0);
         customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) leafItem.distance());
-        itemStack.setAmount(itemStack.getAmount() - 1);
+
+        if (event.getPlayer().getGameMode() != GameMode.CREATIVE) itemStack.setAmount(itemStack.getAmount() - 1);
+
         PacketHelper.sendArmSwing(event.getPlayer(), Bukkit.getOnlinePlayers());
     }
 
@@ -103,7 +106,7 @@ public class PlaceListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void onActionClick(InventoryCreativeEvent event) {
-        if (event.getClick() != ClickType.MIDDLE) return;
+        if (event.getClick() != ClickType.CREATIVE) return;
         if (!(event.getWhoClicked() instanceof final Player player)) return;
         final RayTraceResult rayTrace = player.rayTraceBlocks(6);
         if (rayTrace == null) return;
@@ -116,8 +119,16 @@ public class PlaceListener implements Listener {
         if (state == null) return;
         final LeafItem leafItem = this.plugin.config().getByState(state);
         if (leafItem == null) return;
-        final int slot = event.getSlot();
-        player.getInventory().setItem(slot, leafItem.itemStack());
+        final ItemStack leafItemStack = leafItem.itemStack();
+        for (int i = 0; i <= 8; i++) {
+            final ItemStack itemStack = player.getInventory().getItem(i);
+            if (leafItemStack.equals(itemStack)) {
+                player.getInventory().setHeldItemSlot(i);
+                event.setCancelled(true);
+                return;
+            }
+        }
+        event.setCursor(leafItemStack);
     }
 
     @Nullable

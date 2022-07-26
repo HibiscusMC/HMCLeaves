@@ -68,6 +68,9 @@ public class ItemCommand implements CommandExecutor, TabExecutor {
             if (items.startsWith(args[0])) {
                 tabs.add(items);
             }
+            if (items.startsWith("debugtool")) {
+                tabs.add("debugtool");
+            }
         }
         return tabs;
     }
