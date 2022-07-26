@@ -42,6 +42,16 @@ public class Config {
         return leafItems.get(id);
     }
 
+    @Nullable
+    public LeafItem getByState(WrappedBlockState state) {
+        for (LeafItem item : leafItems.values()) {
+            if (item.persistent()== state.isPersistent() && item.distance() == state.getDistance()) {
+                return item;
+            }
+        }
+        return null;
+    }
+
     public Map<String, LeafItem> getLeafItems() {
         return leafItems;
     }

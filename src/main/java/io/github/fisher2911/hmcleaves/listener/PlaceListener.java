@@ -33,11 +33,14 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryCreativeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.RayTraceResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -82,6 +85,39 @@ public class PlaceListener implements Listener {
         customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) leafItem.distance());
         itemStack.setAmount(itemStack.getAmount() - 1);
         PacketHelper.sendArmSwing(event.getPlayer(), Bukkit.getOnlinePlayers());
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    public void onActionClick(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        final Block clicked = event.getClickedBlock();
+        if (clicked == null || !Tag.LEAVES.isTagged(clicked.getType())) return;
+        final ItemStack itemStack = event.getItem();
+        if (itemStack == null) return;
+        if (!PDCUtil.isLeafDataItem(itemStack)) return;
+
+        final Player player = event.getPlayer();
+        if (!(clicked.getBlockData() instanceof final Leaves leaves)) return;
+        player.sendMessage("Actual distance: " + leaves.getDistance() + " actual persistence: " + leaves.isPersistent());
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    public void onActionClick(InventoryCreativeEvent event) {
+        if (event.getClick() != ClickType.MIDDLE) return;
+        if (!(event.getWhoClicked() instanceof final Player player)) return;
+        final RayTraceResult rayTrace = player.rayTraceBlocks(6);
+        if (rayTrace == null) return;
+        final Block clicked = rayTrace.getHitBlock();
+        if (clicked == null) return;
+        final Location location = clicked.getLocation();
+        final Position2D chunkPos = new Position2D(location.getWorld().getUID(), location.getChunk().getX(), location.getChunk().getZ());
+        final Position position = new Position(PositionUtil.getCoordInChunk(location.getBlockX()), location.getBlockY(), PositionUtil.getCoordInChunk(location.getBlockZ()));
+        final var state = this.plugin.getLeafCache().getAt(chunkPos, position);
+        if (state == null) return;
+        final LeafItem leafItem = this.plugin.config().getByState(state);
+        if (leafItem == null) return;
+        final int slot = event.getSlot();
+        player.getInventory().setItem(slot, leafItem.itemStack());
     }
 
     @Nullable
