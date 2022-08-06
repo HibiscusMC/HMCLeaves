@@ -17,15 +17,20 @@ import io.github.fisher2911.hmcleaves.LeafCache;
 import io.github.fisher2911.hmcleaves.util.Position;
 import io.github.fisher2911.hmcleaves.util.Position2D;
 import io.github.fisher2911.hmcleaves.util.PositionUtil;
+import org.bukkit.Bukkit;
+import org.bukkit.Tag;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
 
 public class BlockListener {
 
+    private final HMCLeaves plugin;
     private final LeafCache leafCache;
 
-    public BlockListener(LeafCache cache) {
+    public BlockListener(HMCLeaves plugin, LeafCache cache) {
+        this.plugin = plugin;
         this.leafCache = cache;
     }
 
@@ -87,15 +92,23 @@ public class BlockListener {
     private void registerSingleChangeListener(UUID world, PacketSendEvent event, WrapperPlayServerBlockChange packet) {
         final Vector3i position = packet.getBlockPosition();
         final int x = position.getX();
+        final int y = position.getY();
         final int z = position.getZ();
         final Position2D chunkPos = new Position2D(world, x >> 4, z >> 4);
         final Position position2D = new Position(PositionUtil.getCoordInChunk(x), position.getY(), PositionUtil.getCoordInChunk(z));
-        final var state = this.leafCache.getAt(chunkPos, position2D);
-        if (state == null) return;
+        var state = this.leafCache.getAt(chunkPos, position2D);
+        if (state == null) {
+            state = packet.getBlockState().clone();
+            if (!state.getType().getName().toLowerCase().contains("LEAVES")) return;
+            this.plugin.config().setDefaultState(state);
+            this.leafCache.addData(chunkPos, position2D, state.clone());
+        } else {
+            state = state.clone();
+        }
         event.setCancelled(true);
         PacketEvents.getAPI().getPlayerManager().sendPacketSilently(
                 event.getPlayer(),
-                new WrapperPlayServerBlockChange(packet.getBlockPosition(), state.clone().getGlobalId())
+                new WrapperPlayServerBlockChange(packet.getBlockPosition(), state.getGlobalId())
         );
     }
 
@@ -105,12 +118,17 @@ public class BlockListener {
             final int x = block.getX();
             final int y = block.getY();
             final int z = block.getZ();
-            final int chunkX = x >> 4;
-            final int chunkZ = z >> 4;
-            final Position2D chunkPos = new Position2D(world, chunkX, chunkZ);
+//            final int chunkX = x >> 4;
+//            final int chunkZ = z >> 4;
+            final Position2D chunkPos = new Position2D(world, packet.getChunkPosition().getX(), packet.getChunkPosition().getZ());
             final Position position = new Position(PositionUtil.getCoordInChunk(x), y, PositionUtil.getCoordInChunk(z));
-            final WrappedBlockState state = this.leafCache.getAt(chunkPos, position);
-            if (state == null) continue;
+            WrappedBlockState state = this.leafCache.getAt(chunkPos, position);
+            final Block b = Bukkit.getWorld(world).getBlockAt(x, y, z);
+            if (!Tag.LEAVES.isTagged(b.getType())) return;
+            if (state == null) {
+                state = this.plugin.config().getDefaultState(b.getType()).clone();
+                this.leafCache.addData(chunkPos, position, state);
+            }
             block.setBlockState(state);
         }
     }

@@ -6,6 +6,7 @@ import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState
 import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes;
 import com.jeff_media.customblockdata.CustomBlockData;
 import com.jeff_media.customblockdata.events.CustomBlockDataRemoveEvent;
+import io.github.fisher2911.hmcleaves.Config;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.LeafItem;
 import io.github.fisher2911.hmcleaves.packet.PacketHelper;
@@ -58,6 +59,11 @@ public class PlaceListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void onClick(PlayerInteractEvent event) {
+        this.handlePlace(event);
+        this.handleInfoClick(event);
+    }
+
+    private void handlePlace(PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         final Block toPlace = event.getClickedBlock().getRelative(event.getBlockFace());
         final ItemStack itemStack = event.getItem();
@@ -65,7 +71,18 @@ public class PlaceListener implements Listener {
         final ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta == null) return;
         final String id = itemMeta.getPersistentDataContainer().get(PDCUtil.ITEM_KEY, PersistentDataType.STRING);
-        if (id == null) return;
+        final Chunk chunk = toPlace.getChunk();
+        final Position2D chunkPos = new Position2D(toPlace.getWorld().getUID(), chunk.getX(), chunk.getZ());
+        final Position position = new Position(PositionUtil.getCoordInChunk(toPlace.getX()), toPlace.getY(), PositionUtil.getCoordInChunk(toPlace.getZ()));
+        if (id == null) {
+            final Material material = itemStack.getType();
+            if (!Tag.LEAVES.isTagged(material)) return;
+            final WrappedBlockState defaultState = this.plugin.config().getDefaultState(material);
+            Bukkit.getScheduler().runTaskLaterAsynchronously(this.plugin, () -> {
+                PacketHelper.sendLeaf(toPlace.getX(), toPlace.getY(), toPlace.getZ(), defaultState, event.getPlayer());
+            }, 2);
+            return;
+        }
         final LeafItem leafItem = plugin.config().getItem(id);
         if (leafItem == null) return;
         toPlace.setType(leafItem.leafType());
@@ -76,28 +93,24 @@ public class PlaceListener implements Listener {
         final var defaultState = this.plugin.config().getDefaultState(leafItem.leafType()).clone();
         defaultState.setDistance(leafItem.distance());
         defaultState.setPersistent(leafItem.persistent());
-        PacketHelper.sendLeaf(toPlace.getX(), toPlace.getY(), toPlace.getZ(), defaultState);
-        final Chunk chunk = toPlace.getChunk();
-        final Position2D chunkPos = new Position2D(toPlace.getWorld().getUID(), chunk.getX(), chunk.getZ());
-        final Position position = new Position(PositionUtil.getCoordInChunk(toPlace.getX()), toPlace.getY(), PositionUtil.getCoordInChunk(toPlace.getZ()));
         this.plugin.getLeafCache().addData(chunkPos, position, defaultState);
         final CustomBlockData customBlockData = new CustomBlockData(toPlace, this.plugin);
         customBlockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, leafItem.persistent() ? (byte) 1 : (byte) 0);
         customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) leafItem.distance());
+        PacketHelper.sendLeaf(toPlace.getX(), toPlace.getY(), toPlace.getZ(), defaultState);
 
         if (event.getPlayer().getGameMode() != GameMode.CREATIVE) itemStack.setAmount(itemStack.getAmount() - 1);
 
         PacketHelper.sendArmSwing(event.getPlayer(), Bukkit.getOnlinePlayers());
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
-    public void onActionClick(PlayerInteractEvent event) {
+    private void handleInfoClick(PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         final Block clicked = event.getClickedBlock();
         if (clicked == null || !Tag.LEAVES.isTagged(clicked.getType())) return;
         final ItemStack itemStack = event.getItem();
         if (itemStack == null) return;
-        if (!PDCUtil.isLeafDataItem(itemStack)) return;
+        if (!Config.DEBUG_TOOL_ID.equals(PDCUtil.getLeafDataItemId(itemStack))) return;
 
         final Player player = event.getPlayer();
         if (!(clicked.getBlockData() instanceof final Leaves leaves)) return;
@@ -133,23 +146,28 @@ public class PlaceListener implements Listener {
 
     @Nullable
     private WrappedBlockState removeBlock(Block block, Collection<? extends Player> players) {
-        if (!(block.getBlockData() instanceof Leaves)) return null;
         final Chunk chunk = block.getChunk();
         final Position2D chunkPos = new Position2D(block.getWorld().getUID(), chunk.getX(), chunk.getZ());
         final Position position = new Position(PositionUtil.getCoordInChunk(block.getX()), block.getY(), PositionUtil.getCoordInChunk(block.getZ()));
         final var previous = this.plugin.getLeafCache().remove(chunkPos, position);
+        if (!(block.getBlockData() instanceof Leaves)) return null;
+        final CustomBlockData blockData = new CustomBlockData(block, this.plugin);
+        blockData.remove(PDCUtil.PERSISTENCE_KEY);
+        blockData.remove(PDCUtil.DISTANCE_KEY);
         Bukkit.getScheduler().runTaskLaterAsynchronously(
                 this.plugin,
-                () -> PacketHelper.sendBlock(
-                        block.getX(),
-                        block.getY(),
-                        block.getZ(),
-                        WrappedBlockState.getDefaultState(
-                                PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
-                                StateTypes.AIR
-                        ),
-                        players.toArray(new Player[0])
-                ),
+                () -> {
+                    PacketHelper.sendBlock(
+                            block.getX(),
+                            block.getY(),
+                            block.getZ(),
+                            WrappedBlockState.getDefaultState(
+                                    PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
+                                    StateTypes.AIR
+                            ),
+                            players.toArray(new Player[0])
+                    );
+                },
                 1
         );
         return previous;
@@ -172,13 +190,15 @@ public class PlaceListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void onCustomBlockBreak(CustomBlockDataRemoveEvent event) {
         final Block block = event.getBlock();
-        this.removeBlock(block, Bukkit.getOnlinePlayers());
+        if (!(block.getBlockData() instanceof Leaves)) return;
+        Bukkit.getScheduler().runTaskLater(this.plugin, () -> this.removeBlock(block, Bukkit.getOnlinePlayers()), 1);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void onRemove(BlockBreakEvent event) {
         if (event instanceof LeafBlockBreakEvent) return;
         final Block block = event.getBlock();
+        if (!(block.getBlockData() instanceof Leaves)) return;
         final var state = this.removeBlock(block, List.of(event.getPlayer()));
         if (state == null) return;
         event.setCancelled(true);
@@ -188,6 +208,7 @@ public class PlaceListener implements Listener {
         block.setBlockData(leaves);
         final var breakEvent = new LeafBlockBreakEvent(block, event.getPlayer());
         Bukkit.getPluginManager().callEvent(breakEvent);
+        if (breakEvent.isCancelled()) return;
         block.setType(Material.AIR);
     }
 
@@ -195,6 +216,7 @@ public class PlaceListener implements Listener {
     public void onRemove(BlockDestroyEvent event) {
         if (event instanceof LeafBlockDestroyEvent) return;
         final Block block = event.getBlock();
+        if (!(block.getBlockData() instanceof Leaves)) return;
         final var state = this.removeBlock(block, Bukkit.getOnlinePlayers());
         if (state == null) return;
         event.setCancelled(true);
@@ -204,6 +226,8 @@ public class PlaceListener implements Listener {
         block.setBlockData(leaves);
         final var breakEvent = new LeafBlockDestroyEvent(block, event.getNewState(), event.willDrop());
         Bukkit.getPluginManager().callEvent(breakEvent);
+        if (breakEvent.isCancelled()) return;
+        block.setType(Material.AIR);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
@@ -211,6 +235,7 @@ public class PlaceListener implements Listener {
         if (event instanceof LeafBlockExplodeEvent) return;
         boolean changed = false;
         for (Block block : event.blockList()) {
+            if (!(block.getBlockData() instanceof Leaves)) continue;
             final var state = this.removeBlock(block, event.getBlock().getWorld().getPlayers());
             if (state == null) continue;
             if (!(block.getBlockData() instanceof Leaves leaves)) continue;
@@ -223,6 +248,10 @@ public class PlaceListener implements Listener {
         event.setCancelled(true);
         final var explodeEvent = new LeafBlockExplodeEvent(event.getBlock(), event.blockList(), event.getYield());
         Bukkit.getPluginManager().callEvent(explodeEvent);
+        if (explodeEvent.isCancelled()) return;
+        for (Block b : event.blockList()) {
+            b.setType(Material.AIR);
+        }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
@@ -230,6 +259,7 @@ public class PlaceListener implements Listener {
         if (event instanceof LeafEntityExplodeEvent) return;
         boolean changed = false;
         for (Block block : event.blockList()) {
+            if (!(block.getBlockData() instanceof Leaves)) continue;
             final var state = this.removeBlock(block, event.getEntity().getWorld().getPlayers());
             if (state == null) continue;
             if (!(block.getBlockData() instanceof Leaves leaves)) continue;
@@ -242,12 +272,17 @@ public class PlaceListener implements Listener {
         event.setCancelled(true);
         final var explodeEvent = new LeafEntityExplodeEvent(event.getEntity(), event.getLocation(), event.blockList(), event.getYield());
         Bukkit.getPluginManager().callEvent(explodeEvent);
+        if (explodeEvent.isCancelled()) return;
+        for (Block b : event.blockList()) {
+            b.setType(Material.AIR);
+        }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void onRemove(LeavesDecayEvent event) {
         if (event instanceof LeafLeavesDecayEvent) return;
         final Block block = event.getBlock();
+        if (!(block.getBlockData() instanceof Leaves)) return;
         final var state = this.removeBlock(block, Bukkit.getOnlinePlayers());
         if (state == null) return;
         event.setCancelled(true);
@@ -257,12 +292,15 @@ public class PlaceListener implements Listener {
         block.setBlockData(leaves);
         final var breakEvent = new LeafLeavesDecayEvent(block);
         Bukkit.getPluginManager().callEvent(breakEvent);
+        if (breakEvent.isCancelled()) return;
+        block.setType(Material.AIR);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void onRemove(BlockBreakBlockEvent event) {
         if (event instanceof LeafBlockBreakBlockEvent) return;
         final Block block = event.getBlock();
+        if (!(block.getBlockData() instanceof Leaves)) return;
         final var state = this.removeBlock(block, Bukkit.getOnlinePlayers());
         if (state == null) return;
         if (!(block.getBlockData() instanceof Leaves leaves)) return;
@@ -271,6 +309,8 @@ public class PlaceListener implements Listener {
         block.setBlockData(leaves);
         final var breakEvent = new LeafLeavesDecayEvent(block);
         Bukkit.getPluginManager().callEvent(breakEvent);
+        if (breakEvent.isCancelled()) return;
+        block.setType(Material.AIR);
     }
 
     private static class LeafBlockBreakEvent extends BlockBreakEvent {

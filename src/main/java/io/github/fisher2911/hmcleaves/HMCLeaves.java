@@ -7,11 +7,7 @@ import io.github.fisher2911.hmcleaves.listener.ChunkListener;
 import io.github.fisher2911.hmcleaves.listener.PlaceListener;
 import io.github.fisher2911.hmcleaves.packet.BlockListener;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
-import org.bukkit.block.data.type.Leaves;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -44,7 +40,7 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
         PacketEvents.getAPI().init();
         this.getServer().getPluginManager().registerEvents(this, this);
         this.registerListeners();
-        new BlockListener(this.leafCache).register();
+        new BlockListener(this, this.leafCache).register();
         this.getCommand("leaf").setExecutor(new ItemCommand(this.config));
     }
 

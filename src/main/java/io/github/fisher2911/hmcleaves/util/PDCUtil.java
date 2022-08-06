@@ -26,15 +26,19 @@ public class PDCUtil {
     }
 
     public static boolean isLeafDataItem(ItemStack itemStack) {
-        final ItemMeta meta = itemStack.getItemMeta();
-        if (meta == null) return false;
-        return meta.getPersistentDataContainer().has(ITEM_KEY, PersistentDataType.BYTE);
+        return getLeafDataItemId(itemStack) != null;
     }
 
-    public static void setLeafDataItem(ItemStack itemStack) {
+    public static String getLeafDataItemId(ItemStack itemStack) {
+        final ItemMeta meta = itemStack.getItemMeta();
+        if (meta == null) return null;
+        return meta.getPersistentDataContainer().get(ITEM_KEY, PersistentDataType.STRING);
+    }
+
+    public static void setLeafDataItem(ItemStack itemStack, String id) {
         final ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta == null) return;
-        itemMeta.getPersistentDataContainer().set(ITEM_KEY, PersistentDataType.BYTE, (byte) 1);
+        itemMeta.getPersistentDataContainer().set(ITEM_KEY, PersistentDataType.STRING, id);
         itemStack.setItemMeta(itemMeta);
     }
 }

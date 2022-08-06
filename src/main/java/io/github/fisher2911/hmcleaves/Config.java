@@ -22,6 +22,8 @@ public class Config {
     private boolean defaultPersistent;
     private boolean enabled;
 
+    public static final String DEBUG_TOOL_ID = "debugtool";
+
     public Config(HMCLeaves plugin, Map<String, LeafItem> leafItems) {
         this.plugin = plugin;
         this.leafItems = leafItems;
@@ -35,6 +37,11 @@ public class Config {
         state.setDistance(this.defaultDistance);
         state.setPersistent(this.defaultPersistent);
         return state;
+    }
+
+    public void setDefaultState(WrappedBlockState state) {
+        state.setDistance(this.defaultDistance);
+        state.setPersistent(this.defaultPersistent);
     }
 
     @Nullable
