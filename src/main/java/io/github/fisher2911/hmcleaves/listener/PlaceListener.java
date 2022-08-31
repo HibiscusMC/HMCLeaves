@@ -79,7 +79,7 @@ public class PlaceListener implements Listener {
             if (!Tag.LEAVES.isTagged(material)) return;
             final WrappedBlockState defaultState = this.plugin.config().getDefaultState(material);
             Bukkit.getScheduler().runTaskLaterAsynchronously(this.plugin, () -> {
-                PacketHelper.sendLeaf(toPlace.getX(), toPlace.getY(), toPlace.getZ(), defaultState, event.getPlayer());
+                PacketHelper.sendLeaf(toPlace.getX(), toPlace.getY(), toPlace.getZ(), defaultState, Bukkit.getOnlinePlayers());
             }, 2);
             return;
         }
@@ -97,7 +97,7 @@ public class PlaceListener implements Listener {
         final CustomBlockData customBlockData = new CustomBlockData(toPlace, this.plugin);
         customBlockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, leafItem.persistent() ? (byte) 1 : (byte) 0);
         customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) leafItem.distance());
-        PacketHelper.sendLeaf(toPlace.getX(), toPlace.getY(), toPlace.getZ(), defaultState);
+        PacketHelper.sendLeaf(toPlace.getX(), toPlace.getY(), toPlace.getZ(), defaultState, Bukkit.getOnlinePlayers());
 
         if (event.getPlayer().getGameMode() != GameMode.CREATIVE) itemStack.setAmount(itemStack.getAmount() - 1);
 
@@ -179,7 +179,7 @@ public class PlaceListener implements Listener {
             final Material material = block.getType();
             if (!Tag.LEAVES.isTagged(material)) continue;
             final var state = this.plugin.config().getDefaultState(material).clone();
-            PacketHelper.sendLeaf(block.getX(), block.getY(), block.getZ(), state);
+            PacketHelper.sendLeaf(block.getX(), block.getY(), block.getZ(), state, Bukkit.getOnlinePlayers());
             final CustomBlockData customBlockData = new CustomBlockData(block.getBlock(), this.plugin);
             customBlockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, state.isPersistent() ? (byte) 1 : (byte) 0);
             customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) state.getDistance());

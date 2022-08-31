@@ -11,6 +11,10 @@ import java.util.Collection;
 
 public class PacketHelper {
 
+    public static void sendLeaf(int x, int y, int z, WrappedBlockState state, Collection<? extends Player> players) {
+        sendLeaf(x, y, z, state, players.toArray(new Player[0]));
+    }
+
     public static void sendLeaf(int x, int y, int z, WrappedBlockState state, Player... players) {
         for (Player player : players) {
             PacketEvents.getAPI().getPlayerManager().sendPacketSilently(
