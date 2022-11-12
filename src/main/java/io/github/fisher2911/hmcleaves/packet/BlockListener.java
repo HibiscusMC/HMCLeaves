@@ -22,6 +22,7 @@ import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
+import java.util.Locale;
 import java.util.UUID;
 
 public class BlockListener {
@@ -97,9 +98,16 @@ public class BlockListener {
         final Position2D chunkPos = new Position2D(world, x >> 4, z >> 4);
         final Position position2D = new Position(PositionUtil.getCoordInChunk(x), position.getY(), PositionUtil.getCoordInChunk(z));
         var state = this.leafCache.getAt(chunkPos, position2D);
+        final var newState = packet.getBlockState();
+        if (!newState.getType().getName().toUpperCase(Locale.ROOT).contains("LEAVES")) {
+            this.leafCache.remove(chunkPos, position2D);
+            return;
+        }
         if (state == null) {
             state = packet.getBlockState().clone();
-            if (!state.getType().getName().toLowerCase().contains("LEAVES")) return;
+            if (!state.getType().getName().toUpperCase(Locale.ROOT).contains("LEAVES")){
+                return;
+            }
             this.plugin.config().setDefaultState(state);
             this.leafCache.addData(chunkPos, position2D, state.clone());
         } else {
@@ -125,6 +133,11 @@ public class BlockListener {
             WrappedBlockState state = this.leafCache.getAt(chunkPos, position);
             final Block b = Bukkit.getWorld(world).getBlockAt(x, y, z);
             if (!Tag.LEAVES.isTagged(b.getType())) return;
+            final WrappedBlockState newState = block.getBlockState(PacketEvents.getAPI().getServerManager().getVersion().toClientVersion());
+            if (!newState.getType().getName().toUpperCase().contains("LEAVES")) {
+                this.leafCache.remove(chunkPos, position);
+                return;
+            }
             if (state == null) {
                 state = this.plugin.config().getDefaultState(b.getType()).clone();
                 this.leafCache.addData(chunkPos, position, state);
@@ -132,4 +145,5 @@ public class BlockListener {
             block.setBlockState(state);
         }
     }
+
 }

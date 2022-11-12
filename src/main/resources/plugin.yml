@@ -1,6 +1,7 @@
 name: HMCLeaves
 version: '${version}'
 main: io.github.fisher2911.hmcleaves.HMCLeaves
+softdepend: [ Oraxen, ItemsAdder ]
 api-version: 1.16
 loadbefore:
   - RoseLoot

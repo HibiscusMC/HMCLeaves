@@ -3,6 +3,7 @@ package io.github.fisher2911.hmcleaves;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.PacketEventsAPI;
 import io.github.fisher2911.hmcleaves.command.ItemCommand;
+import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.listener.ChunkListener;
 import io.github.fisher2911.hmcleaves.listener.PlaceListener;
 import io.github.fisher2911.hmcleaves.packet.BlockListener;
@@ -42,6 +43,7 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
         this.registerListeners();
         new BlockListener(this, this.leafCache).register();
         this.getCommand("leaf").setExecutor(new ItemCommand(this.config));
+        Hooks.load(this);
     }
 
     private void registerListeners() {

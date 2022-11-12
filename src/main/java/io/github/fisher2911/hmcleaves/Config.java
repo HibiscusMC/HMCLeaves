@@ -52,7 +52,7 @@ public class Config {
     @Nullable
     public LeafItem getByState(WrappedBlockState state) {
         for (LeafItem item : this.leafItems.values()) {
-            if (item.persistent()== state.isPersistent() && item.distance() == state.getDistance()) {
+            if (item.leafData().persistent() == state.isPersistent() && item.leafData().distance() == state.getDistance()) {
                 return item;
             }
         }

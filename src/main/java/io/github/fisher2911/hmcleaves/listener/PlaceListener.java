@@ -8,6 +8,7 @@ import com.jeff_media.customblockdata.CustomBlockData;
 import com.jeff_media.customblockdata.events.CustomBlockDataRemoveEvent;
 import io.github.fisher2911.hmcleaves.Config;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
+import io.github.fisher2911.hmcleaves.LeafData;
 import io.github.fisher2911.hmcleaves.LeafItem;
 import io.github.fisher2911.hmcleaves.packet.PacketHelper;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
@@ -70,38 +71,38 @@ public class PlaceListener implements Listener {
         if (itemStack == null) return;
         final ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta == null) return;
-        final String id = itemMeta.getPersistentDataContainer().get(PDCUtil.ITEM_KEY, PersistentDataType.STRING);
+        final String id = PDCUtil.getLeafDataItemId(itemStack);/* itemMeta.getPersistentDataContainer().get(PDCUtil.ITEM_KEY, PersistentDataType.STRING);*/
         final Chunk chunk = toPlace.getChunk();
         final Position2D chunkPos = new Position2D(toPlace.getWorld().getUID(), chunk.getX(), chunk.getZ());
         final Position position = new Position(PositionUtil.getCoordInChunk(toPlace.getX()), toPlace.getY(), PositionUtil.getCoordInChunk(toPlace.getZ()));
-        if (id == null) {
+        final LeafItem leafItem = plugin.config().getItem(id);
+        final LeafData leafData = leafItem != null ? leafItem.leafData() : PDCUtil.getLeafData(itemMeta.getPersistentDataContainer());
+        if (leafData == null) {
             final Material material = itemStack.getType();
             if (!Tag.LEAVES.isTagged(material)) return;
             final WrappedBlockState defaultState = this.plugin.config().getDefaultState(material);
             Bukkit.getScheduler().runTaskLaterAsynchronously(this.plugin, () -> {
-                PacketHelper.sendLeaf(toPlace.getX(), toPlace.getY(), toPlace.getZ(), defaultState, Bukkit.getOnlinePlayers());
+                PacketHelper.sendLeaf(toPlace.getWorld().getUID(), toPlace.getX(), toPlace.getY(), toPlace.getZ(), defaultState, Bukkit.getOnlinePlayers());
             }, 2);
             return;
         }
-        final LeafItem leafItem = plugin.config().getItem(id);
-        if (leafItem == null) return;
-        toPlace.setType(leafItem.leafType());
+        final var defaultState = this.plugin.config().getDefaultState(leafData.material()).clone();
+        defaultState.setDistance(leafData.distance());
+        defaultState.setPersistent(leafData.persistent());
+        this.plugin.getLeafCache().addData(chunkPos, position, defaultState);
+        toPlace.setType(leafData.material());
         if (toPlace.getBlockData() instanceof final Leaves leaves) {
             leaves.setPersistent(true);
             toPlace.setBlockData(leaves);
         }
-        final var defaultState = this.plugin.config().getDefaultState(leafItem.leafType()).clone();
-        defaultState.setDistance(leafItem.distance());
-        defaultState.setPersistent(leafItem.persistent());
-        this.plugin.getLeafCache().addData(chunkPos, position, defaultState);
         final CustomBlockData customBlockData = new CustomBlockData(toPlace, this.plugin);
-        customBlockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, leafItem.persistent() ? (byte) 1 : (byte) 0);
-        customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) leafItem.distance());
-        PacketHelper.sendLeaf(toPlace.getX(), toPlace.getY(), toPlace.getZ(), defaultState, Bukkit.getOnlinePlayers());
-
+        customBlockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, leafData.persistent() ? (byte) 1 : (byte) 0);
+        customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) leafData.distance());
+        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
+            PacketHelper.sendLeaf(toPlace.getWorld().getUID(), toPlace.getX(), toPlace.getY(), toPlace.getZ(), defaultState, Bukkit.getOnlinePlayers());
+            PacketHelper.sendArmSwing(event.getPlayer(), Bukkit.getOnlinePlayers());
+        });
         if (event.getPlayer().getGameMode() != GameMode.CREATIVE) itemStack.setAmount(itemStack.getAmount() - 1);
-
-        PacketHelper.sendArmSwing(event.getPlayer(), Bukkit.getOnlinePlayers());
     }
 
     private void handleInfoClick(PlayerInteractEvent event) {
@@ -158,6 +159,7 @@ public class PlaceListener implements Listener {
                 this.plugin,
                 () -> {
                     PacketHelper.sendBlock(
+                            block.getWorld().getUID(),
                             block.getX(),
                             block.getY(),
                             block.getZ(),
@@ -179,7 +181,7 @@ public class PlaceListener implements Listener {
             final Material material = block.getType();
             if (!Tag.LEAVES.isTagged(material)) continue;
             final var state = this.plugin.config().getDefaultState(material).clone();
-            PacketHelper.sendLeaf(block.getX(), block.getY(), block.getZ(), state, Bukkit.getOnlinePlayers());
+            PacketHelper.sendLeaf(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), state, Bukkit.getOnlinePlayers());
             final CustomBlockData customBlockData = new CustomBlockData(block.getBlock(), this.plugin);
             customBlockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, state.isPersistent() ? (byte) 1 : (byte) 0);
             customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) state.getDistance());
@@ -334,6 +336,7 @@ public class PlaceListener implements Listener {
         public LeafBlockBreakBlockEvent(@NotNull Block block, @NotNull Block source, @NotNull List<ItemStack> drops) {
             super(block, source, drops);
         }
+
     }
 
     private static class LeafEntityExplodeEvent extends EntityExplodeEvent {

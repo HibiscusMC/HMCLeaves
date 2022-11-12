@@ -15,6 +15,8 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.18.2-R0.1-SNAPSHOT")
+    compileOnly("com.github.oraxen:oraxen:-SNAPSHOT")
+    compileOnly("com.github.LoneDev6:api-itemsadder:3.0.0")
     implementation("com.github.retrooper.packetevents:spigot:2.0-SNAPSHOT")
     implementation("com.jeff_media:CustomBlockData:2.0.1")
     implementation("com.jeff_media:MorePersistentDataTypes:2.3.1")

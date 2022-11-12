@@ -8,15 +8,17 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEn
 import org.bukkit.entity.Player;
 
 import java.util.Collection;
+import java.util.UUID;
 
 public class PacketHelper {
 
-    public static void sendLeaf(int x, int y, int z, WrappedBlockState state, Collection<? extends Player> players) {
-        sendLeaf(x, y, z, state, players.toArray(new Player[0]));
+    public static void sendLeaf(UUID world, int x, int y, int z, WrappedBlockState state, Collection<? extends Player> players) {
+        sendLeaf(world, x, y, z, state, players.toArray(new Player[0]));
     }
 
-    public static void sendLeaf(int x, int y, int z, WrappedBlockState state, Player... players) {
+    public static void sendLeaf(UUID world, int x, int y, int z, WrappedBlockState state, Player... players) {
         for (Player player : players) {
+            if (player.getWorld().getUID() != world) continue;
             PacketEvents.getAPI().getPlayerManager().sendPacketSilently(
                     player,
                     new WrapperPlayServerBlockChange(
@@ -27,8 +29,9 @@ public class PacketHelper {
         }
     }
 
-    public static void sendBlock(int x, int y, int z, WrappedBlockState state, Player... players) {
+    public static void sendBlock(UUID world, int x, int y, int z, WrappedBlockState state, Player... players) {
         for (Player player : players) {
+            if (player.getWorld().getUID() != world) continue;
             PacketEvents.getAPI().getPlayerManager().sendPacketSilently(
                     player,
                     new WrapperPlayServerBlockChange(
