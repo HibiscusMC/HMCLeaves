@@ -1,21 +1,16 @@
 package io.github.fisher2911.hmcleaves.hook.oraxen;
 
-public class OraxenHook {
+import io.github.fisher2911.hmcleaves.hook.ItemHook;
+import io.th0rgal.oraxen.api.OraxenItems;
+import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
-    private final CustomLeafMechanicFactory factory;
+public class OraxenHook implements ItemHook {
 
-    public OraxenHook(CustomLeafMechanicFactory factory) {
-        this.factory = factory;
+    @Override
+    @Nullable
+    public String getId(ItemStack itemStack) {
+        return OraxenItems.getIdByItem(itemStack);
     }
-//
-//    @Override
-//    @Nullable
-//    public Pair<Integer, Boolean> getLeafData(ItemStack itemStack) {
-////        final String itemID = OraxenItems.getIdByItem(itemStack);
-////        if (!this.factory.isNotImplementedIn(itemID)) return null;
-////        if (!(this.factory.getMechanic(itemID) instanceof CustomLeafMechanic mechanic)) return null;
-////        final ItemMeta itemMeta
-//        return null;
-//    }
 
 }

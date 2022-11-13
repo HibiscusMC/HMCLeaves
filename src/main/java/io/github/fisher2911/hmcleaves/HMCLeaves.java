@@ -2,7 +2,7 @@ package io.github.fisher2911.hmcleaves;
 
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.PacketEventsAPI;
-import io.github.fisher2911.hmcleaves.command.ItemCommand;
+import io.github.fisher2911.hmcleaves.command.LeavesCommand;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.listener.ChunkListener;
 import io.github.fisher2911.hmcleaves.listener.PlaceListener;
@@ -42,7 +42,7 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
         this.getServer().getPluginManager().registerEvents(this, this);
         this.registerListeners();
         new BlockListener(this, this.leafCache).register();
-        this.getCommand("leaf").setExecutor(new ItemCommand(this.config));
+        this.getCommand("hmcleaves").setExecutor(new LeavesCommand(this));
         Hooks.load(this);
     }
 
@@ -53,6 +53,10 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
+    }
+
+    public void reload() {
+        this.config.reload();
     }
 
     public Config config() {

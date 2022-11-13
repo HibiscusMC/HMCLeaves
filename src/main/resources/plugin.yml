@@ -1,5 +1,5 @@
 name: HMCLeaves
-version: '${version}'
+version: '1.0-SNAPSHOT'
 main: io.github.fisher2911.hmcleaves.HMCLeaves
 softdepend: [ Oraxen, ItemsAdder ]
 api-version: 1.16
@@ -10,6 +10,6 @@ permissions:
     description: "Allows the player to use the /leaf command"
     default: op
 commands:
-  "leaf":
+  "hmcleaves":
     description: "Allows the player to use the /leaf command"
     permission: hmcleaves.command.item

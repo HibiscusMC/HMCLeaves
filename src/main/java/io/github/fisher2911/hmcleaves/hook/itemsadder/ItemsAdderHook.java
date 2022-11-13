@@ -1,12 +1,13 @@
-package io.github.fisher2911.hmcleaves.hook;
+package io.github.fisher2911.hmcleaves.hook.itemsadder;
 
 import dev.lone.itemsadder.api.CustomStack;
-import org.bukkit.event.Listener;
+import io.github.fisher2911.hmcleaves.hook.ItemHook;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
-public class ItemsAdderHook implements Listener {
+public class ItemsAdderHook implements ItemHook {
 
+    @Override
     @Nullable
     public String getId(ItemStack itemStack) {
         final CustomStack stack = CustomStack.byItemStack(itemStack);

@@ -9,6 +9,8 @@ import io.github.fisher2911.hmcleaves.util.Position2D;
 import io.github.fisher2911.hmcleaves.util.PositionUtil;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.type.Leaves;
 
 public class HMCLeavesAPI {
 
@@ -24,7 +26,15 @@ public class HMCLeavesAPI {
         return INSTANCE;
     }
 
-    public void setLeafAt(World world, int x, int y, int z, String id, boolean sendToPlayers) {
+    public void setLeafAt(
+            World world,
+            int x,
+            int y,
+            int z,
+            String id,
+            LeafData serverData,
+            boolean sendToPlayers
+    ) {
         final LeafItem leafItem = this.plugin.config().getItem(id);
         if (leafItem == null) return;
         final Position2D chunkPos = new Position2D(world.getUID(), x >> 4, z >> 4);
@@ -34,7 +44,13 @@ public class HMCLeavesAPI {
         state.setDistance(leafData.distance());
         state.setPersistent(leafData.persistent());
         this.plugin.getLeafCache().addData(chunkPos, position, state);
-        world.getBlockAt(x, y, z).setType(leafData.material());
+        final Block block = world.getBlockAt(x, y, z);
+        block.setType(serverData.material());
+        if (block.getBlockData() instanceof Leaves leaves) {
+            leaves.setDistance(serverData.distance());
+            leaves.setPersistent(serverData.persistent());
+            block.setBlockData(leaves);
+        }
         if (sendToPlayers) {
             PacketHelper.sendLeaf(world.getUID(), x, y, z, state);
         }

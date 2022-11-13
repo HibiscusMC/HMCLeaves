@@ -67,6 +67,12 @@ public class Config {
         return this.enabled;
     }
 
+    public void reload() {
+        this.leafItems.clear();
+        this.plugin.reloadConfig();
+        this.load();
+    }
+
     private static final String DEFAULT_STATE_KEY = "default-state";
     private static final String DISTANCE_KEY = "distance";
     private static final String PERSISTENT_KEY = "persistent";
