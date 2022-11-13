@@ -3,7 +3,9 @@ package io.github.fisher2911.hmcleaves;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes;
+import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -12,12 +14,19 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class Config {
 
     private final HMCLeaves plugin;
     private final Map<String, LeafItem> leafItems;
+    // I'm lazy and don't want to have to check ItemsAdder loading, maybe I'll change it later
+    private final Map<String, Supplier<ItemStack>> saplings;
+    private final Map<String, Supplier<ItemStack>> leafDropReplacements;
     private int defaultDistance;
     private boolean defaultPersistent;
     private boolean enabled;
@@ -27,6 +36,8 @@ public class Config {
     public Config(HMCLeaves plugin, Map<String, LeafItem> leafItems) {
         this.plugin = plugin;
         this.leafItems = leafItems;
+        this.saplings = new HashMap<>();
+        this.leafDropReplacements = new HashMap<>();
     }
 
     public WrappedBlockState getDefaultState(Material material) {
@@ -67,8 +78,24 @@ public class Config {
         return this.enabled;
     }
 
+    @Nullable
+    public ItemStack getSapling(String id) {
+        final Supplier<ItemStack> supplier = this.saplings.get(id);
+        if (supplier == null) return null;
+        return supplier.get();
+    }
+
+    @Nullable
+    public ItemStack getLeafDropReplacement(String id) {
+        final Supplier<ItemStack> supplier = this.leafDropReplacements.get(id);
+        if (supplier == null) return null;
+        return supplier.get();
+    }
+
     public void reload() {
         this.leafItems.clear();
+        this.saplings.clear();
+        this.leafDropReplacements.clear();
         this.plugin.reloadConfig();
         this.load();
     }
@@ -80,6 +107,13 @@ public class Config {
     private static final String MATERIAL = "material";
     private static final String MODEL_DATA = "model-data";
     private static final String LEAF_MATERIAL = "leaf-material";
+
+    private static final String LEAF_DROP_REPLACEMENTS = "leaf-drop-replacement";
+    private static final String SAPLING = "sapling";
+    private static final String HOOK_ID = "hook-id";
+    private static final String AMOUNT = "amount";
+    private static final String NAME = "name";
+    private static final String LORE = "lore";
 
     public void load() {
         this.plugin.saveDefaultConfig();
@@ -104,7 +138,38 @@ public class Config {
                 itemStack.setItemMeta(itemMeta);
             }
             this.leafItems.put(id, new LeafItem(id, itemStack, leafMaterial, distance, persistent));
+            final ConfigurationSection saplingSection = itemSection.getConfigurationSection(id + "." + SAPLING);
+            if (saplingSection != null) {
+                this.saplings.put(id, this.loadItemStack(saplingSection));
+            }
+            final ConfigurationSection leafDropReplacementSection = itemSection.getConfigurationSection(id + "." + LEAF_DROP_REPLACEMENTS);
+            if (leafDropReplacementSection != null) {
+                this.leafDropReplacements.put(id, this.loadItemStack(leafDropReplacementSection));
+            }
         }
-
     }
+
+    private Supplier<ItemStack> loadItemStack(ConfigurationSection section) {
+        final String itemId = section.getString(HOOK_ID, null);
+        if (itemId != null) return () -> {
+            final ItemStack itemStack = Hooks.getItem(itemId);
+            if (itemStack == null) return null;
+            return itemStack.clone();
+        };
+        final Material material = Material.getMaterial(section.getString(MATERIAL));
+        final int amount = section.getInt(AMOUNT, 1);
+        final String name = section.getString(NAME);
+        final List<String> lore = section.getStringList(LORE);
+        final int modelData = section.getInt(MODEL_DATA, -1);
+        final ItemStack itemStack = new ItemStack(material, amount);
+        final ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta != null) {
+            if (name != null) itemMeta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
+            if (section.contains(MODEL_DATA)) itemMeta.setCustomModelData(modelData);
+            if (!lore.isEmpty()) itemMeta.setLore(lore.stream().map(s -> ChatColor.translateAlternateColorCodes('&', s)).collect(Collectors.toList()));
+            itemStack.setItemMeta(itemMeta);
+        }
+        return itemStack::clone;
+    }
+
 }

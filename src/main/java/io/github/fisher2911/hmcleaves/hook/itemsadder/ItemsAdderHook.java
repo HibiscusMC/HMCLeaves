@@ -15,5 +15,11 @@ public class ItemsAdderHook implements ItemHook {
         return stack.getId();
     }
 
+    @Override
+    public @Nullable ItemStack getItem(String id) {
+        final CustomStack stack = CustomStack.getInstance(id);
+        if (stack == null) return null;
+        return stack.getItemStack();
+    }
 
 }

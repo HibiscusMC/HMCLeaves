@@ -13,4 +13,9 @@ public class OraxenHook implements ItemHook {
         return OraxenItems.getIdByItem(itemStack);
     }
 
+    @Override
+    public @Nullable ItemStack getItem(String id) {
+        return OraxenItems.getItemById(id).build();
+    }
+
 }

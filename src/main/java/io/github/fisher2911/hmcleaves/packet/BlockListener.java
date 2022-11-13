@@ -98,6 +98,11 @@ public class BlockListener {
         final Position2D chunkPos = new Position2D(world, x >> 4, z >> 4);
         final Position position2D = new Position(PositionUtil.getCoordInChunk(x), position.getY(), PositionUtil.getCoordInChunk(z));
         var state = this.leafCache.getAt(chunkPos, position2D);
+        final Block b = Bukkit.getWorld(world).getBlockAt(x, y, z);
+        if (!Tag.LEAVES.isTagged(b.getType())) {
+            if (state != null) this.leafCache.remove(chunkPos, position2D);
+            return;
+        }
         final var newState = packet.getBlockState();
         if (!newState.getType().getName().toUpperCase(Locale.ROOT).contains("LEAVES")) {
             this.leafCache.remove(chunkPos, position2D);
@@ -132,7 +137,10 @@ public class BlockListener {
             final Position position = new Position(PositionUtil.getCoordInChunk(x), y, PositionUtil.getCoordInChunk(z));
             WrappedBlockState state = this.leafCache.getAt(chunkPos, position);
             final Block b = Bukkit.getWorld(world).getBlockAt(x, y, z);
-            if (!Tag.LEAVES.isTagged(b.getType())) return;
+            if (!Tag.LEAVES.isTagged(b.getType())) {
+                if (state != null) this.leafCache.remove(chunkPos, position);
+                return;
+            }
             final WrappedBlockState newState = block.getBlockState(PacketEvents.getAPI().getServerManager().getVersion().toClientVersion());
             if (!newState.getType().getName().toUpperCase().contains("LEAVES")) {
                 this.leafCache.remove(chunkPos, position);

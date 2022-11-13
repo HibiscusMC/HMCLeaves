@@ -8,4 +8,7 @@ public interface ItemHook {
     @Nullable
     String getId(ItemStack itemStack);
 
+    @Nullable
+    ItemStack getItem(String id);
+
 }

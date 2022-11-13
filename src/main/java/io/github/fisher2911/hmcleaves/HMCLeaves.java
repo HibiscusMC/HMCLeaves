@@ -5,6 +5,7 @@ import com.github.retrooper.packetevents.PacketEventsAPI;
 import io.github.fisher2911.hmcleaves.command.LeavesCommand;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.listener.ChunkListener;
+import io.github.fisher2911.hmcleaves.listener.LeafDropListener;
 import io.github.fisher2911.hmcleaves.listener.PlaceListener;
 import io.github.fisher2911.hmcleaves.packet.BlockListener;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
@@ -19,7 +20,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class HMCLeaves extends JavaPlugin implements Listener {
 
     private Config config;
-    private LeafCache leafCache;;
+    private LeafCache leafCache;
+    ;
 
     @Override
     public void onLoad() {
@@ -47,7 +49,11 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
     }
 
     private void registerListeners() {
-        List.of(new ChunkListener(this), new PlaceListener(this)).
+        List.of(
+                        new ChunkListener(this),
+                        new PlaceListener(this),
+                        new LeafDropListener(this)
+                ).
                 forEach(listener -> this.getServer().getPluginManager().registerEvents(listener, this));
     }
 
@@ -66,4 +72,5 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
     public LeafCache getLeafCache() {
         return this.leafCache;
     }
+
 }

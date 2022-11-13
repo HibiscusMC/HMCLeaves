@@ -27,4 +27,9 @@ public class Hooks {
         return itemHook == null ? null : itemHook.getId(itemStack);
     }
 
+    @Nullable
+    public static ItemStack getItem(String id) {
+        return itemHook == null ? null : itemHook.getItem(id);
+    }
+
 }

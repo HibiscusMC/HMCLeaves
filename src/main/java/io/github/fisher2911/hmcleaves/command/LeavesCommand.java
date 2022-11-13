@@ -59,7 +59,7 @@ public class LeavesCommand implements CommandExecutor, TabExecutor {
             return true;
         }
         if (args[0].equalsIgnoreCase("give")) {
-            final LeafItem item = this.config.getItem(args[0]);
+            final LeafItem item = this.config.getItem(args[1]);
             if (item == null) {
                 sender.sendMessage(ChatColor.RED + "Item not found.");
                 return true;
