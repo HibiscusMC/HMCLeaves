@@ -17,9 +17,6 @@ import io.github.fisher2911.hmcleaves.LeafCache;
 import io.github.fisher2911.hmcleaves.util.Position;
 import io.github.fisher2911.hmcleaves.util.Position2D;
 import io.github.fisher2911.hmcleaves.util.PositionUtil;
-import org.bukkit.Bukkit;
-import org.bukkit.Tag;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import java.util.Locale;
@@ -68,6 +65,7 @@ public class BlockListener {
             final BaseChunk chunk = chunks[i];
             final int worldY = i * 16 - 64;
             final Position2D chunkPos = new Position2D(world, column.getX(), column.getZ());
+
             for (var entry : this.leafCache.getOrAddChunkData(chunkPos).entrySet()) {
                 final Position position = entry.getKey();
                 final int y = position.y();
@@ -98,19 +96,19 @@ public class BlockListener {
         final Position2D chunkPos = new Position2D(world, x >> 4, z >> 4);
         final Position position2D = new Position(PositionUtil.getCoordInChunk(x), position.getY(), PositionUtil.getCoordInChunk(z));
         var state = this.leafCache.getAt(chunkPos, position2D);
-        final Block b = Bukkit.getWorld(world).getBlockAt(x, y, z);
-        if (!Tag.LEAVES.isTagged(b.getType())) {
-            if (state != null) this.leafCache.remove(chunkPos, position2D);
-            return;
-        }
+//        final Block b = Bukkit.getWorld(world).getBlockAt(x, y, z);
+//        if (!Tag.LEAVES.isTagged(b.getType())) {
+//            if (state != null) this.leafCache.remove(chunkPos, position2D);
+//            return;
+//        }
         final var newState = packet.getBlockState();
         if (!newState.getType().getName().toUpperCase(Locale.ROOT).contains("LEAVES")) {
             this.leafCache.remove(chunkPos, position2D);
             return;
         }
         if (state == null) {
-            state = packet.getBlockState().clone();
-            if (!state.getType().getName().toUpperCase(Locale.ROOT).contains("LEAVES")){
+            state = newState.clone();
+            if (!state.getType().getName().toUpperCase(Locale.ROOT).contains("LEAVES")) {
                 return;
             }
             this.plugin.config().setDefaultState(state);
@@ -118,6 +116,8 @@ public class BlockListener {
         } else {
             state = state.clone();
         }
+//        packet.getBlockState().setDistance(state.getDistance());
+//        packet.getBlockState().setPersistent(state.isPersistent());
         event.setCancelled(true);
         PacketEvents.getAPI().getPlayerManager().sendPacketSilently(
                 event.getPlayer(),
@@ -131,23 +131,24 @@ public class BlockListener {
             final int x = block.getX();
             final int y = block.getY();
             final int z = block.getZ();
-//            final int chunkX = x >> 4;
-//            final int chunkZ = z >> 4;
+
             final Position2D chunkPos = new Position2D(world, packet.getChunkPosition().getX(), packet.getChunkPosition().getZ());
             final Position position = new Position(PositionUtil.getCoordInChunk(x), y, PositionUtil.getCoordInChunk(z));
             WrappedBlockState state = this.leafCache.getAt(chunkPos, position);
-            final Block b = Bukkit.getWorld(world).getBlockAt(x, y, z);
-            if (!Tag.LEAVES.isTagged(b.getType())) {
-                if (state != null) this.leafCache.remove(chunkPos, position);
-                return;
-            }
-            final WrappedBlockState newState = block.getBlockState(PacketEvents.getAPI().getServerManager().getVersion().toClientVersion());
+//            final Block b = Bukkit.getWorld(world).getBlockAt(x, y, z);
+//            if (!Tag.LEAVES.isTagged(b.getType())) {
+//                if (state != null) this.leafCache.remove(chunkPos, position);
+//                return;
+//            }
+            final WrappedBlockState newState = block.getBlockState(PacketEvents.getAPI().getServerManager().getVersion().toClientVersion()).clone();
             if (!newState.getType().getName().toUpperCase().contains("LEAVES")) {
                 this.leafCache.remove(chunkPos, position);
-                return;
+                continue;
             }
             if (state == null) {
-                state = this.plugin.config().getDefaultState(b.getType()).clone();
+//                state = this.plugin.config().getDefaultState(b.getType()).clone();
+                this.plugin.config().setDefaultState(newState);
+                state = newState;
                 this.leafCache.addData(chunkPos, position, state);
             }
             block.setBlockState(state);

@@ -52,7 +52,7 @@ public class HMCLeavesAPI {
             block.setBlockData(leaves);
         }
         if (sendToPlayers) {
-            PacketHelper.sendLeaf(world.getUID(), x, y, z, state);
+            PacketHelper.sendBlock(world.getUID(), x, y, z, state);
         }
     }
 

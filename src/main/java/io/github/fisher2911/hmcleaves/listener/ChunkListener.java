@@ -19,6 +19,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
+import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -32,21 +33,37 @@ public class ChunkListener implements Listener {
         this.plugin = plugin;
         this.config = plugin.config();
         this.cache = plugin.getLeafCache();
+        for (World world : Bukkit.getWorlds()) {
+            for (Chunk chunk : world.getLoadedChunks()) {
+                this.handleChunkLoad(chunk, world);
+            }
+        }
+    }
+
+    @EventHandler
+    public void onWorldLoad(WorldLoadEvent event) {
+        final World world = event.getWorld();
+        for (Chunk c : world.getLoadedChunks()) {
+            this.handleChunkLoad(c, world);
+        }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onChunkLoad(ChunkLoadEvent event) {
         final Chunk chunk = event.getChunk();
+        this.handleChunkLoad(chunk, event.getWorld());
+    }
+
+    private void handleChunkLoad(Chunk chunk, World world) {
         final PersistentDataContainer container = chunk.getPersistentDataContainer();
         if (PDCUtil.hasLeafData(container)) {
             this.loadPDCData(chunk);
             return;
         }
         final ChunkSnapshot snapshot = chunk.getChunkSnapshot();
-        final World world = event.getWorld();
         final int chunkX = chunk.getX();
         final int chunkZ = chunk.getZ();
-        final Position2D chunkPosition = new Position2D(event.getWorld().getUID(), chunkX, chunkZ);
+        final Position2D chunkPosition = new Position2D(world.getUID(), chunkX, chunkZ);
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
             for (int x = 0; x < 16; x++) {
                 for (int y = world.getMinHeight(); y < world.getMaxHeight(); y++) {
@@ -61,7 +78,6 @@ public class ChunkListener implements Listener {
             }
             Bukkit.getScheduler().runTask(this.plugin, () -> {
                 if (!world.isChunkLoaded(chunkX, chunkZ)) return;
-                PDCUtil.setHasLeafData(chunk.getPersistentDataContainer());
                 for (var entry : this.cache.getOrAddChunkData(chunkPosition).entrySet()) {
                     final var position = entry.getKey();
                     final var data = entry.getValue();
@@ -72,6 +88,7 @@ public class ChunkListener implements Listener {
                     blockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) data.getDistance());
                     blockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, (byte) (data.isPersistent() ? 1 : 0));
                 }
+                PDCUtil.setHasLeafData(chunk.getPersistentDataContainer());
             });
         });
     }

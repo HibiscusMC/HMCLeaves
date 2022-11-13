@@ -67,7 +67,8 @@ public class PlaceListener implements Listener {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         final Block toPlace = event.getClickedBlock().getRelative(event.getBlockFace());
         final World world = toPlace.getWorld();
-        if (!(world.getNearbyEntities(toPlace.getLocation().clone().add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5, LivingEntity.class::isInstance).isEmpty())) return;
+        if (!(world.getNearbyEntities(toPlace.getLocation().clone().add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5, LivingEntity.class::isInstance).isEmpty()))
+            return;
         final ItemStack itemStack = event.getItem();
         if (itemStack == null) return;
         final ItemMeta itemMeta = itemStack.getItemMeta();
@@ -83,7 +84,7 @@ public class PlaceListener implements Listener {
             if (!Tag.LEAVES.isTagged(material)) return;
             final WrappedBlockState defaultState = this.plugin.config().getDefaultState(material);
             Bukkit.getScheduler().runTaskLaterAsynchronously(this.plugin, () -> {
-                PacketHelper.sendLeaf(toPlace.getWorld().getUID(), toPlace.getX(), toPlace.getY(), toPlace.getZ(), defaultState, Bukkit.getOnlinePlayers());
+                PacketHelper.sendBlock(toPlace.getWorld().getUID(), toPlace.getX(), toPlace.getY(), toPlace.getZ(), defaultState, Bukkit.getOnlinePlayers());
             }, 2);
             return;
         }
@@ -100,7 +101,7 @@ public class PlaceListener implements Listener {
         customBlockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, leafData.persistent() ? (byte) 1 : (byte) 0);
         customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) leafData.distance());
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
-            PacketHelper.sendLeaf(toPlace.getWorld().getUID(), toPlace.getX(), toPlace.getY(), toPlace.getZ(), defaultState, Bukkit.getOnlinePlayers());
+            PacketHelper.sendBlock(toPlace.getWorld().getUID(), toPlace.getX(), toPlace.getY(), toPlace.getZ(), defaultState, Bukkit.getOnlinePlayers());
             PacketHelper.sendArmSwing(event.getPlayer(), Bukkit.getOnlinePlayers());
         });
         if (event.getPlayer().getGameMode() != GameMode.CREATIVE) itemStack.setAmount(itemStack.getAmount() - 1);
@@ -116,6 +117,11 @@ public class PlaceListener implements Listener {
 
         final Player player = event.getPlayer();
         if (!(clicked.getBlockData() instanceof final Leaves leaves)) return;
+        player.sendMessage(this.plugin.getLeafCache().getAt(
+                        new Position2D(clicked.getWorld().getUID(), clicked.getChunk().getX(), clicked.getChunk().getZ()),
+                        new Position(PositionUtil.getCoordInChunk(clicked.getX()), clicked.getY(), PositionUtil.getCoordInChunk(clicked.getZ()))
+                ).toString()
+        );
         player.sendMessage("Actual distance: " + leaves.getDistance() + " actual persistence: " + leaves.isPersistent());
     }
 
@@ -182,7 +188,6 @@ public class PlaceListener implements Listener {
             final Material material = block.getType();
             if (!Tag.LEAVES.isTagged(material)) continue;
             final var state = this.plugin.config().getDefaultState(material).clone();
-            PacketHelper.sendLeaf(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), state, Bukkit.getOnlinePlayers());
             final CustomBlockData customBlockData = new CustomBlockData(block.getBlock(), this.plugin);
             customBlockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, state.isPersistent() ? (byte) 1 : (byte) 0);
             customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) state.getDistance());
@@ -204,15 +209,15 @@ public class PlaceListener implements Listener {
         if (!(block.getBlockData() instanceof Leaves)) return;
         Bukkit.getScheduler().runTaskLaterAsynchronously(this.plugin, () -> {
             final var state = this.removeBlock(block, Bukkit.getOnlinePlayers());
-            if (state == null) return;
+//            if (state == null) return;
 //        event.setCancelled(true);
 //            if (!(block.getBlockData() instanceof Leaves leaves)) return;
 //            leaves.setPersistent(state.isPersistent());
 //            leaves.setDistance(state.getDistance());
 //            block.setBlockData(leaves);
-            final var breakEvent = new LeafBlockBreakEvent(block, event.getPlayer());
-            Bukkit.getPluginManager().callEvent(breakEvent);
-            if (breakEvent.isCancelled()) return;
+//            final var breakEvent = new LeafBlockBreakEvent(block, event.getPlayer());
+//            Bukkit.getPluginManager().callEvent(breakEvent);
+//            if (breakEvent.isCancelled()) return;
 //            block.setType(Material.AIR);
         }, 1);
     }
