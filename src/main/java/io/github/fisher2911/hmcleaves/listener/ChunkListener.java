@@ -2,6 +2,7 @@ package io.github.fisher2911.hmcleaves.listener;
 
 import com.jeff_media.customblockdata.CustomBlockData;
 import io.github.fisher2911.hmcleaves.Config;
+import io.github.fisher2911.hmcleaves.FakeLeafState;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.LeafCache;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
@@ -85,8 +86,10 @@ public class ChunkListener implements Listener {
                             chunk.getBlock(position.x(), position.y(), position.z()),
                             this.plugin
                     );
-                    blockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) data.getDistance());
-                    blockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, (byte) (data.isPersistent() ? 1 : 0));
+                    blockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) data.state().getDistance());
+                    blockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, (byte) (data.state().isPersistent() ? 1 : 0));
+                    blockData.set(PDCUtil.ACTUAL_PERSISTENCE_KEY, PersistentDataType.BYTE, (byte) (data.actuallyPersistent() ? 1 : 0));
+                    blockData.set(PDCUtil.ACTUAL_DISTANCE_KEY, PersistentDataType.BYTE, (byte) data.actualDistance());
                 }
                 PDCUtil.setHasLeafData(chunk.getPersistentDataContainer());
             });
@@ -107,15 +110,19 @@ public class ChunkListener implements Listener {
             if (distance == null) continue;
             final Byte persistent = blockData.get(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE);
             if (persistent == null) continue;
-            final var state = this.plugin.config().getDefaultState(block.getType()).clone();
-            if (state == null) continue;
+            Byte actuallyPersistent = blockData.get(PDCUtil.ACTUAL_PERSISTENCE_KEY, PersistentDataType.BYTE);
+            if (actuallyPersistent == null) actuallyPersistent = 0;
+            final Byte actualDistance = blockData.get(PDCUtil.ACTUAL_DISTANCE_KEY, PersistentDataType.BYTE);
+            final FakeLeafState fakeLeafState = this.plugin.config().getDefaultState(block.getType());
+            if (fakeLeafState == null) continue;
+            final var state = fakeLeafState.state();
             state.setDistance(distance);
             state.setPersistent(persistent == 1);
             try {
                 this.cache.addData(
                         chunkPos,
                         new Position(PositionUtil.getCoordInChunk(block.getX()), block.getY(), PositionUtil.getCoordInChunk(block.getZ())),
-                        state
+                        new FakeLeafState(state, actuallyPersistent == 1, actualDistance == null ? 0 : actualDistance)
                 );
             } catch (Exception e) {
                 this.plugin.getLogger().severe("Block threw error: " + block.getX() + ", " + block.getY() + ", " + block.getZ());
@@ -129,4 +136,5 @@ public class ChunkListener implements Listener {
         final Chunk chunk = event.getChunk();
         this.cache.remove(new Position2D(chunk.getWorld().getUID(), chunk.getX(), chunk.getZ()));
     }
+
 }

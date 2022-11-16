@@ -7,6 +7,8 @@ import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Tag;
+import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -29,6 +31,7 @@ public class Config {
     private final Map<String, Supplier<ItemStack>> leafDropReplacements;
     private int defaultDistance;
     private boolean defaultPersistent;
+    private boolean defaultActuallyPersistent;
     private boolean enabled;
 
     public static final String DEBUG_TOOL_ID = "debugtool";
@@ -40,15 +43,24 @@ public class Config {
         this.leafDropReplacements = new HashMap<>();
     }
 
-    public WrappedBlockState getDefaultState(Material material) {
+    public FakeLeafState getDefaultState(Material material) {
         final WrappedBlockState state = WrappedBlockState.getDefaultState(
                 PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
                 StateTypes.getByName(material.toString().toLowerCase())
-        );
+        ).clone();
         state.setDistance(this.defaultDistance);
         state.setPersistent(this.defaultPersistent);
-        return state;
+        return new FakeLeafState(state, this.defaultActuallyPersistent, this.defaultActuallyPersistent ? 1 : 7);
     }
+
+    public boolean isLogBlock(Block block) {
+        return this.isLogBlock(block.getType());
+    }
+
+    public boolean isLogBlock(Material material) {
+        return material == Material.DIAMOND_BLOCK || Tag.LOGS.isTagged(material);
+    }
+
 
     public void setDefaultState(WrappedBlockState state) {
         state.setDistance(this.defaultDistance);
@@ -61,9 +73,10 @@ public class Config {
     }
 
     @Nullable
-    public LeafItem getByState(WrappedBlockState state) {
+    public LeafItem getByState(FakeLeafState fakeLeafState) {
+        final var state = fakeLeafState.state();
         for (LeafItem item : this.leafItems.values()) {
-            if (item.leafData().persistent() == state.isPersistent() && item.leafData().distance() == state.getDistance()) {
+            if (item.leafData().persistent() == state.isPersistent() && item.leafData().distance() == state.getDistance() && fakeLeafState.actuallyPersistent() == item.leafData().actuallyPersistent()) {
                 return item;
             }
         }
@@ -103,6 +116,7 @@ public class Config {
     private static final String DEFAULT_STATE_KEY = "default-state";
     private static final String DISTANCE_KEY = "distance";
     private static final String PERSISTENT_KEY = "persistent";
+    private static final String ACTUALLY_PERSISTENT = "actually-persistent";
     private static final String ITEMS_KEY = "items";
     private static final String MATERIAL = "material";
     private static final String MODEL_DATA = "model-data";
@@ -129,6 +143,7 @@ public class Config {
             final int modelData = itemSection.getInt(id + "." + MODEL_DATA, -1);
             final int distance = itemSection.getInt(id + "." + DISTANCE_KEY, this.defaultDistance);
             final boolean persistent = itemSection.getBoolean(id + "." + PERSISTENT_KEY, this.defaultPersistent);
+            final boolean actuallyPersistent = itemSection.getBoolean(id + "." + ACTUALLY_PERSISTENT, false);
             final ItemStack itemStack = new ItemStack(material);
             final ItemMeta itemMeta = itemStack.getItemMeta();
             if (itemMeta != null) {
@@ -137,7 +152,7 @@ public class Config {
                 itemMeta.getPersistentDataContainer().set(PDCUtil.ITEM_KEY, PersistentDataType.STRING, id);
                 itemStack.setItemMeta(itemMeta);
             }
-            this.leafItems.put(id, new LeafItem(id, itemStack, leafMaterial, distance, persistent));
+            this.leafItems.put(id, new LeafItem(id, itemStack, leafMaterial, distance, persistent, actuallyPersistent));
             final ConfigurationSection saplingSection = itemSection.getConfigurationSection(id + "." + SAPLING);
             if (saplingSection != null) {
                 this.saplings.put(id, this.loadItemStack(saplingSection));

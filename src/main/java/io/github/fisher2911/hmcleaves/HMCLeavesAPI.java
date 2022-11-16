@@ -40,10 +40,11 @@ public class HMCLeavesAPI {
         final Position2D chunkPos = new Position2D(world.getUID(), x >> 4, z >> 4);
         final Position position = new Position(PositionUtil.getCoordInChunk(x), y, PositionUtil.getCoordInChunk(z));
         final LeafData leafData = leafItem.leafData();
-        final var state = this.plugin.config().getDefaultState(leafData.material()).clone();
+        final FakeLeafState fakeLeafState = this.plugin.config().getDefaultState(leafData.material());
+        final var state = fakeLeafState.state();
         state.setDistance(leafData.distance());
         state.setPersistent(leafData.persistent());
-        this.plugin.getLeafCache().addData(chunkPos, position, state);
+        this.plugin.getLeafCache().addData(chunkPos, position, new FakeLeafState(state, fakeLeafState.actuallyPersistent(), 7));
         final Block block = world.getBlockAt(x, y, z);
         block.setType(serverData.material());
         if (block.getBlockData() instanceof Leaves leaves) {

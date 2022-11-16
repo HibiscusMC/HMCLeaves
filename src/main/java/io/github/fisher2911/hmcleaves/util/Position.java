@@ -1,8 +1,14 @@
 package io.github.fisher2911.hmcleaves.util;
 
+import org.bukkit.Location;
+
 import java.util.Objects;
 
 public record Position(int x, int y, int z) {
+
+    public static Position fromLocation(Location location) {
+        return new Position(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+    }
 
     public int getXInChunk() {
         return x & 15;
@@ -10,6 +16,15 @@ public record Position(int x, int y, int z) {
 
     public int getZInChunk() {
         return z & 15;
+    }
+
+    @Override
+    public String toString() {
+        return "Position{" +
+                "x=" + x +
+                ", y=" + y +
+                ", z=" + z +
+                '}';
     }
 
     @Override

@@ -12,11 +12,17 @@ import com.github.retrooper.packetevents.util.Vector3i;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBlockChange;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerChunkData;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMultiBlockChange;
+import io.github.fisher2911.hmcleaves.FakeLeafState;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.LeafCache;
+import io.github.fisher2911.hmcleaves.util.LeafUtil;
 import io.github.fisher2911.hmcleaves.util.Position;
 import io.github.fisher2911.hmcleaves.util.Position2D;
 import io.github.fisher2911.hmcleaves.util.PositionUtil;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import java.util.Locale;
@@ -71,7 +77,9 @@ public class BlockListener {
                 final int y = position.y();
                 final int difference = y - worldY;
                 if (difference < 0 || difference > 15) continue;
-                final WrappedBlockState state = entry.getValue();
+                final FakeLeafState fakeLeafState = entry.getValue();
+//                final WrappedBlockState state = entry.getValue();
+                final WrappedBlockState state = fakeLeafState.state();
                 final int actualY = Math.abs(PositionUtil.getCoordInChunk(position.y()));
                 try {
                     chunk.set(
@@ -95,24 +103,62 @@ public class BlockListener {
         final int z = position.getZ();
         final Position2D chunkPos = new Position2D(world, x >> 4, z >> 4);
         final Position position2D = new Position(PositionUtil.getCoordInChunk(x), position.getY(), PositionUtil.getCoordInChunk(z));
-        var state = this.leafCache.getAt(chunkPos, position2D);
+        final FakeLeafState fakeLeafState = this.leafCache.getAt(chunkPos, position2D);
+        var state = fakeLeafState == null ? null : fakeLeafState.state();
 //        final Block b = Bukkit.getWorld(world).getBlockAt(x, y, z);
 //        if (!Tag.LEAVES.isTagged(b.getType())) {
 //            if (state != null) this.leafCache.remove(chunkPos, position2D);
 //            return;
 //        }
         final var newState = packet.getBlockState();
-        if (!newState.getType().getName().toUpperCase(Locale.ROOT).contains("LEAVES")) {
-            this.leafCache.remove(chunkPos, position2D);
-            return;
-        }
-        if (state == null) {
-            state = newState.clone();
-            if (!state.getType().getName().toUpperCase(Locale.ROOT).contains("LEAVES")) {
+        final Material material = Material.getMaterial(newState.getType().getName().toUpperCase());
+        if (plugin.getLeafCache().isTreeBlock(chunkPos, position2D)) {
+            if (!plugin.config().isLogBlock(material)) {
+                plugin.getLeafCache().removeTreeBlock(chunkPos, position2D);
+                LeafUtil.breakLog(
+                        Bukkit.getWorld(world).getBlockAt(x, y, z),
+                        this.plugin.getLeafCache()
+                );
                 return;
             }
+            return;
+        }
+        if (plugin.config().isLogBlock(material)) {
+            this.leafCache.addTreeBlock(chunkPos, position2D);
+            LeafUtil.placeLog(
+                    Bukkit.getWorld(world).getBlockAt(x, y, z),
+                    this.plugin.config(),
+                    this.plugin.getLeafCache()
+            );
+            return;
+        }
+        if (!newState.getType().getName().toUpperCase(Locale.ROOT).contains("LEAVES")) {
+            final FakeLeafState fake = this.leafCache.remove(chunkPos, position2D);
+            if (fake != null) {
+                final World bukkitWorld = Bukkit.getWorld(world);
+                final Location location = new Location(bukkitWorld, x, y, z);
+                LeafUtil.checkBreakLeaf(
+                        location.getBlock(),
+                        this.plugin.getLeafCache()
+                        /*,
+                        true,
+                        new HashSet<>()*/
+                );
+                return;
+            }
+            return;
+        }
+        if (fakeLeafState == null) {
+            state = newState.clone();
             this.plugin.config().setDefaultState(state);
-            this.leafCache.addData(chunkPos, position2D, state.clone());
+            final FakeLeafState defaultState = this.plugin.config().getDefaultState(Material.getMaterial(state.getType().getName().toUpperCase()));
+            this.leafCache.addData(chunkPos, position2D, defaultState);
+            final World bukkitWorld = Bukkit.getWorld(world);
+            final Location location = new Location(bukkitWorld, x, y, z);
+            LeafUtil.checkPlaceLeaf(
+                    location.getBlock(),
+                    this.plugin.getLeafCache()
+            );
         } else {
             state = state.clone();
         }
@@ -134,22 +180,65 @@ public class BlockListener {
 
             final Position2D chunkPos = new Position2D(world, packet.getChunkPosition().getX(), packet.getChunkPosition().getZ());
             final Position position = new Position(PositionUtil.getCoordInChunk(x), y, PositionUtil.getCoordInChunk(z));
-            WrappedBlockState state = this.leafCache.getAt(chunkPos, position);
+            final FakeLeafState fakeLeafState = this.leafCache.getAt(chunkPos, position);
+            var state = fakeLeafState == null ? null : fakeLeafState.state();
+//            WrappedBlockState state = this.leafCache.getAt(chunkPos, position);
 //            final Block b = Bukkit.getWorld(world).getBlockAt(x, y, z);
 //            if (!Tag.LEAVES.isTagged(b.getType())) {
 //                if (state != null) this.leafCache.remove(chunkPos, position);
 //                return;
 //            }
             final WrappedBlockState newState = block.getBlockState(PacketEvents.getAPI().getServerManager().getVersion().toClientVersion()).clone();
+            final Material material = Material.getMaterial(newState.getType().getName().toUpperCase());
+
+            if (plugin.getLeafCache().isTreeBlock(chunkPos, position)) {
+                if (!plugin.config().isLogBlock(material)) {
+                    plugin.getLeafCache().removeTreeBlock(chunkPos, position);
+                    LeafUtil.breakLog(
+                            Bukkit.getWorld(world).getBlockAt(x, y, z),
+                            this.plugin.getLeafCache()
+                    );
+                    continue;
+                }
+                continue;
+            }
+
+            if (plugin.config().isLogBlock(material)) {
+                this.leafCache.addTreeBlock(chunkPos, position);
+                LeafUtil.placeLog(
+                        Bukkit.getWorld(world).getBlockAt(x, y, z),
+                        this.plugin.config(),
+                        this.plugin.getLeafCache()
+                );
+                continue;
+            }
+
             if (!newState.getType().getName().toUpperCase().contains("LEAVES")) {
-                this.leafCache.remove(chunkPos, position);
+                final FakeLeafState fake = this.leafCache.remove(chunkPos, position);
+                if (fake != null) {
+                    final World bukkitWorld = Bukkit.getWorld(world);
+                    final Location location = new Location(bukkitWorld, x, y, z);
+                    LeafUtil.checkBreakLeaf(
+                            location.getBlock(),
+                            this.plugin.getLeafCache()
+                    );
+                    continue;
+                }
                 continue;
             }
             if (state == null) {
 //                state = this.plugin.config().getDefaultState(b.getType()).clone();
-                this.plugin.config().setDefaultState(newState);
-                state = newState;
-                this.leafCache.addData(chunkPos, position, state);
+//                this.plugin.config().setDefaultState(newState);
+//                state = newState;
+                final FakeLeafState defaultState = this.plugin.config().getDefaultState(Material.getMaterial(state.getType().getName().toUpperCase()));
+                state = defaultState.state();
+                this.leafCache.addData(chunkPos, position, defaultState);
+                final World bukkitWorld = Bukkit.getWorld(world);
+                final Location location = new Location(bukkitWorld, x, y, z);
+                LeafUtil.checkPlaceLeaf(
+                        location.getBlock(),
+                        this.plugin.getLeafCache()
+                );
             }
             block.setBlockState(state);
         }

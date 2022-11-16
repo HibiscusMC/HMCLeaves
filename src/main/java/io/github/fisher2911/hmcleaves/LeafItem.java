@@ -5,8 +5,8 @@ import org.bukkit.inventory.ItemStack;
 
 public record LeafItem(String id, ItemStack itemStack, LeafData leafData) {
 
-    public LeafItem(String id, ItemStack itemStack, Material material, int distance, boolean persistent) {
-        this(id, itemStack, new LeafData(material, distance, persistent));
+    public LeafItem(String id, ItemStack itemStack, Material material, int distance, boolean persistent, boolean actuallyPersistent) {
+        this(id, itemStack, new LeafData(material, distance, persistent, actuallyPersistent));
     }
 
     @Override

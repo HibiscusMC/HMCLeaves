@@ -2,12 +2,39 @@ enabled: false
 default-state:
   persistent: true
   distance: 7
+  actually-persistent: true
 items:
   "test":
     leaf-material: OAK_LEAVES
     material: PAPER
     model-data: 1
     persistent: true
+    actually-persistent: false
+    distance: 4
+    sapling:
+      hook-id: test-sapling
+      material: OAK_SAPLING
+      amount: 1
+      name: "&aTest"
+      model-data: 1
+      lore:
+        - "&7This is a test"
+        - "&7This is a test"
+    leaf-drop-replacement:
+      hook-id: test
+      material: OAK_LEAVES
+      amount: 1
+      name: "&aTest"
+      model-data: 1
+      lore:
+        - "&7This is a test"
+        - "&7This is a test"
+  "test2":
+    leaf-material: OAK_LEAVES
+    material: PAPER
+    model-data: 2
+    persistent: true
+    actually-persistent: true
     distance: 4
     sapling:
       hook-id: test-sapling
