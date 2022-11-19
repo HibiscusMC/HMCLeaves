@@ -6,7 +6,6 @@ import io.github.fisher2911.hmcleaves.LeafItem;
 import io.github.fisher2911.hmcleaves.util.Position;
 import io.github.fisher2911.hmcleaves.util.Position2D;
 import io.github.fisher2911.hmcleaves.util.PositionUtil;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
@@ -35,7 +34,7 @@ public class LeafDropListener implements Listener {
         final Position position = new Position(PositionUtil.getCoordInChunk(location.getBlockX()), location.getBlockY(), PositionUtil.getCoordInChunk(location.getBlockZ()));
         final var state = this.plugin.getLeafCache().getAt(chunkPos, position);
         if (state == null) return;
-        final LeafItem leafItem = this.config.getByState(state);
+        final LeafItem leafItem = this.config.getByFakeLeafData(state);
         if (leafItem == null) return;
         for (Item item : event.getItems()) {
             final ItemStack itemStack = item.getItemStack();

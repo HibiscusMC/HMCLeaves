@@ -1,56 +1,49 @@
-enabled: false
+enabled: true
 default-state:
   persistent: true
   distance: 7
-  actually-persistent: true
+  actually-persistent: false
+logs:
+  noteblocks:
+    1:
+      instrument: PIANO
+      note: 1
 items:
-  "test":
+  "palm_leaves":
+    leaf-material: OAK_LEAVES
+    material: PAPER
+    model-data: 1
+    actually-persistent: false
+    persistent: true
+    distance: 4
+    sapling:
+      hook-id: blue_ore
+      material: SPRUCE_SAPLING
+      amount: 1
+      name: "&aTest"
+      model-data: 1
+      lore:
+        - "&7This is a test"
+        - "&7This is a test"
+    leaf-drop-replacement:
+      hook-id: blue_ore
+      material: SPRUCE_SAPLING
+      amount: 1
+      name: "&aTest"
+      model-data: 1
+      lore:
+        - "&7This is a test"
+        - "&7This is a test"
+  "aspen_leaves":
     leaf-material: OAK_LEAVES
     material: PAPER
     model-data: 1
     persistent: true
-    actually-persistent: false
-    distance: 4
-    sapling:
-      hook-id: test-sapling
-      material: OAK_SAPLING
-      amount: 1
-      name: "&aTest"
-      model-data: 1
-      lore:
-        - "&7This is a test"
-        - "&7This is a test"
-    leaf-drop-replacement:
-      hook-id: test
-      material: OAK_LEAVES
-      amount: 1
-      name: "&aTest"
-      model-data: 1
-      lore:
-        - "&7This is a test"
-        - "&7This is a test"
-  "test2":
+    actually-persistent: true
+    distance: 5
+  "pine_leaves":
     leaf-material: OAK_LEAVES
     material: PAPER
-    model-data: 2
+    model-data: 1
     persistent: true
-    actually-persistent: true
-    distance: 4
-    sapling:
-      hook-id: test-sapling
-      material: OAK_SAPLING
-      amount: 1
-      name: "&aTest"
-      model-data: 1
-      lore:
-        - "&7This is a test"
-        - "&7This is a test"
-    leaf-drop-replacement:
-      hook-id: test
-      material: OAK_LEAVES
-      amount: 1
-      name: "&aTest"
-      model-data: 1
-      lore:
-        - "&7This is a test"
-        - "&7This is a test"
+    distance: 6

@@ -3,6 +3,7 @@ package io.github.fisher2911.hmcleaves.util;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.LeafData;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
+import io.github.fisher2911.hmcleaves.nms.FakeLeafData;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
@@ -57,6 +58,16 @@ public class PDCUtil {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    @Nullable
+    public static FakeLeafData getFakeLeafData(PersistentDataContainer container) {
+        final Byte distance = container.get(DISTANCE_KEY, PersistentDataType.BYTE);
+        final Byte persistence = container.get(PERSISTENCE_KEY, PersistentDataType.BYTE);
+        final Byte actualDistance = container.get(ACTUAL_DISTANCE_KEY, PersistentDataType.BYTE);
+        final Byte actualPersistence = container.get(ACTUAL_PERSISTENCE_KEY, PersistentDataType.BYTE);
+        if (distance == null || persistence == null || actualDistance == null || actualPersistence == null) return null;
+        return new FakeLeafData(distance, persistence == 1, actualDistance, actualPersistence == 1);
     }
 
     public static void setLeafDataItem(ItemStack itemStack, String id) {

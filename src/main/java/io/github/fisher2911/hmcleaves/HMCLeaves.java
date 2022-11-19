@@ -1,16 +1,14 @@
 package io.github.fisher2911.hmcleaves;
 
-import com.github.retrooper.packetevents.PacketEvents;
-import com.github.retrooper.packetevents.PacketEventsAPI;
 import io.github.fisher2911.hmcleaves.command.LeavesCommand;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
-import io.github.fisher2911.hmcleaves.listener.ChunkListener;
 import io.github.fisher2911.hmcleaves.listener.LeafDropListener;
 import io.github.fisher2911.hmcleaves.listener.PlaceListener;
-import io.github.fisher2911.hmcleaves.packet.BlockListener;
-import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
+import io.github.fisher2911.hmcleaves.nms.LeafHandler;
+import io.github.fisher2911.hmcleaves.nms.LeafHandler_1_19;
+import io.github.fisher2911.hmcleaves.util.PDCHelper;
+import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashMap;
@@ -20,15 +18,24 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class HMCLeaves extends JavaPlugin implements Listener {
 
     private Config config;
-    private LeafCache leafCache;
-    ;
+    private static final LeafCache leafCache;
+    private static final PDCHelper pdcHelper;
+    private static final LeafHandler leafHandler;
+
+    static {
+
+        leafCache = new LeafCache(() -> (HMCLeaves) Bukkit.getPluginManager().getPlugin("HMCLeaves"), new ConcurrentHashMap<>());
+        pdcHelper = new io.github.fisher2911.hmcleaves.util.PDCHelper(() -> (HMCLeaves) Bukkit.getPluginManager().getPlugin("HMCLeaves"));
+        leafHandler = new LeafHandler_1_19(() -> (HMCLeaves) Bukkit.getPluginManager().getPlugin("HMCLeaves"), leafCache, pdcHelper);
+        leafHandler.load();
+    }
 
     @Override
     public void onLoad() {
-        final PacketEventsAPI<Plugin> api = SpigotPacketEventsBuilder.build(this);
-        api.getSettings().debug(true);
-        PacketEvents.setAPI(api);
-        PacketEvents.getAPI().load();
+//        final PacketEventsAPI<Plugin> api = SpigotPacketEventsBuilder.build(this);
+//        api.getSettings().debug(true);
+//        PacketEvents.setAPI(api);
+//        PacketEvents.getAPI().load();
     }
 
     @Override
@@ -39,18 +46,19 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
             this.getLogger().severe("HMCLeaves is disabled in config.yml");
             return;
         }
-        this.leafCache = new LeafCache(new ConcurrentHashMap<>());
-        PacketEvents.getAPI().init();
+//        this.leafCache = new LeafCache(this, new ConcurrentHashMap<>());
+//        PacketEvents.getAPI().init();
         this.getServer().getPluginManager().registerEvents(this, this);
         this.registerListeners();
-        new BlockListener(this, this.leafCache).register();
+//        new BlockListener(this, this.leafCache).register();
         this.getCommand("hmcleaves").setExecutor(new LeavesCommand(this));
         Hooks.load(this);
     }
 
     private void registerListeners() {
         List.of(
-                        new ChunkListener(this),
+//                        new ChunkListener(this),
+                        leafHandler,
                         new PlaceListener(this),
                         new LeafDropListener(this)
                 ).
@@ -70,7 +78,7 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
     }
 
     public LeafCache getLeafCache() {
-        return this.leafCache;
+        return leafCache;
     }
 
 }

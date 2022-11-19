@@ -1,14 +1,15 @@
 package io.github.fisher2911.hmcleaves;
 
-import com.github.retrooper.packetevents.PacketEvents;
-import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
-import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
+import io.github.fisher2911.hmcleaves.nms.FakeLeafData;
+import io.github.fisher2911.hmcleaves.util.NoteBlockState;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import org.bukkit.ChatColor;
+import org.bukkit.Instrument;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.type.NoteBlock;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -17,8 +18,11 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -29,6 +33,7 @@ public class Config {
     // I'm lazy and don't want to have to check ItemsAdder loading, maybe I'll change it later
     private final Map<String, Supplier<ItemStack>> saplings;
     private final Map<String, Supplier<ItemStack>> leafDropReplacements;
+    private final Set<NoteBlockState> allowedLogs;
     private int defaultDistance;
     private boolean defaultPersistent;
     private boolean defaultActuallyPersistent;
@@ -41,30 +46,22 @@ public class Config {
         this.leafItems = leafItems;
         this.saplings = new HashMap<>();
         this.leafDropReplacements = new HashMap<>();
+        this.allowedLogs = new HashSet<>();
     }
 
-    public FakeLeafState getDefaultState(Material material) {
-        final WrappedBlockState state = WrappedBlockState.getDefaultState(
-                PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
-                StateTypes.getByName(material.toString().toLowerCase())
-        ).clone();
-        state.setDistance(this.defaultDistance);
-        state.setPersistent(this.defaultPersistent);
-        return new FakeLeafState(state, this.defaultActuallyPersistent, this.defaultActuallyPersistent ? 1 : 7);
+    public FakeLeafData getDefaultData() {
+        return new FakeLeafData(7, this.defaultPersistent, this.defaultDistance, this.defaultActuallyPersistent);
     }
 
     public boolean isLogBlock(Block block) {
+        if (block.getBlockData() instanceof final NoteBlock noteBlock) {
+            return this.allowedLogs.contains(new NoteBlockState(noteBlock.getInstrument(), noteBlock.getNote().getId()));
+        }
         return this.isLogBlock(block.getType());
     }
 
     public boolean isLogBlock(Material material) {
-        return material == Material.DIAMOND_BLOCK || Tag.LOGS.isTagged(material);
-    }
-
-
-    public void setDefaultState(WrappedBlockState state) {
-        state.setDistance(this.defaultDistance);
-        state.setPersistent(this.defaultPersistent);
+        return Tag.LOGS.isTagged(material);
     }
 
     @Nullable
@@ -73,10 +70,9 @@ public class Config {
     }
 
     @Nullable
-    public LeafItem getByState(FakeLeafState fakeLeafState) {
-        final var state = fakeLeafState.state();
+    public LeafItem getByFakeLeafData(FakeLeafData data) {
         for (LeafItem item : this.leafItems.values()) {
-            if (item.leafData().persistent() == state.isPersistent() && item.leafData().distance() == state.getDistance() && fakeLeafState.actuallyPersistent() == item.leafData().actuallyPersistent()) {
+            if (item.leafData().fakePersistence() == data.fakePersistence() && item.leafData().fakeDistance() == data.fakeDistance() && data.actualPersistence() == item.leafData().actuallyPersistent()) {
                 return item;
             }
         }
@@ -109,6 +105,7 @@ public class Config {
         this.leafItems.clear();
         this.saplings.clear();
         this.leafDropReplacements.clear();
+        this.allowedLogs.clear();
         this.plugin.reloadConfig();
         this.load();
     }
@@ -129,12 +126,22 @@ public class Config {
     private static final String NAME = "name";
     private static final String LORE = "lore";
 
+    private static final String LOGS = "logs";
+    private static final String NOTE_BLOCKS = "noteblocks";
+    private static final String INSTRUMENT_PATH = "instrument";
+    private static final String NOTE_PATH = "note";
+
     public void load() {
         this.plugin.saveDefaultConfig();
         final FileConfiguration config = this.plugin.getConfig();
         this.enabled = config.getBoolean("enabled", false);
         this.defaultDistance = config.getInt(DEFAULT_STATE_KEY + "." + DISTANCE_KEY, 3);
         this.defaultPersistent = config.getBoolean(DEFAULT_STATE_KEY + "." + PERSISTENT_KEY, false);
+        this.defaultActuallyPersistent = config.getBoolean(DEFAULT_STATE_KEY + "." + ACTUALLY_PERSISTENT, false);
+        final ConfigurationSection logSection = config.getConfigurationSection(LOGS + "." + NOTE_BLOCKS);
+        if (logSection != null) {
+            this.loadLogs(logSection);
+        }
         final ConfigurationSection itemSection = config.getConfigurationSection(ITEMS_KEY);
         if (itemSection == null) return;
         for (String id : itemSection.getKeys(false)) {
@@ -164,6 +171,15 @@ public class Config {
         }
     }
 
+    private void loadLogs(ConfigurationSection section) {
+        for (String id : section.getKeys(false)) {
+            final byte note = (byte) section.getInt(id + "." + NOTE_PATH, 0);
+            final String instrumentStr = section.getString(id + "." + INSTRUMENT_PATH, "");
+            final Instrument instrument = Instrument.valueOf(instrumentStr.toUpperCase(Locale.ROOT));
+            this.allowedLogs.add(new NoteBlockState(instrument, note));
+        }
+    }
+
     private Supplier<ItemStack> loadItemStack(ConfigurationSection section) {
         final String itemId = section.getString(HOOK_ID, null);
         if (itemId != null) return () -> {
@@ -181,7 +197,8 @@ public class Config {
         if (itemMeta != null) {
             if (name != null) itemMeta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
             if (section.contains(MODEL_DATA)) itemMeta.setCustomModelData(modelData);
-            if (!lore.isEmpty()) itemMeta.setLore(lore.stream().map(s -> ChatColor.translateAlternateColorCodes('&', s)).collect(Collectors.toList()));
+            if (!lore.isEmpty())
+                itemMeta.setLore(lore.stream().map(s -> ChatColor.translateAlternateColorCodes('&', s)).collect(Collectors.toList()));
             itemStack.setItemMeta(itemMeta);
         }
         return itemStack::clone;

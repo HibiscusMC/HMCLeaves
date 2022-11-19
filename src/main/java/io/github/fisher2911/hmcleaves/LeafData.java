@@ -2,14 +2,14 @@ package io.github.fisher2911.hmcleaves;
 
 import org.bukkit.Material;
 
-public record LeafData(Material material, int distance, boolean persistent, boolean actuallyPersistent) {
+public record LeafData(Material material, int fakeDistance, boolean fakePersistence, boolean actuallyPersistent) {
 
     @Override
     public String toString() {
         return "LeafData{" +
                 "material=" + material +
-                ", distance=" + distance +
-                ", persistent=" + persistent +
+                ", fakeDistance=" + fakeDistance +
+                ", fakePersistence=" + fakePersistence +
                 ", actuallyPersistent=" + actuallyPersistent +
                 '}';
     }
