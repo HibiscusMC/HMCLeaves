@@ -1,4 +1,5 @@
 # "Enabled" must be true for the plugin to function properly
+# Make sure you have your default state properly set up below before enabling!
 enabled: false
 # Default state for the normal leaf type
 default-state:
