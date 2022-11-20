@@ -43,7 +43,6 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
     private static final LeafHandler leafHandler;
 
     static {
-
         leafCache = new LeafCache(() -> (HMCLeaves) Bukkit.getPluginManager().getPlugin("HMCLeaves"), new ConcurrentHashMap<>());
         pdcHelper = new io.github.fisher2911.hmcleaves.util.PDCHelper(() -> (HMCLeaves) Bukkit.getPluginManager().getPlugin("HMCLeaves"));
         leafHandler = new LeafHandler_1_19(() -> (HMCLeaves) Bukkit.getPluginManager().getPlugin("HMCLeaves"), leafCache, pdcHelper);
@@ -59,7 +58,11 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
         this.config = new Config(this, new HashMap<>());
         this.config.load();
         if (!this.config.isEnabled()) {
+            this.getLogger().severe("-=-=-=-=-=HMCLeaves=-=-=-=-=-");
             this.getLogger().severe("HMCLeaves is disabled in config.yml");
+            this.getLogger().severe("Disabling your server, make sure to set \"enabled\":true in config.yml, along with your default leaf state!");
+            this.getLogger().severe("-=-=-=-=-=HMCLeaves=-=-=-=-=-");
+            Bukkit.shutdown();
             return;
         }
         this.getServer().getPluginManager().registerEvents(this, this);
