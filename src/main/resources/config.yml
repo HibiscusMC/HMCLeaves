@@ -36,7 +36,7 @@ items:
       lore:
         - "&7This is a test"
         - "&7This is a test"
-  "palm_leaf_persistent":
+  "palm_leaves_persistent":
     leaf-material: OAK_LEAVES
     material: PAPER
     model-data: 1
