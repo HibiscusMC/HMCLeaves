@@ -1,11 +1,10 @@
 package io.github.fisher2911.hmcleaves.listener;
 
-import com.jeff_media.customblockdata.CustomBlockData;
 import io.github.fisher2911.hmcleaves.Config;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
-import io.github.fisher2911.hmcleaves.HMCLeavesAPI;
 import io.github.fisher2911.hmcleaves.LeafData;
 import io.github.fisher2911.hmcleaves.LeafItem;
+import io.github.fisher2911.hmcleaves.api.HMCLeavesAPI;
 import io.github.fisher2911.hmcleaves.nms.FakeLeafData;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.util.Position;
@@ -26,6 +25,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.ClickType;
@@ -34,6 +34,9 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.RayTraceResult;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class PlaceListener implements Listener {
 
@@ -62,42 +65,10 @@ public class PlaceListener implements Listener {
         final String id = PDCUtil.getLeafDataItemId(itemStack);/* itemMeta.getPersistentDataContainer().get(PDCUtil.ITEM_KEY, PersistentDataType.STRING);*/
         if (id == null && !Tag.LEAVES.isTagged(itemStack.getType())) return;
         final Chunk chunk = toPlace.getChunk();
-        final Position2D chunkPos = new Position2D(toPlace.getWorld().getUID(), chunk.getX(), chunk.getZ());
-        final Position position = new Position(PositionUtil.getCoordInChunk(toPlace.getX()), toPlace.getY(), PositionUtil.getCoordInChunk(toPlace.getZ()));
-        event.getPlayer().sendMessage("Is chunk loaded: " + PDCUtil.hasLeafData(chunk.getPersistentDataContainer()));
-        event.getPlayer().sendMessage("Total custom blocks: " + CustomBlockData.getBlocksWithCustomData(this.plugin, chunk).size());
         final LeafItem leafItem = plugin.config().getItem(id);
         LeafData leafData = leafItem != null ? leafItem.leafData() : PDCUtil.getLeafData(itemMeta.getPersistentDataContainer());
-//        final FakeLeafData defaultFakeLeafData = this.plugin.config().getDefaultData();
-//        if (leafData == null) {
-//            if (!Tag.LEAVES.isTagged(itemStack.getType())) return;
-//            leafData = new LeafData(itemStack.getType(), defaultFakeLeafData.fakeDistance(), defaultFakeLeafData.fakePersistence(), true);
-//        }
-//        final FakeLeafData fakeLeafData = new FakeLeafData(
-//                leafData.fakeDistance(),
-//                leafData.fakePersistence(),
-//                7,
-//                leafData.actuallyPersistent()
-//        );
-//        this.plugin.getLeafCache().addData(chunkPos, position, fakeLeafData);
-//        event.getPlayer().sendMessage("§aPlaced leaf: " + fakeLeafData);
-//        toPlace.setType(leafData.material(), true);
-//        final LeafData finalLeafData = leafData;
-//        Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
-//        CraftServer
-//            final Leaves leaves = (Leaves) toPlace.getBlockData();
-//            leaves.setDistance(finalLeafData.fakeDistance());
-//            leaves.setPersistent(fakeLeafData.fakePersistence());
-//            toPlace.setBlockData(leaves);
-//            toPlace.getLocation().getBlock().getState().update(true, true);
-//            Bukkit.broadcastMessage("§aUpdated leaf: " + fakeLeafData + " " + toPlace.getState().update());
-//        }, 20);
         HMCLeavesAPI.getInstance().setLeafAt(toPlace.getLocation(), leafData, itemStack.getType());
-//        final CustomBlockData customBlockData = new CustomBlockData(toPlace, this.plugin);
-//        customBlockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, leafData == null ? (byte) 1 : leafData.fakePersistence() ? (byte) 1 : (byte) 0);
-//        customBlockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) leafData.fakeDistance());
         if (event.getPlayer().getGameMode() != GameMode.CREATIVE) itemStack.setAmount(itemStack.getAmount() - 1);
-//        event.setCancelled(true);
     }
 
 
@@ -156,30 +127,61 @@ public class PlaceListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onBlockBreak(BlockBreakEvent event) {
         final World world = event.getBlock().getWorld();
-        final Block bLock = event.getBlock();
+        final Block block = event.getBlock();
+        final boolean isLog = Tag.LOGS.isTagged(block.getType());
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
-            this.plugin.getLeafCache().remove(world.getUID(), bLock.getX(), bLock.getY(), bLock.getZ());
-        }, 3);
+            final var data = this.plugin.getLeafCache().remove(world.getUID(), block.getX(), block.getY(), block.getZ());
+            if (data == null && !isLog) return;
+            // have to update again because the leaf isn't removed from the cache to allow for custom drops
+            HMCLeavesAPI.getInstance().updateBlocksAroundChangedLeaf(world, block);
+        }, 2);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onBlocksExplode(BlockExplodeEvent event) {
         final World world = event.getBlock().getWorld();
+        final Set<Location> logs = event.blockList()
+                .stream()
+                .filter(block -> Tag.LOGS.isTagged(block.getType()))
+                .map(Block::getLocation)
+                .collect(Collectors.toSet());
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
             for (Block block : event.blockList()) {
-                this.plugin.getLeafCache().remove(world.getUID(), block.getX(), block.getY(), block.getZ());
+                final var data = this.plugin.getLeafCache().remove(world.getUID(), block.getX(), block.getY(), block.getZ());
+                if (data == null && !logs.contains(block.getLocation())) continue;
+                HMCLeavesAPI.getInstance().updateBlocksAroundChangedLeaf(world, block);
             }
-        }, 3);
+        }, 2);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onEntityExplode(EntityExplodeEvent event) {
         final World world = event.getEntity().getWorld();
+        final Set<Location> logs = event.blockList()
+                .stream()
+                .filter(block -> Tag.LOGS.isTagged(block.getType()))
+                .map(Block::getLocation)
+                .collect(Collectors.toSet());
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
             for (Block block : event.blockList()) {
-                this.plugin.getLeafCache().remove(world.getUID(), block.getX(), block.getY(), block.getZ());
+                final var data = this.plugin.getLeafCache().remove(world.getUID(), block.getX(), block.getY(), block.getZ());
+                if (data == null && !logs.contains(block.getLocation())) continue;
+                HMCLeavesAPI.getInstance().updateBlocksAroundChangedLeaf(world, block);
             }
-        }, 3);
+        }, 2);
+    }
+
+    @EventHandler
+    public void onBlockCombust(BlockBurnEvent event) {
+        final World world = event.getBlock().getWorld();
+        final Block block = event.getBlock();
+        final boolean isLog = Tag.LOGS.isTagged(block.getType());
+        Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
+            final var data = this.plugin.getLeafCache().remove(world.getUID(), block.getX(), block.getY(), block.getZ());
+            if (data == null && !isLog) return;
+            // have to update again because the leaf isn't removed from the cache to allow for custom drops
+            HMCLeavesAPI.getInstance().updateBlocksAroundChangedLeaf(world, block);
+        }, 2);
     }
 
 }

@@ -79,6 +79,16 @@ public class Config {
         return null;
     }
 
+    @Nullable
+    public LeafItem getByFakeLeafState(int fakeDistance, boolean fakePersistence, boolean actuallyPersistent) {
+        for (LeafItem item : this.leafItems.values()) {
+            if (item.leafData().fakePersistence() == fakePersistence && item.leafData().fakeDistance() == fakeDistance && actuallyPersistent == item.leafData().actuallyPersistent()) {
+                return item;
+            }
+        }
+        return null;
+    }
+
     public Map<String, LeafItem> getLeafItems() {
         return leafItems;
     }

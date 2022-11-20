@@ -166,7 +166,7 @@ public class LeafHandler_1_19 implements LeafHandler {
         LeavesBlock.pdcHelper = pdcHelper;
     }
 
-    // minecraft:item:minecraft:spruce_leaves ResourceKey[minecraft:item / minecraft:spruce_leaves]
+// minecraft:item:minecraft:spruce_leaves ResourceKey[minecraft:item / minecraft:spruce_leaves]
 // minecraft:worldgen/tree_decorator_type:minecraft:leave_vine ResourceKey[minecraft:worldgen/tree_decorator_type / minecraft:leave_vine]
 // minecraft:item:minecraft:jungle_leaves ResourceKey[minecraft:item / minecraft:jungle_leaves]
 // minecraft:item:minecraft:azalea_leaves ResourceKey[minecraft:item / minecraft:azalea_leaves]
@@ -248,11 +248,6 @@ public class LeafHandler_1_19 implements LeafHandler {
     static {
         try {
 
-//            for (Field field : CraftBlockData.class.getDeclaredFields()) {
-//                field.setAccessible(true);
-//                System.out.println("Field: " + field.getName() + " Type: " + field.getType());
-//            }
-
             intrusiveHolderCacheField = MappedRegistry.class.getDeclaredField("cc");
             intrusiveHolderCacheField.setAccessible(true);
 
@@ -261,11 +256,6 @@ public class LeafHandler_1_19 implements LeafHandler {
 
             byIdField = MappedRegistry.class.getDeclaredField("bS");
             byIdField.setAccessible(true);
-
-//            final ObjectList<Holder.Reference<Block>> blockById = (ObjectList<Holder.Reference<Block>>) byIdField.get(Registry.BLOCK);
-//            blockById.set(blockById.size(), Blocks.LEAVES)
-//            net.minecraft.world.level.block.LeavesBlock
-//            CraftBlockData.fromData()
 
             toIdField = MappedRegistry.class.getDeclaredField("bT");
             toIdField.setAccessible(true);
@@ -302,23 +292,10 @@ public class LeafHandler_1_19 implements LeafHandler {
         } catch (Exception e) {
             throw new IllegalStateException("Failed to initialize");
         }
-//        CraftBlockData.fromData()
     }
 
     @Override
     public void load() {
-//        for (var field : TreeFeatures.class.getDeclaredFields()) {
-//            try {
-//                field.setAccessible(true);
-//                final Holder.Reference<ConfiguredFeature<TreeConfiguration, ?>> holder = (Holder.Reference<ConfiguredFeature<TreeConfiguration, ?>>) field.get(null);
-//                final ConfiguredFeature<TreeConfiguration, ?> configuredFeature = holder.value();
-//                System.out.println("Field: " + field.getName() + " - " + holder.key().location());
-//            } catch (Exception e) {
-//                if (e instanceof ClassCastException) continue;
-//                e.printStackTrace();
-//            }
-//        }
-
         for (CustomLeafInfo customLeafInfo : CUSTOM_LEAF_INFOS) {
             load(customLeafInfo);
         }
@@ -331,18 +308,10 @@ public class LeafHandler_1_19 implements LeafHandler {
         try {
 
             // make customBlock and item registries accessible
-//            Field intrusiveHolderCache = MappedRegistry.class.getDeclaredField("cc");
-//            intrusiveHolderCacheField.setAccessible(true);
             intrusiveHolderCacheField.set(Registry.BLOCK, new IdentityHashMap<Block, Holder.Reference<Block>>());
             intrusiveHolderCacheField.set(Registry.ITEM, new IdentityHashMap<Item, Holder.Reference<Item>>());
-//            Field frozen = MappedRegistry.class.getDeclaredField("ca");
-//            frozenField.setAccessible(true);
             frozenField.set(Registry.BLOCK, false);
             frozenField.set(Registry.ITEM, false);
-
-//            CraftServer
-
-//            CraftLeaves
 
             // create a new custom leaves customBlock instance
             final LeavesBlock customBlock = new LeavesBlock(customLeafInfo.properties());
@@ -359,7 +328,6 @@ public class LeafHandler_1_19 implements LeafHandler {
             }
 
             // get the blockById field in the customBlock registry
-//            final Field byIdField = MappedRegistry.class.getDeclaredField("bS");
             byIdField.setAccessible(true);
             final ObjectList<Holder.Reference<Block>> blockById = (ObjectList<Holder.Reference<Block>>) byIdField.get(Registry.BLOCK);
             final ObjectList<Holder.Reference<Item>> itemById = (ObjectList<Holder.Reference<Item>>) byIdField.get(Registry.ITEM);
@@ -367,34 +335,15 @@ public class LeafHandler_1_19 implements LeafHandler {
             for (CustomLeafInfo info : CUSTOM_LEAF_INFOS) {
                 blockById.set(blockById.size() - 1, (Holder.Reference<Block>) info.block().defaultBlockState().getBlockHolder());
             }
-            for (Block instance : Registry.BLOCK) {
-//                if (instance instanceof net.minecraft.world.level.block.LeavesBlock) {
-//                    System.out.println("Found leaves block: " + instance.getClass());
-//                }
-//                if (state == null) {
-//                MappedRegistry
-//                    state = instance.getStateDefinition().getProperty(name);
-//                } else {
-//                    Property<?> newState = instance.getStateDefinition().getProperty(name);
-//
-//                    Preconditions.checkState(state == newState, "State mistmatch %s,%s", state, newState);
-//                }
-//            }
-            }
 
             // get the toIdField in the customBlock registry and item registry
-//            final Field toIdField = MappedRegistry.class.getDeclaredField("bT");
             final it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap<Block> blockToId = (it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap<Block>) toIdField.get(Registry.BLOCK);
             final it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap<Item> itemToId = (it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap<Item>) toIdField.get(Registry.ITEM);
 
             // set the custom leaf item's block to our custom block
-//            final Field blockField = BlockItem.class.getDeclaredField("c");
             blockField.setAccessible(true);
             blockField.set(customLeafInfo.leafItem(), customBlock);
 
-//            final Class<?> clazz = Registry.BLOCK_REGISTRY.getClass();
-//            final var valuesField = clazz.getDeclaredField("a");
-//            valuesField.setAccessible(true);
             final Map<String, ResourceKey<?>> blockValues = (Map<String, ResourceKey<?>>) valuesField.get(Registry.BLOCK);
             final Map<String, ResourceKey<?>> itemValues = (Map<String, ResourceKey<?>>) valuesField.get(Registry.ITEM);
 
@@ -408,25 +357,18 @@ public class LeafHandler_1_19 implements LeafHandler {
             int leafId = 0;
             for (var holder : blockById) {
                 if (holder.key().equals(resourceKey)) {
-//                    System.out.println(holder.value());
                     break;
                 }
                 leafId++;
             }
 
             // get the blockByKey field
-//            final Field byKeyField = MappedRegistry.class.getDeclaredField("bV");
-//            byKeyField.setAccessible(true);
             final Map<ResourceKey<Block>, Holder.Reference<Block>> blockByKey = (Map<ResourceKey<Block>, Holder.Reference<Block>>) byKeyField.get(Registry.BLOCK);
 
             // get the current NMS leaf block
             final net.minecraft.world.level.block.LeavesBlock leavesBlock = (net.minecraft.world.level.block.LeavesBlock) Registry.BLOCK.get(resourceKey);
 
-//            System.out.println("Tags: " + leavesBlock.defaultBlockState().getTags().toList());
-
             // get the tags of the block
-//            final Field blockTagsField = Holder.Reference.class.getDeclaredField("b");
-//            blockTagsField.setAccessible(true);
             // set the tags of the block to the tags of the customBlock
             blockTagsField.set(customBlock.defaultBlockState().getBlockHolder(), leavesBlock.defaultBlockState().getBlockHolder().tags().collect(Collectors.toSet()));
 
@@ -447,13 +389,9 @@ public class LeafHandler_1_19 implements LeafHandler {
             );
 
             // get the blockState to id field from the block state registry
-//            final Field tToIdField = Block.BLOCK_STATE_REGISTRY.getClass().getDeclaredField("c");
-//            tToIdField.setAccessible(true);
             final Object2IntMap<BlockState> tToId = (Object2IntMap<BlockState>) tToIdField.get(Block.BLOCK_STATE_REGISTRY);
 
             // get the id to blockState field from the block state registry
-//            final Field idToTField = Block.BLOCK_STATE_REGISTRY.getClass().getDeclaredField("d");
-//            idToTField.setAccessible(true);
             final List<BlockState> idToT = (List<BlockState>) idToTField.get(Block.BLOCK_STATE_REGISTRY);
 
             // replace the old block states with our new ones
@@ -476,22 +414,15 @@ public class LeafHandler_1_19 implements LeafHandler {
                     final Holder<ConfiguredFeature<TreeConfiguration, ?>> treeFeature = (Holder<ConfiguredFeature<TreeConfiguration, ?>>) treeFeatureField.get(null);
 
                     // apply the new block state mapping
-//                final var foliageProviderField = TreeConfiguration.class.getDeclaredField("e");
-//                foliageProviderField.setAccessible(true);
                     foliageProviderField.set(treeFeature.value().config(), SimpleStateProvider.simple(customBlock));
                 }
             }
 
-//            final Field field_BLOCK_MATERIAL = CraftMagicNumbers.class.getDeclaredField("BLOCK_MATERIAL");
-//            field_BLOCK_MATERIAL.setAccessible(true);
+
             HashMap<Block, Material> BLOCK_MATERIAL = (HashMap<Block, Material>) blockMaterialField.get(null);
             BLOCK_MATERIAL.put(customBlock, customLeafInfo.bukkitMaterial());
 
-//            final FireBlock blockfire = (FireBlock) Blocks.FIRE;
-
             // make our leaf flammable again
-//            final Method setFlammableMethod = blockfire.getClass().getDeclaredMethod("a", Block.class, int.class, int.class);
-//            setFlammableMethod.setAccessible(true);
             final FireBlock blockfire = (FireBlock) Blocks.FIRE;
             setFlammableMethod.invoke(blockfire, customBlock, 30, 60);
 
@@ -504,11 +435,6 @@ public class LeafHandler_1_19 implements LeafHandler {
             e.printStackTrace();
             throw new IllegalStateException("Failed to register custom leaf block");
         }
-//        for (Block b : Registry.BLOCK) {
-//            System.out.println(b.getClass());
-//        }
-//        CraftLeaves
-//        CraftBlockData.fromData()
     }
 
     private void loadAzaleaTreeLeaves() {
@@ -520,8 +446,6 @@ public class LeafHandler_1_19 implements LeafHandler {
                 final var treeFeatureField = TreeFeatures.class.getDeclaredField(field);
                 treeFeatureField.setAccessible(true);
                 final Holder<ConfiguredFeature<TreeConfiguration, ?>> treeFeature = (Holder<ConfiguredFeature<TreeConfiguration, ?>>) treeFeatureField.get(null);
-
-                // new WeightedStateProvider(SimpleWeightedRandomList.<BlockState>builder().add(Blocks.AZALEA_LEAVES.defaultBlockState(), 3).add(Blocks.FLOWERING_AZALEA_LEAVES.defaultBlockState(), 1))
 
                 foliageProviderField.set(
                         treeFeature.value().config(),
@@ -579,8 +503,8 @@ public class LeafHandler_1_19 implements LeafHandler {
                     final int actualDistance = state.getValue(LeavesBlock.DISTANCE);
                     data.actualDistance(actualDistance);
                     newState = newState.setValue(LeavesBlock.PERSISTENT, data.fakePersistence())
-                    .setValue(LeavesBlock.DISTANCE, data.fakeDistance())
-                    .setValue(LeavesBlock.WATERLOGGED, state.getValue(LeavesBlock.WATERLOGGED));
+                            .setValue(LeavesBlock.DISTANCE, data.fakeDistance())
+                            .setValue(LeavesBlock.WATERLOGGED, state.getValue(LeavesBlock.WATERLOGGED));
                     level.setBlock(pos, newState, 2 | 16 | 1024, 0);
                     this.leafDataSupplier.set(worldUUID, pos.getX(), pos.getY(), pos.getZ(), data);
                     final PersistentDataContainer blockData = new CustomBlockData(
@@ -591,11 +515,6 @@ public class LeafHandler_1_19 implements LeafHandler {
                     pdcHelper.setPersistent(blockData, data.fakePersistence() ? (byte) 1 : (byte) 0);
                     pdcHelper.setActualDistance(blockData, (byte) data.actualDistance());
                     pdcHelper.setActualPersistent(blockData, data.actualPersistence() ? (byte) 1 : (byte) 0);
-
-//                    blockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) data.state().getDistance());
-//                    blockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, (byte) (data.state().isPersistent() ? 1 : 0));
-//                    blockData.set(PDCUtil.ACTUAL_PERSISTENCE_KEY, PersistentDataType.BYTE, (byte) (data.actuallyPersistent() ? 1 : 0));
-//                    blockData.set(PDCUtil.ACTUAL_DISTANCE_KEY, PersistentDataType.BYTE, (byte) data.actualDistance());
                 }
                 this.pdcHelper.setChunkHasLeafData(chunk.getPersistentDataContainer(), true);
             }, 5);

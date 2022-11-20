@@ -16,7 +16,7 @@ public interface LeafDataSupplier {
 
     void set(UUID world, int x, int y, int z, FakeLeafData data);
 
-    void remove(UUID world, int x, int y, int z);
+    FakeLeafData remove(UUID world, int x, int y, int z);
 
     boolean isLogAt(UUID world, int x, int y, int z);
 

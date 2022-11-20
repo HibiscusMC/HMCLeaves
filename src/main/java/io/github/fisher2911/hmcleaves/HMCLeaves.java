@@ -32,10 +32,6 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
 
     @Override
     public void onLoad() {
-//        final PacketEventsAPI<Plugin> api = SpigotPacketEventsBuilder.build(this);
-//        api.getSettings().debug(true);
-//        PacketEvents.setAPI(api);
-//        PacketEvents.getAPI().load();
     }
 
     @Override
@@ -46,18 +42,14 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
             this.getLogger().severe("HMCLeaves is disabled in config.yml");
             return;
         }
-//        this.leafCache = new LeafCache(this, new ConcurrentHashMap<>());
-//        PacketEvents.getAPI().init();
         this.getServer().getPluginManager().registerEvents(this, this);
         this.registerListeners();
-//        new BlockListener(this, this.leafCache).register();
         this.getCommand("hmcleaves").setExecutor(new LeavesCommand(this));
         Hooks.load(this);
     }
 
     private void registerListeners() {
         List.of(
-//                        new ChunkListener(this),
                         leafHandler,
                         new PlaceListener(this),
                         new LeafDropListener(this)

@@ -19,6 +19,7 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.bukkit.Bukkit;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.jetbrains.annotations.Nullable;
@@ -27,18 +28,15 @@ import java.util.UUID;
 
 public class LeavesBlock extends net.minecraft.world.level.block.LeavesBlock implements SimpleWaterloggedBlock {
 
-//    public static final int DECAY_DISTANCE = 7;
-//    public static final IntegerProperty DISTANCE = BlockStateProperties.DISTANCE;
-//    public static final BooleanProperty PERSISTENT = BlockStateProperties.PERSISTENT;
-//    public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
-//    private static final int TICK_DELAY = 1;
-
     protected static LeafDataSupplier leafDataSupplier;
     protected static PDCHelper pdcHelper;
 
     public LeavesBlock(Properties settings) {
         super(settings);
-        this.registerDefaultState((BlockState) ((BlockState) ((BlockState) ((BlockState) this.stateDefinition.any()).setValue(net.minecraft.world.level.block.LeavesBlock.DISTANCE, 7)).setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT, false)).setValue(net.minecraft.world.level.block.LeavesBlock.WATERLOGGED, false));
+        this.registerDefaultState((BlockState) ((BlockState) ((BlockState) ((BlockState) this.stateDefinition.any())
+                .setValue(net.minecraft.world.level.block.LeavesBlock.DISTANCE, 7))
+                .setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT, false))
+                .setValue(net.minecraft.world.level.block.LeavesBlock.WATERLOGGED, false));
     }
 
     @Override
@@ -48,10 +46,8 @@ public class LeavesBlock extends net.minecraft.world.level.block.LeavesBlock imp
 
     @Override
     public boolean isRandomlyTicking(BlockState state) {
-        // return true always because there is no way to access the position (maybe try adding a custom property at some point)?
+        // return true always because there is no way to access the position
         return true;
-
-//        return state.getValue(net.minecraft.world.level.block.LeavesBlock.DISTANCE) == 7 && !(Boolean) state.getValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT);
     }
 
     @Override
@@ -61,16 +57,12 @@ public class LeavesBlock extends net.minecraft.world.level.block.LeavesBlock imp
         if (data == null) return;
         if (this.decaying(state, data)) {
             // CraftBukkit start
-            world.setBlock(pos, state.setValue(LeavesBlock.PERSISTENT, false).setValue(LeavesBlock.DISTANCE, 7), 2 | 16 | 1024, 0);
             LeavesDecayEvent event = new LeavesDecayEvent(world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()));
             world.getCraftServer().getPluginManager().callEvent(event);
 
             if (event.isCancelled() || world.getBlockState(pos).getBlock() != this) {
-                ;
-                world.setBlock(pos, state.setValue(LeavesBlock.PERSISTENT, data.fakePersistence()).setValue(LeavesBlock.DISTANCE, data.fakeDistance()), 2 | 16 | 1024, 0);
                 return;
             }
-//            CollectingNeighborUpdater
             // CraftBukkit end
             dropResources(state, world, pos);
             world.removeBlock(pos, false);
@@ -82,7 +74,6 @@ public class LeavesBlock extends net.minecraft.world.level.block.LeavesBlock imp
     // override this to work with the fake leaf data
     protected boolean decaying(BlockState state, FakeLeafData data) {
         return !data.actualPersistence() && data.actualDistance() == 7;
-//        return !(Boolean) state.getValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT) && (Integer) state.getValue(net.minecraft.world.level.block.LeavesBlock.DISTANCE) == 7;
     }
 
     @Override
@@ -108,12 +99,6 @@ public class LeavesBlock extends net.minecraft.world.level.block.LeavesBlock imp
         if (i != 1 || data.actualDistance() != i) {
             world.scheduleTick(pos, this, 1);
         }
-
-//        if (i != 1 || state.getValue(net.minecraft.world.level.block.LeavesBlock.DISTANCE) != i) {
-//            world.scheduleTick(pos, (Block) this, 1);
-//        }
-
-//        Bukkit.broadcastMessage("i: " + i);
 
         return state;
     }
@@ -148,15 +133,21 @@ public class LeavesBlock extends net.minecraft.world.level.block.LeavesBlock imp
         pdcHelper.setActualDistance(blockData, (byte) data.actualDistance());
         // make sure neighbors are updated properly
         if (previousDistance != i) {
-            state = state.setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT, !state.getValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT));
-            // if all the leaves around this one are the same, then we need to tick again
+            // if all the leaves around this one are the same, then we need to tick again because they will not cycle back to cause a tick
+            Bukkit.getScheduler().runTaskLater(leafDataSupplier.plugin(), () -> {
+                final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
+                for (int k = 0; k < j; ++k) {
+                    Direction enumdirection = aenumdirection[k];
+                    mutableBlockPos.setWithOffset(pos, enumdirection);
+                    world.scheduleTick(mutableBlockPos, world.getBlockState(mutableBlockPos).getBlock(), 0);
+                }
+            }, 1);
             world.scheduleTick(pos, state.getBlock(), 1);
         } else {
             state = state.setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT, data.fakePersistence());
         }
+
         return state.setValue(net.minecraft.world.level.block.LeavesBlock.DISTANCE, data.fakeDistance());
-//        return state;
-//        return state.setValue(net.minecraft.world.level.block.LeavesBlock.DISTANCE, i);
     }
 
     // override with our custom data
@@ -166,7 +157,6 @@ public class LeavesBlock extends net.minecraft.world.level.block.LeavesBlock imp
         }
         final FakeLeafData data = leafDataSupplier.getAt(world, checking.getX(), checking.getY(), checking.getZ());
         return data == null ? 7 : data.actualDistance();
-//        return state.is(BlockTags.LOGS) ? 0 : (state.getBlock() instanceof net.minecraft.world.level.block.LeavesBlock ? (Integer) state.getValue(net.minecraft.world.level.block.LeavesBlock.DISTANCE) : 7);
     }
 
     @Override
@@ -194,7 +184,11 @@ public class LeavesBlock extends net.minecraft.world.level.block.LeavesBlock imp
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(net.minecraft.world.level.block.LeavesBlock.DISTANCE, net.minecraft.world.level.block.LeavesBlock.PERSISTENT, net.minecraft.world.level.block.LeavesBlock.WATERLOGGED);
+        builder.add(
+                net.minecraft.world.level.block.LeavesBlock.DISTANCE,
+                net.minecraft.world.level.block.LeavesBlock.PERSISTENT,
+                net.minecraft.world.level.block.LeavesBlock.WATERLOGGED
+        );
     }
 
     @Override

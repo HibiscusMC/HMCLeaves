@@ -26,10 +26,6 @@ public class PDCHelper implements io.github.fisher2911.hmcleaves.nms.PDCHelper {
     @Override
     public void setDistance(PersistentDataContainer container, byte distance) {
         container.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, distance);
-        //                    blockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) data.state().getDistance());
-//                    blockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, (byte) (data.state().isPersistent() ? 1 : 0));
-//                    blockData.set(PDCUtil.ACTUAL_PERSISTENCE_KEY, PersistentDataType.BYTE, (byte) (data.actuallyPersistent() ? 1 : 0));
-//                    blockData.set(PDCUtil.ACTUAL_DISTANCE_KEY, PersistentDataType.BYTE, (byte) data.actualDistance());
     }
 
     @Override

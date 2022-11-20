@@ -113,10 +113,10 @@ public class LeafCache implements LeafDataSupplier {
     }
 
     @Override
-    public void remove(UUID world, int x, int y, int z) {
+    public FakeLeafData remove(UUID world, int x, int y, int z) {
         final Position2D chunkPos = new Position2D(world, x >> 4, z >> 4);
         final Position position = new Position(PositionUtil.getCoordInChunk(x), y, PositionUtil.getCoordInChunk(z));
-        this.remove(chunkPos, position);
+        return this.remove(chunkPos, position);
     }
 
 }
