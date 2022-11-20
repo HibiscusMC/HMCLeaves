@@ -27,6 +27,7 @@ import io.github.fisher2911.hmcleaves.listener.PlaceListener;
 import io.github.fisher2911.hmcleaves.nms.LeafHandler;
 import io.github.fisher2911.hmcleaves.nms.LeafHandler_1_19;
 import io.github.fisher2911.hmcleaves.util.PDCHelper;
+import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -69,6 +70,8 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
         this.registerListeners();
         this.getCommand("hmcleaves").setExecutor(new LeavesCommand(this));
         Hooks.load(this);
+        final int bStatsPluginId = 16900;
+        Metrics metrics = new Metrics(this, bStatsPluginId);
     }
 
     private void registerListeners() {

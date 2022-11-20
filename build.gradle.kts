@@ -22,8 +22,8 @@ dependencies {
     compileOnly("com.github.LoneDev6:api-itemsadder:3.0.0")
     implementation("com.jeff_media:CustomBlockData:2.0.1")
     implementation("com.jeff_media:MorePersistentDataTypes:2.3.1")
+    implementation("org.bstats:bstats-bukkit:3.0.0")
     paperDevBundle("1.19.2-R0.1-SNAPSHOT")
-
 }
 
 tasks {
@@ -41,6 +41,7 @@ tasks {
     shadowJar {
         relocate("com.jeff_media.customblockdata", "io.github.fisher2911.hmcleaves.customblockdata")
         relocate("com.jeff_media.morepersistentdatatypes", "io.github.fisher2911.hmcleaves.morepersistentdatatypes")
+        relocate("org.bstats", "io.github.fisher2911.hmcleaves.bstats")
 
         dependencies {
             exclude(dependency("org.yaml:snakeyaml"))
