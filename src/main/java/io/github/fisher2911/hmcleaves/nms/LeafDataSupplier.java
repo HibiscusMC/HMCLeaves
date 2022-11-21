@@ -18,20 +18,26 @@
  *
  */
 
-package io.github.fisher2911.hmcleaves;
+package io.github.fisher2911.hmcleaves.nms;
 
-import org.bukkit.Material;
+import org.bukkit.plugin.java.JavaPlugin;
 
-public record LeafData(Material material, int fakeDistance, boolean fakePersistence, boolean actuallyPersistent) {
+import java.util.UUID;
 
-    @Override
-    public String toString() {
-        return "LeafData{" +
-                "material=" + material +
-                ", fakeDistance=" + fakeDistance +
-                ", fakePersistence=" + fakePersistence +
-                ", actuallyPersistent=" + actuallyPersistent +
-                '}';
-    }
+public interface LeafDataSupplier {
+
+    JavaPlugin plugin();
+
+    FakeLeafData getDefault();
+
+    FakeLeafData getAt(UUID world, int x, int y, int z);
+
+    FakeLeafData getAtOrCreate(UUID world, int x, int y, int z);
+
+    void set(UUID world, int x, int y, int z, FakeLeafData data);
+
+    FakeLeafData remove(UUID world, int x, int y, int z);
+
+    boolean isLogAt(UUID world, int x, int y, int z);
 
 }

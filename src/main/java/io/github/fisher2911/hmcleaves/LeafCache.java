@@ -1,55 +1,63 @@
+/*
+ *
+ *  *     HMCLeaves
+ *  *     Copyright (C) 2022  Hibiscus Creative Studios
+ *  *
+ *  *     This program is free software: you can redistribute it and/or modify
+ *  *     it under the terms of the GNU General Public License as published by
+ *  *     the Free Software Foundation, either version 3 of the License, or
+ *  *     (at your option) any later version.
+ *  *
+ *  *     This program is distributed in the hope that it will be useful,
+ *  *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  *     GNU General Public License for more details.
+ *  *
+ *  *     You should have received a copy of the GNU General Public License
+ *  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
 package io.github.fisher2911.hmcleaves;
 
+import io.github.fisher2911.hmcleaves.nms.FakeLeafData;
+import io.github.fisher2911.hmcleaves.nms.LeafDataSupplier;
 import io.github.fisher2911.hmcleaves.util.Position;
 import io.github.fisher2911.hmcleaves.util.Position2D;
+import io.github.fisher2911.hmcleaves.util.PositionUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
+import java.util.UUID;
+import java.util.function.Supplier;
 
-public class LeafCache {
+public class LeafCache implements LeafDataSupplier {
 
-    private final Map<Position2D, Map<Position, FakeLeafState>> cache;
-    private final Map<Position2D, Set<Position>> treeBlocks;
+    private final Supplier<HMCLeaves> pluginSupplier;
+    private HMCLeaves plugin;
+    private final Map<Position2D, Map<Position, FakeLeafData>> cache;
 
-    public LeafCache(Map<Position2D, Map<Position, FakeLeafState>> cache) {
+    public LeafCache(Supplier<HMCLeaves> pluginSupplier, Map<Position2D, Map<Position, FakeLeafData>> cache) {
+        this.pluginSupplier = pluginSupplier;
         this.cache = cache;
-        this.treeBlocks = new HashMap<>();
     }
 
     @Nullable
-    public FakeLeafState getAt(Position2D chunk, Position position) {
+    public FakeLeafData getAt(Position2D chunk, Position position) {
         final var map = this.cache.get(chunk);
         if (map == null) return null;
         return map.get(position);
     }
 
-    public void addData(Position2D chunk, Position position, FakeLeafState state) {
+    public void addData(Position2D chunk, Position position, FakeLeafData data) {
         final var map = this.cache.computeIfAbsent(chunk, k -> new HashMap<>());
         if (!this.inBounds(position)) throw new IllegalArgumentException(position + " not in bounds");
-        map.put(position, state);
-    }
-
-    public boolean isTreeBlock(Position2D chunk, Position position) {
-        final var set = this.treeBlocks.get(chunk);
-        if (set == null) return false;
-        return set.contains(position);
-    }
-
-    public void addTreeBlock(Position2D chunk, Position position) {
-        final var set = this.treeBlocks.computeIfAbsent(chunk, k -> new HashSet<>());
-        if (!this.inBounds(position)) throw new IllegalArgumentException(position + " not in bounds");
-        Bukkit.broadcastMessage("Place log at " + chunk.x() * 16 + position.getXInChunk() + " " + position.y() + " " + chunk.y() * 16 + position.getZInChunk());
-        set.add(position);
-    }
-
-    public void removeTreeBlock(Position2D chunk, Position position) {
-        final var set = this.treeBlocks.get(chunk);
-        if (set == null) return;
-        set.remove(position);
+        map.put(position, data);
     }
 
     private boolean inBounds(Position position) {
@@ -61,18 +69,74 @@ public class LeafCache {
     }
 
     @Nullable
-    public FakeLeafState remove(Position2D chunk, Position position) {
+    public FakeLeafData remove(Position2D chunk, Position position) {
         final var map = this.cache.get(chunk);
         if (map == null) return null;
         return map.remove(position);
     }
 
-    public Map<Position, FakeLeafState> getOrAddChunkData(Position2D chunk) {
+    public Map<Position, FakeLeafData> getOrAddChunkData(Position2D chunk) {
         return this.cache.computeIfAbsent(chunk, k -> new HashMap<>());
     }
 
     public void remove(Position2D chunk) {
         this.cache.remove(chunk);
+    }
+
+    public void remove(Chunk chunk) {
+        this.remove(new Position2D(chunk.getWorld().getUID(), chunk.getX(), chunk.getZ()));
+    }
+
+    @Override
+    public FakeLeafData getAt(UUID world, int x, int y, int z) {
+        final int chunkX = x >> 4;
+        final int chunkZ = z >> 4;
+        final Position2D chunkPos = new Position2D(world, chunkX, chunkZ);
+        final Position position = new Position(PositionUtil.getCoordInChunk(x), y, PositionUtil.getCoordInChunk(z));
+        return this.getAt(chunkPos, position);
+    }
+
+    @Override
+    public FakeLeafData getAtOrCreate(UUID world, int x, int y, int z) {
+        final FakeLeafData data = this.getAt(world, x, y, z);
+        if (data != null) return data;
+        final FakeLeafData fakeLeafData = this.plugin().config().getDefaultData();
+        this.set(world, x, y, z, fakeLeafData);
+        return fakeLeafData;
+    }
+
+    @Override
+    public boolean isLogAt(UUID worldUUID, int x, int y, int z) {
+        final World world = Bukkit.getWorld(worldUUID);
+        if (world == null) return false;
+        if (!world.isChunkLoaded(x >> 4, z >> 4)) return false;
+        final Block block = world.getBlockAt(x, y, z);
+        return this.plugin().config().isLogBlock(block);
+    }
+
+    @Override
+    public HMCLeaves plugin() {
+        if (this.plugin == null) this.plugin = this.pluginSupplier.get();
+        return this.plugin;
+    }
+
+    @Override
+    public FakeLeafData getDefault() {
+        return this.plugin().config().getDefaultData();
+    }
+
+    @Override
+    public void set(UUID world, int x, int y, int z, FakeLeafData data) {
+        final Position2D chunkPos = new Position2D(world, x >> 4, z >> 4);
+        final Position position = new Position(PositionUtil.getCoordInChunk(x), y, PositionUtil.getCoordInChunk(z));
+        this.addData(chunkPos, position, data);
+    }
+
+    @Override
+    public FakeLeafData remove(UUID world, int x, int y, int z) {
+        final Position2D chunkPos = new Position2D(world, x >> 4, z >> 4);
+        final Position position = new Position(PositionUtil.getCoordInChunk(x), y, PositionUtil.getCoordInChunk(z));
+        return this.remove(chunkPos, position);
     }
 
 }

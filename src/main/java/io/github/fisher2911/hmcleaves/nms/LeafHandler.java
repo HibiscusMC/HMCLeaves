@@ -18,20 +18,12 @@
  *
  */
 
-package io.github.fisher2911.hmcleaves;
+package io.github.fisher2911.hmcleaves.nms;
 
-import org.bukkit.Material;
+import org.bukkit.event.Listener;
 
-public record LeafData(Material material, int fakeDistance, boolean fakePersistence, boolean actuallyPersistent) {
+public interface LeafHandler extends Listener {
 
-    @Override
-    public String toString() {
-        return "LeafData{" +
-                "material=" + material +
-                ", fakeDistance=" + fakeDistance +
-                ", fakePersistence=" + fakePersistence +
-                ", actuallyPersistent=" + actuallyPersistent +
-                '}';
-    }
+    void load();
 
 }

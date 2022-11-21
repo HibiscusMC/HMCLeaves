@@ -18,20 +18,31 @@
  *
  */
 
-package io.github.fisher2911.hmcleaves;
+package io.github.fisher2911.hmcleaves.util;
 
-import org.bukkit.Material;
+import org.bukkit.Instrument;
 
-public record LeafData(Material material, int fakeDistance, boolean fakePersistence, boolean actuallyPersistent) {
+import java.util.Locale;
+import java.util.Objects;
+
+public record NoteBlockState(Instrument instrument, byte note) {
 
     @Override
     public String toString() {
-        return "LeafData{" +
-                "material=" + material +
-                ", fakeDistance=" + fakeDistance +
-                ", fakePersistence=" + fakePersistence +
-                ", actuallyPersistent=" + actuallyPersistent +
-                '}';
+        return this.instrument.name().toLowerCase(Locale.ROOT) + ":" + this.note;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final NoteBlockState that = (NoteBlockState) o;
+        return note == that.note && instrument == that.instrument;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(instrument, note);
     }
 
 }

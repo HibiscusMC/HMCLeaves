@@ -1,16 +1,35 @@
+/*
+ *
+ *  *     HMCLeaves
+ *  *     Copyright (C) 2022  Hibiscus Creative Studios
+ *  *
+ *  *     This program is free software: you can redistribute it and/or modify
+ *  *     it under the terms of the GNU General Public License as published by
+ *  *     the Free Software Foundation, either version 3 of the License, or
+ *  *     (at your option) any later version.
+ *  *
+ *  *     This program is distributed in the hope that it will be useful,
+ *  *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  *     GNU General Public License for more details.
+ *  *
+ *  *     You should have received a copy of the GNU General Public License
+ *  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
 package io.github.fisher2911.hmcleaves;
 
-import com.github.retrooper.packetevents.PacketEvents;
-import com.github.retrooper.packetevents.PacketEventsAPI;
 import io.github.fisher2911.hmcleaves.command.LeavesCommand;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
-import io.github.fisher2911.hmcleaves.listener.ChunkListener;
 import io.github.fisher2911.hmcleaves.listener.LeafDropListener;
 import io.github.fisher2911.hmcleaves.listener.PlaceListener;
-import io.github.fisher2911.hmcleaves.packet.BlockListener;
-import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
+import io.github.fisher2911.hmcleaves.nms.LeafHandler;
+import io.github.fisher2911.hmcleaves.nms.LeafHandler_1_19;
+import io.github.fisher2911.hmcleaves.util.PDCHelper;
+import org.bstats.bukkit.Metrics;
+import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashMap;
@@ -20,15 +39,19 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class HMCLeaves extends JavaPlugin implements Listener {
 
     private Config config;
-    private LeafCache leafCache;
-    ;
+    private static final LeafCache leafCache;
+    private static final PDCHelper pdcHelper;
+    private static final LeafHandler leafHandler;
+
+    static {
+        leafCache = new LeafCache(() -> (HMCLeaves) Bukkit.getPluginManager().getPlugin("HMCLeaves"), new ConcurrentHashMap<>());
+        pdcHelper = new io.github.fisher2911.hmcleaves.util.PDCHelper(() -> (HMCLeaves) Bukkit.getPluginManager().getPlugin("HMCLeaves"));
+        leafHandler = new LeafHandler_1_19(() -> (HMCLeaves) Bukkit.getPluginManager().getPlugin("HMCLeaves"), leafCache, pdcHelper);
+        leafHandler.load();
+    }
 
     @Override
     public void onLoad() {
-        final PacketEventsAPI<Plugin> api = SpigotPacketEventsBuilder.build(this);
-        api.getSettings().debug(true);
-        PacketEvents.setAPI(api);
-        PacketEvents.getAPI().load();
     }
 
     @Override
@@ -36,21 +59,24 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
         this.config = new Config(this, new HashMap<>());
         this.config.load();
         if (!this.config.isEnabled()) {
+            this.getLogger().severe("-=-=-=-=-=HMCLeaves=-=-=-=-=-");
             this.getLogger().severe("HMCLeaves is disabled in config.yml");
+            this.getLogger().severe("Disabling your server, make sure to set \"enabled\":true in config.yml, along with your default leaf state!");
+            this.getLogger().severe("-=-=-=-=-=HMCLeaves=-=-=-=-=-");
+            Bukkit.shutdown();
             return;
         }
-        this.leafCache = new LeafCache(new ConcurrentHashMap<>());
-        PacketEvents.getAPI().init();
         this.getServer().getPluginManager().registerEvents(this, this);
         this.registerListeners();
-        new BlockListener(this, this.leafCache).register();
         this.getCommand("hmcleaves").setExecutor(new LeavesCommand(this));
         Hooks.load(this);
+        final int bStatsPluginId = 16900;
+        Metrics metrics = new Metrics(this, bStatsPluginId);
     }
 
     private void registerListeners() {
         List.of(
-                        new ChunkListener(this),
+                        leafHandler,
                         new PlaceListener(this),
                         new LeafDropListener(this)
                 ).
@@ -70,7 +96,7 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
     }
 
     public LeafCache getLeafCache() {
-        return this.leafCache;
+        return leafCache;
     }
 
 }
