@@ -29,7 +29,7 @@ import io.github.fisher2911.hmcleaves.listener.LeafDropListener;
 import io.github.fisher2911.hmcleaves.listener.LeafUpdateListener;
 import io.github.fisher2911.hmcleaves.listener.PlaceListener;
 import io.github.fisher2911.hmcleaves.packet.BlockListener;
-import io.github.fisher2911.hmcleaves.util.LeafUpdater3;
+import io.github.fisher2911.hmcleaves.util.LeafUpdater;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
@@ -71,7 +71,7 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
         new BlockListener(this, this.leafCache).register();
         this.getCommand("hmcleaves").setExecutor(new LeavesCommand(this));
         Hooks.load(this);
-        LeafUpdater3.start();
+        LeafUpdater.start();
     }
 
     private void registerListeners() {

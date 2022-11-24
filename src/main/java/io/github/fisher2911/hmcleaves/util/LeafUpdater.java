@@ -20,202 +20,264 @@
 
 package io.github.fisher2911.hmcleaves.util;
 
+import com.jeff_media.customblockdata.CustomBlockData;
+import io.github.fisher2911.hmcleaves.Config;
+import io.github.fisher2911.hmcleaves.FakeLeafState;
+import io.github.fisher2911.hmcleaves.HMCLeaves;
+import io.github.fisher2911.hmcleaves.LeafCache;
+import io.github.fisher2911.hmcleaves.util.collection.UniqueConcurrentLinkedDeque;
+import org.bukkit.Bukkit;
+import org.bukkit.ChunkSnapshot;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.type.Leaves;
+import org.bukkit.scheduler.BukkitTask;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+
 public class LeafUpdater {
 
-//    private static final HMCLeaves PLUGIN = HMCLeaves.getPlugin(HMCLeaves.class);
-//    private static BukkitTask leafCheckTask;
-//    private static final Queue<LeafUpdater> queue = new ConcurrentLinkedQueue<>();
-//    private static final int MAX_TASK_COUNT = 100;
-//    private static int currentTaskCount = 0;
-//
-//    private static final AtomicInteger taskCount = new AtomicInteger(0);
-//
-//    private static void checkDoTask() {
-//        if (queue.isEmpty()) return;
-//        if (leafCheckTask == null || leafCheckTask.isCancelled()) {
-//            final int taskNumber = taskCount.getAndIncrement();
-//            leafCheckTask = Bukkit.getScheduler().runTaskTimerAsynchronously(PLUGIN, () -> {
-//                LeafUpdater updater = queue.poll();
-//                while (updater != null && currentTaskCount < MAX_TASK_COUNT) {
-//                    updater.update();
-//                    currentTaskCount++;
-//                    updater = queue.poll();
-//                }
-////            Bukkit.broadcastMessage("Task count size reached: " + currentTaskCount);
-////                Bukkit.broadcastMessage("Task running: " + taskNumber + " count: " + currentTaskCount);
-//                currentTaskCount = 0;
-//                if (queue.isEmpty()) {
-//                    leafCheckTask.cancel();
-//                }
-//            }, 0, 1);
-//        }
-//    }
-//
-//    private static final BlockFace[] DIRECTIONS = new BlockFace[]{
-//            BlockFace.NORTH,
-//            BlockFace.EAST,
-//            BlockFace.SOUTH,
-//            BlockFace.WEST,
-//            BlockFace.UP,
-//            BlockFace.DOWN
-//    };
-//
-//    private final LeafCache leafCache;
-//    private final Map<Location, BlockData> blocksToUpdate;
-//    private final Map<Location, FakeLeafState> originalLeavesData;
-//    private final Set<Location> addedLogs;
-//    private final Set<Location> removedLogs;
-//    private final Map<Long, ChunkSnapshot> cachedSnapshots;
-//    private final Set<Location> checked;
-//
-//    private LeafUpdater(Map<Location, BlockData> blocksToUpdate, Set<Location> addedLogs, Set<Location> removedLogs) {
-//        this.leafCache = PLUGIN.getLeafCache();
-//        this.blocksToUpdate = blocksToUpdate;
-//        this.cachedSnapshots = new HashMap<>();
-//        this.originalLeavesData = new HashMap<>();
-//        this.checked = new HashSet<>();
-//        this.addedLogs = addedLogs;
-//        this.removedLogs = removedLogs;
-//    }
-//
-//    public static LeafUpdater doUpdate(
-//            Map<Location, BlockData> blocksToUpdate,
-//            Set<Location> addedLogs,
-//            Set<Location> removedLogs
-//    ) {
-//        final LeafUpdater updater = new LeafUpdater(blocksToUpdate, addedLogs, removedLogs);
-//        queue.add(updater);
-//        checkDoTask();
-////        updater.update();
-//        return updater;
-//    }
-//
-//    public static LeafUpdater doUpdate(
-//            Map<Location, BlockData> blocksToUpdate
-//    ) {
-//        return doUpdate(blocksToUpdate, new HashSet<>(), new HashSet<>());
-//    }
-//
-//    private int count = 0;
-//
-//    private void update() {
-//        for (var entry : this.blocksToUpdate.entrySet()) {
-//            final Location location = entry.getKey();
-//            if (this.checked.contains(location)) continue;
-//            final BlockData blockData = entry.getValue();
-//            FakeLeafState state = this.leafCache.getAt(location);
-////            if (/*state == null && */(!this.leafCache.isLogAt(location) && !this.addedLogs.contains(location) && !this.removedLogs.contains(location))) {
-////                if (!(blockData instanceof Leaves leaves)) continue;
-////                final FakeLeafState fakeLeafState = this.leafCache.createAtOrGetAndSet(location, blockData.getMaterial());
-////                fakeLeafState.actualDistance(leaves.getDistance());
-////                fakeLeafState.actuallyPersistent(leaves.isPersistent());
-////            }
-//            this.updateDistances(location, state);
-//        }
-//        this.originalLeavesData.entrySet().removeIf(entry -> {
-//            final Location location = entry.getKey();
-//            if (this.addedLogs.contains(location) || this.removedLogs.contains(location)) return true;
-//            final FakeLeafState state = entry.getValue();
-//            final FakeLeafState newState = this.leafCache.getAt(location);
-//            if (newState == null) return false;
-//            return newState.actualDistance() == state.actualDistance() && newState.actuallyPersistent() == state.actuallyPersistent();
-//        });
-////        Bukkit.broadcastMessage("Original size: " + this.blocksToUpdate.size());
-////        Bukkit.broadcastMessage("Checked " + this.checked.size() + " blocks and total changed were " + this.originalLeavesData.size());
-//        Bukkit.getScheduler().runTask(PLUGIN, this::updateChanged);
-//    }
-//
-//    private void updateChanged() {
-//        for (var entry : this.originalLeavesData.entrySet()) {
-//            final Location location = entry.getKey();
-//            final FakeLeafState currentState = this.leafCache.getAt(location);
-//            if (currentState == null) {
-//                continue;
-//            }
-//            final CustomBlockData customBlockData = new CustomBlockData(location.getBlock(), PLUGIN);
-//            PDCUtil.setActualPersistent(customBlockData, currentState.actuallyPersistent());
-//            PDCUtil.setActualDistance(customBlockData, (byte) currentState.actualDistance());
-//            if (currentState.actualDistance() < 7 || currentState.actuallyPersistent()) continue;
-//            final Block block = location.getBlock();
-//            if (!(block.getBlockData() instanceof Leaves leaves)) continue;
-//            leaves.setDistance(7);
-//            leaves.setPersistent(false);
-//            block.setBlockData(leaves, false);
-//
-//        }
-//        for (Location log : this.addedLogs) {
-//            final CustomBlockData customBlockData = new CustomBlockData(log.getBlock(), PLUGIN);
-//            PDCUtil.setLogBlock(customBlockData);
-//        }
-//        for (Location log : this.removedLogs) {
-//            final CustomBlockData customBlockData = new CustomBlockData(log.getBlock(), PLUGIN);
-//            customBlockData.remove(PDCUtil.LOG_BLOCK_KEY);
-//        }
-////        Bukkit.broadcastMessage("Total checked: " + count);
-//    }
-//
-//    private void updateDistances(Location location, @Nullable FakeLeafState state) {
-//        this.count++;
-//        this.checked.add(location);
-//        if (state != null) {
-//            this.originalLeavesData.putIfAbsent(location, state.snapshot());
-//        }
-//        final boolean isLog = this.leafCache.isLogAt(location) || this.addedLogs.contains(location) || this.removedLogs.contains(location);
-////        Bukkit.broadcastMessage("Checking " + location + " - is log: " + isLog);
-//        if (!isLog && state == null && !this.blocksToUpdate.containsKey(location)) return;
-//        final int distance = getLowestDistance(location);
-//        if (!isLog && state != null && distance == state.actualDistance()) return;
-//        if (!isLog && state != null) state.actualDistance(distance);
-//        for (BlockFace face : DIRECTIONS) {
-//            final Location relativeLocation = location.clone().add(face.getDirection());
-//            final BlockData relative = this.getBlockData(relativeLocation);
-//            FakeLeafState relativeState = this.leafCache.getAt(relativeLocation);
-//            if (relativeState == null && relative instanceof Leaves) {
-//                relativeState = this.leafCache.createAtOrGetAndSet(relativeLocation, relative.getMaterial());
-//            }
-//            if (relativeState == null) continue;
-//            updateDistances(relativeLocation, relativeState);
-//        }
-//    }
-//
-//    private int getLowestDistance(Location location) {
-//        int distance = 7;
-//        for (BlockFace face : DIRECTIONS) {
-//            final Location relativeLocation = location.clone().add(face.getDirection());
-//            final BlockData relative = this.getBlockData(relativeLocation);
-//            FakeLeafState relativeState = this.leafCache.getAt(relativeLocation);
-//            if (relativeState == null && relative instanceof Leaves) {
-//                relativeState = this.leafCache.createAtOrGetAndSet(relativeLocation, relative.getMaterial());
-//            }
-//            distance = Math.min(distance, getDistanceAt(this.leafCache, relativeLocation, relativeState) + 1);
-//            if (distance == 1) break;
-//        }
-//        return distance;
-//    }
-//
-//    private int getDistanceAt(LeafCache cache, Location location, @Nullable FakeLeafState state) {
-//        if (cache.isLogAt(location)) return 0;
-//        return state == null ? 7 : state.actualDistance();
-//    }
-//
-//    @Nullable
-//    private ChunkSnapshot getOrCacheSnapshot(Location location) {
-//        final int chunkX = location.getBlockX() >> 4;
-//        final int chunkZ = location.getBlockZ() >> 4;
-//        final World world = location.getWorld();
-//        if (world == null || !world.isChunkLoaded(chunkX, chunkZ)) return null;
-//        final long chunkKey = ChunkUtil.chunkKeyAt(chunkX, chunkZ);
-//        return this.cachedSnapshots.computeIfAbsent(chunkKey, key -> location.getChunk().getChunkSnapshot());
-//    }
-//
-//    @Nullable
-//    private BlockData getBlockData(Location location) {
-//        final ChunkSnapshot snapshot = this.getOrCacheSnapshot(location);
-//        if (snapshot == null) return null;
-//        final int x = ChunkUtil.getCoordInChunk(location.getBlockX());
-//        final int y = location.getBlockY();
-//        final int z = ChunkUtil.getCoordInChunk(location.getBlockZ());
-//        return snapshot.getBlockData(x, y, z);
-//    }
+    private static final int LEAF_DECAY_DISTANCE = 7;
+
+    private static final BlockFace[] DIRECTIONS = new BlockFace[]{
+            BlockFace.NORTH,
+            BlockFace.EAST,
+            BlockFace.SOUTH,
+            BlockFace.WEST,
+            BlockFace.UP,
+            BlockFace.DOWN
+    };
+
+
+    private static final HMCLeaves PLUGIN = HMCLeaves.getPlugin(HMCLeaves.class);
+
+    private static final AtomicLong CURRENT_TICK = new AtomicLong(0);
+
+    public static long getCurrentTick() {
+        return CURRENT_TICK.get();
+    }
+
+    private static final Map<Long, ChunkSnapshot> cachedSnapshots = new ConcurrentHashMap<>();
+    //    private static final Multimap<Long, Location> leafStatesToTick = Multimaps.newMultimap(
+//            new ConcurrentHashMap<>(),
+//            ConcurrentLinkedDeque::new
+//    );
+    private static final Map<Long, UniqueConcurrentLinkedDeque<Location>> leafStatesToTick = new ConcurrentHashMap<>();
+    private static final Map<Location, FakeLeafState> toUpdate = new HashMap<>();
+
+    private static BukkitTask task;
+
+    private static final int MAX_UPDATE_DEPTH = 10_000;
+
+    public static void start() {
+        if (task != null && !task.isCancelled()) {
+            throw new IllegalStateException("Can not run more than one leaf updater at a time!");
+        }
+        final AtomicBoolean previousTaskFinished = new AtomicBoolean(true);
+        task = Bukkit.getScheduler().runTaskTimerAsynchronously(PLUGIN, () -> {
+            if (!previousTaskFinished.get()) return;
+            previousTaskFinished.set(false);
+            if (leafStatesToTick.isEmpty()) {
+                CURRENT_TICK.addAndGet(1);
+                previousTaskFinished.set(true);
+                return;
+            }
+            final long currentTick = CURRENT_TICK.get();
+            final UniqueConcurrentLinkedDeque<Location> toTick = removeToTick(currentTick);
+            if (toTick.isEmpty()) {
+                CURRENT_TICK.addAndGet(1);
+                previousTaskFinished.set(true);
+                return;
+            }
+            cachedSnapshots.clear();
+            final UniqueConcurrentLinkedDeque<Location> nextToTick = getToTick(currentTick + 1);
+            int updateDepth = 0;
+            for (Location location : toTick) {
+                if (updateDepth > MAX_UPDATE_DEPTH) {
+                    nextToTick.add(location);
+                    continue;
+                }
+                if (tick(location)) {
+                    updateDepth++;
+                }
+            }
+            if (nextToTick.isEmpty()) removeToTick(currentTick + 1);
+//            Bukkit.broadcastMessage("Reached update depth: " + updateDepth);
+//            Bukkit.broadcastMessage("To update size: " + toUpdate.size());
+            final Map<Location, FakeLeafState> toUpdateCopy = new HashMap<>(toUpdate);
+            toUpdate.clear();
+            final LeafCache leafCache = PLUGIN.getLeafCache();
+            final Config config = PLUGIN.config();
+            CURRENT_TICK.addAndGet(1);
+            previousTaskFinished.set(true);
+            Bukkit.getScheduler().runTask(PLUGIN, () -> {
+                for (var entry : toUpdateCopy.entrySet()) {
+                    final Location location = entry.getKey();
+                    final BlockData blockData = location.getBlock().getBlockData();
+                    final FakeLeafState state = entry.getValue();
+                    final Block block = location.getBlock();
+                    if (state == null) {
+                        if (config.isLogBlock(blockData)) {
+                            PDCUtil.setLogBlock(new CustomBlockData(block, PLUGIN));
+                            leafCache.setLogAt(location);
+                            continue;
+                        }
+                        if (leafCache.isLogAt(location)) {
+                            leafCache.removeLogAt(location);
+                            PDCUtil.removeTreeBlock(new CustomBlockData(block, PLUGIN));
+                            continue;
+                        }
+                        continue;
+                    }
+                    if (!(blockData instanceof final Leaves leaves)) {
+                        leafCache.remove(location);
+                        PDCUtil.clearLeafData(new CustomBlockData(block, PLUGIN));
+                        continue;
+                    }
+                    final CustomBlockData customBlockData = new CustomBlockData(block, PLUGIN);
+                    PDCUtil.setActualDistance(customBlockData, (byte) state.actualDistance());
+                    PDCUtil.setActualPersistent(customBlockData, state.actuallyPersistent());
+                    PDCUtil.setDistance(customBlockData, (byte) state.state().getDistance());
+                    PDCUtil.setPersistent(customBlockData, (byte) (state.state().isPersistent() ? 1 : 0));
+                    if (
+                            (state.actuallyPersistent() || state.actualDistance() < LEAF_DECAY_DISTANCE) &&
+                                    (leaves.getDistance() >= LEAF_DECAY_DISTANCE)
+                    ) {
+                        if (!leaves.isPersistent()) {
+                            leaves.setPersistent(true);
+                            block.setBlockData(leaves, false);
+                        }
+                        continue;
+                    }
+                    leaves.setPersistent(false);
+                    block.setBlockData(leaves, false);
+                }
+            });
+        }, 1, 1);
+
+    }
+
+    private static UniqueConcurrentLinkedDeque<Location> getToTick(long tickTime) {
+        return leafStatesToTick.computeIfAbsent(tickTime, k -> new UniqueConcurrentLinkedDeque<>());
+    }
+
+    private static UniqueConcurrentLinkedDeque<Location> removeToTick(long tickTime) {
+        final UniqueConcurrentLinkedDeque<Location> queue = leafStatesToTick.remove(tickTime);
+        if (queue == null) {
+            return new UniqueConcurrentLinkedDeque<>();
+        }
+        return queue;
+    }
+
+    private static void addToTick(Location location) {
+        getToTick(CURRENT_TICK.get() + 1L).add(location);
+    }
+
+    /**
+     * @param location
+     * @return true if the block needs to be updated
+     */
+    private static boolean tick(Location location) {
+        final LeafCache leafCache = PLUGIN.getLeafCache();
+        final Config config = PLUGIN.config();
+        final BlockData blockData = getBlockData(location);
+        final FakeLeafState state = leafCache.getAt(location);
+        final boolean isLog = state == null && leafCache.isLogAt(location);
+        final boolean logAdded = !isLog && config.isLogBlock(blockData);
+        final boolean logRemoved = isLog && !config.isLogBlock(blockData);
+
+        if (logAdded || logRemoved) {
+            toUpdate.put(location, null);
+            updateNeighbors(leafCache, location);
+            return true;
+        }
+//        if (state == null) return false;
+        final int distance = getLowestDistance(leafCache, location);
+        if (state != null && distance == state.actualDistance() && blockData instanceof final Leaves leaves) {
+            if (
+                    !leaves.isPersistent() &&
+                            (state.actuallyPersistent() || state.actualDistance() < LEAF_DECAY_DISTANCE) &&
+                            leaves.getDistance() >= LEAF_DECAY_DISTANCE
+            ) {
+                return toUpdate.put(location, state) == null;
+            }
+            if (leaves.isPersistent() &&
+                    !state.actuallyPersistent() &&
+                    state.actualDistance() >= LEAF_DECAY_DISTANCE
+            ) {
+                return toUpdate.put(location, state) == null;
+            }
+            return false;
+        }
+        if (state != null && blockData instanceof Leaves) {
+            state.actualDistance(distance);
+        } else if (state != null) {
+            state.actualDistance(7);
+        }
+        final boolean added = toUpdate.put(location, state) == null;
+        updateNeighbors(leafCache, location);
+        return added;
+    }
+
+    private static void updateNeighbors(LeafCache leafCache, Location location) {
+        for (BlockFace direction : DIRECTIONS) {
+            final Location relative = location.clone().add(direction.getDirection());
+            final FakeLeafState state = leafCache.getAt(relative);
+            if (state == null) continue;
+            scheduleTick(relative);
+        }
+    }
+
+    public static void scheduleTick(Location location) {
+        addToTick(location);
+    }
+
+    private static int getLowestDistance(LeafCache leafCache, Location location) {
+        int distance = LEAF_DECAY_DISTANCE;
+        for (BlockFace face : DIRECTIONS) {
+            final Location relativeLocation = location.clone().add(face.getDirection());
+            final BlockData relative = getBlockData(relativeLocation);
+            FakeLeafState relativeState = leafCache.getAt(relativeLocation);
+            if (relativeState == null && relative instanceof Leaves) {
+                relativeState = leafCache.createAtOrGetAndSet(relativeLocation, relative.getMaterial());
+            }
+            distance = Math.min(distance, getDistanceAt(leafCache, relativeLocation, relativeState) + 1);
+            if (distance == 1) break;
+        }
+        return distance;
+    }
+
+    private static int getDistanceAt(LeafCache cache, Location location, @Nullable FakeLeafState state) {
+        if (cache.isLogAt(location)) return 0;
+        return state == null ? LEAF_DECAY_DISTANCE : state.actualDistance();
+    }
+
+    @Nullable
+    private static ChunkSnapshot getOrCacheSnapshot(Location location) {
+        final int chunkX = location.getBlockX() >> 4;
+        final int chunkZ = location.getBlockZ() >> 4;
+        final World world = location.getWorld();
+        if (world == null || !world.isChunkLoaded(chunkX, chunkZ)) return null;
+        final long chunkKey = ChunkUtil.chunkKeyAt(chunkX, chunkZ);
+        return cachedSnapshots.computeIfAbsent(chunkKey, key -> location.getChunk().getChunkSnapshot());
+    }
+
+    @Nullable
+    private static BlockData getBlockData(Location location) {
+        final ChunkSnapshot snapshot = getOrCacheSnapshot(location);
+        if (snapshot == null) return null;
+        final int x = ChunkUtil.getCoordInChunk(location.getBlockX());
+        final int y = location.getBlockY();
+        final int z = ChunkUtil.getCoordInChunk(location.getBlockZ());
+        return snapshot.getBlockData(x, y, z);
+    }
 
 }

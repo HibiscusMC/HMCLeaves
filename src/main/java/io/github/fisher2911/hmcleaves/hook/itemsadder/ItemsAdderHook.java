@@ -24,8 +24,7 @@ import dev.lone.itemsadder.api.CustomStack;
 import dev.lone.itemsadder.api.Events.CustomBlockBreakEvent;
 import dev.lone.itemsadder.api.Events.CustomBlockPlaceEvent;
 import io.github.fisher2911.hmcleaves.hook.ItemHook;
-import io.github.fisher2911.hmcleaves.util.LeafUpdater3;
-import org.bukkit.World;
+import io.github.fisher2911.hmcleaves.util.LeafUpdater;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -52,13 +51,13 @@ public class ItemsAdderHook implements ItemHook {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onNoteblockPlace(CustomBlockPlaceEvent event) {
         final Block block = event.getBlock();
-        LeafUpdater3.scheduleTick(block.getLocation());
+        LeafUpdater.scheduleTick(block.getLocation());
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onNoteblockRemove(CustomBlockBreakEvent event) {
         final Block block = event.getBlock();
-        LeafUpdater3.scheduleTick(block.getLocation());
+        LeafUpdater.scheduleTick(block.getLocation());
     }
 
 }

@@ -24,7 +24,7 @@ import io.github.fisher2911.hmcleaves.Config;
 import io.github.fisher2911.hmcleaves.FakeLeafState;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.LeafCache;
-import io.github.fisher2911.hmcleaves.util.LeafUpdater3;
+import io.github.fisher2911.hmcleaves.util.LeafUpdater;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
@@ -164,7 +164,7 @@ public class LeafUpdateListener implements Listener {
             if (this.config.isLogBlock(blockData)) return;
 //            this.leafCache.removeLogAt(location);
 //            removedLogs.add(location);
-            LeafUpdater3.scheduleTick(location);
+            LeafUpdater.scheduleTick(location);
             return;
         }
         if (this.config.isLogBlock(blockData)) {
@@ -172,7 +172,7 @@ public class LeafUpdateListener implements Listener {
 //            this.leafCache.setLogAt(location);
 //            toUpdate.put(location, blockData);
 //            addedLogs.add(location);
-            LeafUpdater3.scheduleTick(location);
+            LeafUpdater.scheduleTick(location);
             return;
         }
         final FakeLeafState fakeLeafState = this.leafCache.getAt(location);
@@ -190,7 +190,7 @@ public class LeafUpdateListener implements Listener {
 //            state.setPersistent(newState.state().isPersistent());
 //            state.setDistance(newState.state().getDistance());
 //            toUpdate.put(location, blockData);
-            LeafUpdater3.scheduleTick(location);
+            LeafUpdater.scheduleTick(location);
             return;
         }
         if (!Tag.LEAVES.isTagged(material)) {
@@ -199,7 +199,7 @@ public class LeafUpdateListener implements Listener {
             // save another leaf from decaying
             if (fakeLeafState.actualDistance() < 6) {
 //                toUpdate.put(location, blockData);
-                LeafUpdater3.scheduleTick(location);
+                LeafUpdater.scheduleTick(location);
             }
         } /*else {
 //            Bukkit.broadcastMessage("Material: " + material + " - " + event.getClass().getName());

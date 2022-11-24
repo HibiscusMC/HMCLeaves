@@ -29,7 +29,7 @@ import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.LeafData;
 import io.github.fisher2911.hmcleaves.packet.PacketHelper;
 import io.github.fisher2911.hmcleaves.util.ChunkUtil;
-import io.github.fisher2911.hmcleaves.util.LeafUpdater3;
+import io.github.fisher2911.hmcleaves.util.LeafUpdater;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.util.Position;
 import io.github.fisher2911.hmcleaves.util.Position2D;
@@ -83,7 +83,7 @@ public class HMCLeavesAPI {
         PDCUtil.setDistance(customBlockData, (byte) serverData.distance());
         PDCUtil.setActualPersistent(customBlockData, serverData.actuallyPersistent());
         PDCUtil.setActualDistance(customBlockData, (byte) 7);
-        LeafUpdater3.scheduleTick(new Location(world, x, y, z));
+        LeafUpdater.scheduleTick(new Location(world, x, y, z));
 
         if (block.getBlockData() instanceof Leaves leaves) {
             leaves.setPersistent(serverData.persistent() || serverData.distance() < 7);
