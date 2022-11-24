@@ -31,6 +31,7 @@ import io.github.fisher2911.hmcleaves.listener.PlaceListener;
 import io.github.fisher2911.hmcleaves.packet.BlockListener;
 import io.github.fisher2911.hmcleaves.util.LeafUpdater;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
+import org.bstats.bukkit.Metrics;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -72,6 +73,8 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
         this.getCommand("hmcleaves").setExecutor(new LeavesCommand(this));
         Hooks.load(this);
         LeafUpdater.start();
+        final int bStatsPluginId = 16900;
+        Metrics metrics = new Metrics(this, bStatsPluginId);
     }
 
     private void registerListeners() {

@@ -42,6 +42,7 @@ dependencies {
     implementation("com.github.retrooper.packetevents:spigot:2.0-SNAPSHOT")
     implementation("com.jeff_media:CustomBlockData:2.0.1")
     implementation("com.jeff_media:MorePersistentDataTypes:2.3.1")
+    implementation("org.bstats:bstats-bukkit:3.0.0")
 }
 
 tasks {
@@ -58,6 +59,7 @@ tasks {
         relocate("com.github.retrooper.packetevents", "io.github.fisher2911.hmcleaves.packetevents.spigot")
         relocate("com.jeff_media.customblockdata", "io.github.fisher2911.hmcleaves.customblockdata")
         relocate("com.jeff_media.morepersistentdatatypes", "io.github.fisher2911.hmcleaves.morepersistentdatatypes")
+        relocate("org.bstats", "io.github.fisher2911.hmcleaves.bstats")
         archiveFileName.set("HMCLeaves-${version}.jar")
 
         dependencies {
