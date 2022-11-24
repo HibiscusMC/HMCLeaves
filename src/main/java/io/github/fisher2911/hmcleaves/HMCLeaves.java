@@ -38,7 +38,10 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
         this.config = new Config(this, new HashMap<>());
         this.config.load();
         if (!this.config.isEnabled()) {
+            this.getLogger().severe("-=-=-=-=-=HMCLeaves=-=-=-=-=-");
             this.getLogger().severe("HMCLeaves is disabled in config.yml");
+            this.getLogger().severe("Disabling your server, make sure to set \"enabled\":true in config.yml, along with your default leaf state!");
+            this.getLogger().severe("-=-=-=-=-=HMCLeaves=-=-=-=-=-");
             return;
         }
         this.leafCache = new LeafCache(this, new ConcurrentHashMap<>());
