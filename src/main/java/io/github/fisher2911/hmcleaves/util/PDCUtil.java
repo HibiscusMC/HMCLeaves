@@ -13,24 +13,27 @@ import org.jetbrains.annotations.Nullable;
 
 public class PDCUtil {
 
+    private static final int CHUNK_VERSION = 2;
+
     private static final HMCLeaves PLUGIN = HMCLeaves.getPlugin(HMCLeaves.class);
     public static final NamespacedKey DISTANCE_KEY = new NamespacedKey(PLUGIN, "leaf_data");
     public static final NamespacedKey PERSISTENCE_KEY = new NamespacedKey(PLUGIN, "leaf_persistence");
     public static final NamespacedKey ACTUAL_PERSISTENCE_KEY = new NamespacedKey(PLUGIN, "actual_leaf_persistence");
     public static final NamespacedKey ACTUAL_DISTANCE_KEY = new NamespacedKey(PLUGIN, "actual_leaf_distance");
     public static final NamespacedKey MATERIAL_KEY = new NamespacedKey(PLUGIN, "leaf_material");
-    private static final NamespacedKey HAS_LEAF_DATA_KEY = new NamespacedKey(PLUGIN, "has_leaf_data");
     public static final NamespacedKey ITEM_KEY = new NamespacedKey(PLUGIN, "leaf_item");
     public static final NamespacedKey ITEM_DATA_KEY = new NamespacedKey(PLUGIN, "leaf_item_data");
-    public static final NamespacedKey IS_TREE_BLOCK_KEY = new NamespacedKey(PLUGIN, "is_tree_block");
+    public static final NamespacedKey LOG_BLOCK_KEY = new NamespacedKey(PLUGIN, "log_block");
+
+    private static final NamespacedKey HAS_LEAF_DATA_KEY = new NamespacedKey(PLUGIN, "has_leaf_data");
 
     public static boolean hasLeafData(PersistentDataContainer container) {
         final Byte data = container.get(HAS_LEAF_DATA_KEY, PersistentDataType.BYTE);
-        return data != null && data == 1;
+        return data != null && data == CHUNK_VERSION;
     }
 
     public static void setHasLeafData(PersistentDataContainer container) {
-        container.set(HAS_LEAF_DATA_KEY, PersistentDataType.BYTE, (byte) 1);
+        container.set(HAS_LEAF_DATA_KEY, PersistentDataType.BYTE, (byte) CHUNK_VERSION);
     }
 
     public static boolean isLeafDataItem(ItemStack itemStack) {
@@ -66,13 +69,48 @@ public class PDCUtil {
         itemStack.setItemMeta(itemMeta);
     }
 
-    public static boolean isTreeBlock(PersistentDataContainer container) {
-        final Byte data = container.get(IS_TREE_BLOCK_KEY, PersistentDataType.BYTE);
-        return data != null && data == 1;
+    public static void removeTreeBlock(PersistentDataContainer container) {
+        container.remove(LOG_BLOCK_KEY);
     }
 
-    public static void setTreeBlock(PersistentDataContainer container) {
-        container.set(IS_TREE_BLOCK_KEY, PersistentDataType.BYTE, (byte) 1);
+    public static void setLogBlock(PersistentDataContainer container) {
+        container.set(LOG_BLOCK_KEY, PersistentDataType.BYTE, (byte) 1);
+    }
+
+    public static void setDistance(PersistentDataContainer container, byte distance) {
+        container.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, distance);
+    }
+
+    public static void setPersistent(PersistentDataContainer container, byte persistent) {
+        container.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, persistent);
+    }
+
+    public static void setPersistent(PersistentDataContainer container, boolean persistent) {
+        setPersistent(container, (byte) (persistent ? 1 : 0));
+    }
+
+    public static void setActualPersistent(PersistentDataContainer container, byte persistent) {
+        container.set(PDCUtil.ACTUAL_PERSISTENCE_KEY, PersistentDataType.BYTE, persistent);
+    }
+
+    public static void setActualPersistent(PersistentDataContainer container, boolean persistent) {
+        container.set(PDCUtil.ACTUAL_PERSISTENCE_KEY, PersistentDataType.BYTE, (byte) (persistent ? 1 : 0));
+    }
+
+    public static void setActualDistance(PersistentDataContainer container, byte distance) {
+        container.set(PDCUtil.ACTUAL_DISTANCE_KEY, PersistentDataType.BYTE, distance);
+    }
+
+    public static void clearLeafData(PersistentDataContainer container) {
+        container.remove(DISTANCE_KEY);
+        container.remove(PERSISTENCE_KEY);
+        container.remove(ACTUAL_PERSISTENCE_KEY);
+        container.remove(ACTUAL_DISTANCE_KEY);
+        container.remove(MATERIAL_KEY);
+    }
+
+    public static void clearLogData(PersistentDataContainer container) {
+        container.remove(LOG_BLOCK_KEY);
     }
 
 }

@@ -5,7 +5,7 @@ import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState
 import com.github.retrooper.packetevents.util.Vector3i;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBlockChange;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityAnimation;
-import org.bukkit.Bukkit;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMultiBlockChange;
 import org.bukkit.entity.Player;
 
 import java.util.Collection;
@@ -40,6 +40,10 @@ public class PacketHelper {
                     )
             );
         }
+    }
+
+    public static WrappedBlockState getState(WrapperPlayServerMultiBlockChange.EncodedBlock block) {
+        return block.getBlockState(PacketEvents.getAPI().getServerManager().getVersion().toClientVersion());
     }
 
 }

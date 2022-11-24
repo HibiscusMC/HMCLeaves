@@ -4,8 +4,10 @@ import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState
 
 public class FakeLeafState {
 
+    public static FakeLeafState NULL = new FakeLeafState(null, false, 0);
+
     private final WrappedBlockState state;
-    private final boolean actuallyPersistent;
+    private boolean actuallyPersistent;
     private int actualDistance;
 
     public FakeLeafState(WrappedBlockState state, boolean actuallyPersistent, int actualDistance) {
@@ -22,12 +24,30 @@ public class FakeLeafState {
         return this.actuallyPersistent;
     }
 
+    public void actuallyPersistent(boolean actuallyPersistent) {
+        this.actuallyPersistent = actuallyPersistent;
+    }
+
     public int actualDistance() {
         return this.actualDistance;
     }
 
     public void actualDistance(int actualDistance) {
         this.actualDistance = Math.min(actualDistance, 7);
+    }
+
+    public FakeLeafState snapshot() {
+        return new FakeLeafState(this.state.clone(), this.actuallyPersistent, this.actualDistance);
+    }
+
+    @Override
+    public String toString() {
+        return "FakeLeafState{" +
+                "persistent=" + state.isPersistent() +
+                ", distance=" + state.getDistance() +
+                ", actuallyPersistent=" + actuallyPersistent +
+                ", actualDistance=" + actualDistance +
+                '}';
     }
 
 }
