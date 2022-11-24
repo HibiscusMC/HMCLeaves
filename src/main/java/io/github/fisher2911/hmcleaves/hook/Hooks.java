@@ -15,10 +15,12 @@ public class Hooks {
         if (plugin.getServer().getPluginManager().getPlugin("Oraxen") != null) {
             plugin.getLogger().info("Oraxen found, loading hook");
             itemHook = new OraxenHook();
+            plugin.getServer().getPluginManager().registerEvents(itemHook, plugin);
         }
         if (plugin.getServer().getPluginManager().getPlugin("ItemsAdder") != null) {
             plugin.getLogger().info("ItemsAdder found, loading hook");
             itemHook = new ItemsAdderHook();
+            plugin.getServer().getPluginManager().registerEvents(itemHook, plugin);
         }
     }
 

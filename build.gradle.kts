@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "io.github.fisher2911"
-version = "1.0-SNAPSHOT"
+version = "1.1.0-beta"
 
 repositories {
     mavenCentral()
@@ -40,7 +40,7 @@ tasks {
         relocate("com.github.retrooper.packetevents", "io.github.fisher2911.hmcleaves.packetevents.spigot")
         relocate("com.jeff_media.customblockdata", "io.github.fisher2911.hmcleaves.customblockdata")
         relocate("com.jeff_media.morepersistentdatatypes", "io.github.fisher2911.hmcleaves.morepersistentdatatypes")
-        archiveFileName.set("HMCLeaves.jar")
+        archiveFileName.set("HMCLeaves-${version}.jar")
 
         dependencies {
             exclude(dependency("org.yaml:snakeyaml"))
