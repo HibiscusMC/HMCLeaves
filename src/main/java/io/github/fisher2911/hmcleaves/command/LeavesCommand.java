@@ -23,6 +23,7 @@ package io.github.fisher2911.hmcleaves.command;
 import io.github.fisher2911.hmcleaves.Config;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.LeafItem;
+import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -41,7 +42,15 @@ import java.util.List;
 
 public class LeavesCommand implements CommandExecutor, TabExecutor {
 
-    public static final String PERMISSION = "hmcleaves.command.item";
+    public static final String ITEM_PERMISSION = "hmcleaves.command.item";
+    public static final String DEBUG_TOOL_PERMISSION = "hmcleaves.command.debugtool";
+    public static final String RELOAD_PERMISSION = "hmcleaves.command.reload";
+    public static final String SAVE_SCHEM_PERMISSION = "hmcleaves.command.transformschem";
+
+    private static final String RELOAD_ARG = "reload";
+    private static final String GIVE_ARG = "give";
+    private static final String DEBUG_TOOL_ARG = "debugtool";
+    private static final String TRANSFORM_SCHEM_ARG = "transformschem";
 
     private final HMCLeaves plugin;
     private final Config config;
@@ -53,8 +62,7 @@ public class LeavesCommand implements CommandExecutor, TabExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (!sender.hasPermission(PERMISSION)) return true;
-        if (args.length == 0) {
+        if (sender.hasPermission(ITEM_PERMISSION) && args.length == 0) {
             sender.sendMessage(ChatColor.RED + "/hmcleaves give <id>");
             return true;
         }
@@ -63,7 +71,7 @@ public class LeavesCommand implements CommandExecutor, TabExecutor {
             return true;
         }
 
-        if (args[0].equalsIgnoreCase("debugtool")) {
+        if (sender.hasPermission(DEBUG_TOOL_PERMISSION) && args[0].equalsIgnoreCase(DEBUG_TOOL_ARG)) {
             final ItemStack debugTool = new ItemStack(Material.STICK);
             final ItemMeta itemMeta = debugTool.getItemMeta();
             itemMeta.setDisplayName(ChatColor.RED + "Debug Tool");
@@ -73,12 +81,12 @@ public class LeavesCommand implements CommandExecutor, TabExecutor {
             player.sendMessage(ChatColor.GREEN + "Debug Tool added to your inventory.");
             return true;
         }
-        if (args[0].equalsIgnoreCase("reload")) {
+        if (sender.hasPermission(RELOAD_PERMISSION) && args[0].equalsIgnoreCase(RELOAD_ARG)) {
             this.plugin.reload();
             sender.sendMessage(ChatColor.GREEN + "Reloaded config.");
             return true;
         }
-        if (args[0].equalsIgnoreCase("give")) {
+        if (sender.hasPermission(ITEM_PERMISSION) && args[0].equalsIgnoreCase(GIVE_ARG)) {
             final LeafItem item = this.config.getItem(args[1]);
             if (item == null) {
                 sender.sendMessage(ChatColor.RED + "Item not found.");
@@ -88,6 +96,11 @@ public class LeavesCommand implements CommandExecutor, TabExecutor {
             sender.sendMessage(ChatColor.GREEN + "Item added to inventory.");
             return true;
         }
+        if (sender.hasPermission(SAVE_SCHEM_PERMISSION) && args[0].equalsIgnoreCase(TRANSFORM_SCHEM_ARG)) {
+            Hooks.trySaveSchematic(player);
+            return true;
+        }
+        if (!sender.hasPermission(ITEM_PERMISSION)) return true;
         player.sendMessage(ChatColor.RED + "Usage: /hmcleaves give <id>");
         return true;
     }
@@ -98,11 +111,12 @@ public class LeavesCommand implements CommandExecutor, TabExecutor {
         if (args.length < 1) return tabs;
         final String arg = args[0];
         if (args.length == 1) {
-            if ("reload".startsWith(arg)) tabs.add("reload");
-            if ("give".startsWith(arg)) tabs.add("give");
-            if ("debugtool".startsWith(arg)) tabs.add("debugtool");
+            if (sender.hasPermission(RELOAD_PERMISSION) && RELOAD_ARG.startsWith(arg)) tabs.add(RELOAD_ARG);
+            if (sender.hasPermission(ITEM_PERMISSION) && GIVE_ARG.startsWith(arg)) tabs.add(GIVE_ARG);
+            if (sender.hasPermission(DEBUG_TOOL_PERMISSION) && DEBUG_TOOL_ARG.startsWith(arg)) tabs.add(DEBUG_TOOL_ARG);
+            if (sender.hasPermission(SAVE_SCHEM_PERMISSION) && TRANSFORM_SCHEM_ARG.startsWith(arg)) tabs.add(TRANSFORM_SCHEM_ARG);
         }
-        if (args.length == 2 && arg.equalsIgnoreCase("give")) {
+        if (args.length == 2 && sender.hasPermission(ITEM_PERMISSION) && arg.equalsIgnoreCase(GIVE_ARG)) {
             final String itemArg = args[1];
             for (String items : this.config.getLeafItems().keySet()) {
                 if (items.startsWith(itemArg)) {

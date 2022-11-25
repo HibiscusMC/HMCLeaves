@@ -136,7 +136,7 @@ public class PlaceListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void onActionClick(InventoryCreativeEvent event) {
-        if (event.getClick() != ClickType.CREATIVE) return;
+        if (event.getClick() != ClickType.CREATIVE) return;;
         if (!(event.getWhoClicked() instanceof final Player player)) return;
         final RayTraceResult rayTrace = player.rayTraceBlocks(6);
         if (rayTrace == null) return;

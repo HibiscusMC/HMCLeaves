@@ -33,6 +33,7 @@ repositories {
     maven("https://oss.sonatype.org/content/repositories/central")
     maven("https://jitpack.io")
     maven("https://hub.jeff-media.com/nexus/repository/jeff-media-public/")
+    maven("https://maven.enginehub.org/repo/")
 }
 
 dependencies {
@@ -43,6 +44,8 @@ dependencies {
     implementation("com.jeff_media:CustomBlockData:2.0.1")
     implementation("com.jeff_media:MorePersistentDataTypes:2.3.1")
     implementation("org.bstats:bstats-bukkit:3.0.0")
+    compileOnly("com.sk89q.worldedit:worldedit-core:7.2.12-SNAPSHOT")
+    compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.12-SNAPSHOT")
 }
 
 tasks {

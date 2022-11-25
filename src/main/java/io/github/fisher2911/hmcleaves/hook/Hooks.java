@@ -23,6 +23,8 @@ package io.github.fisher2911.hmcleaves.hook;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.hook.itemsadder.ItemsAdderHook;
 import io.github.fisher2911.hmcleaves.hook.oraxen.OraxenHook;
+import io.github.fisher2911.hmcleaves.hook.worldedit.WorldEditHook;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,6 +32,8 @@ public class Hooks {
 
     @Nullable
     private static ItemHook itemHook;
+    @Nullable
+    private static WorldEditHook worldEditHook;
 
     public static void load(HMCLeaves plugin) {
         if (plugin.getServer().getPluginManager().getPlugin("Oraxen") != null) {
@@ -41,6 +45,11 @@ public class Hooks {
             plugin.getLogger().info("ItemsAdder found, loading hook");
             itemHook = new ItemsAdderHook();
             plugin.getServer().getPluginManager().registerEvents(itemHook, plugin);
+        }
+        if (plugin.getServer().getPluginManager().getPlugin("WorldEdit") != null) {
+            plugin.getLogger().info("WorldEdit found, loading hook");
+            worldEditHook = new WorldEditHook(plugin);
+            worldEditHook.load();
         }
     }
 
@@ -54,4 +63,8 @@ public class Hooks {
         return itemHook == null ? null : itemHook.getItem(id);
     }
 
+    public static void trySaveSchematic(Player player) {
+        if (worldEditHook == null) return;
+        worldEditHook.trySaveSchematic(player);
+    }
 }
