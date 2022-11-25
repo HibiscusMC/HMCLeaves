@@ -38,6 +38,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -49,14 +50,39 @@ import java.util.stream.Collectors;
 
 public class Config {
 
+    private static final List<Material> LEAVES = new ArrayList<>();
+
+    static {
+        LEAVES.add(Material.OAK_LEAVES);
+        LEAVES.add(Material.SPRUCE_LEAVES);
+        LEAVES.add(Material.BIRCH_LEAVES);
+        LEAVES.add(Material.JUNGLE_LEAVES);
+        LEAVES.add(Material.ACACIA_LEAVES);
+        LEAVES.add(Material.DARK_OAK_LEAVES);
+        // 1.19 leaves
+        try {
+            LEAVES.add(Material.valueOf("MANGROVE_LEAVES"));
+            LEAVES.add(Material.valueOf("AZALEA_LEAVES"));
+            LEAVES.add(Material.valueOf("FLOWERING_AZALEA_LEAVES"));
+        } catch (IllegalArgumentException ignored) {
+
+        }
+    }
+
+    // cannot use states:
+    private static final List<Integer> UNUSABLE_STATES = List.of(13, 27, 41, 55, 69, 83, 97, 111, 125);
+
+    // distance * persistent
+    private static final int STATES_PER_LEAF = 7 * 2;
+
     private final HMCLeaves plugin;
     private final Map<String, LeafItem> leafItems;
     // I'm lazy and don't want to have to check ItemsAdder loading, maybe I'll change it later
     private final Map<String, Supplier<ItemStack>> saplings;
     private final Map<String, Supplier<ItemStack>> leafDropReplacements;
     private final Set<NoteBlockState> allowedLogs;
-    private int defaultDistance;
-    private boolean defaultPersistent;
+    private static final int DEFAULT_DISTANCE = 7;
+    private static final boolean DEFAULT_PERSISTENCE = true;
     private boolean defaultActuallyPersistent;
     private boolean enabled;
 
@@ -75,13 +101,13 @@ public class Config {
                 PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
                 StateTypes.getByName(material.toString().toLowerCase())
         ).clone();
-        state.setDistance(this.defaultDistance);
-        state.setPersistent(this.defaultPersistent);
+        state.setDistance(DEFAULT_DISTANCE);
+        state.setPersistent(DEFAULT_PERSISTENCE);
         return new FakeLeafState(state, this.defaultActuallyPersistent, this.defaultActuallyPersistent ? 1 : 7);
     }
 
     public LeafData getDefaultData(Material material) {
-        return new LeafData(material, this.defaultDistance, this.defaultPersistent, this.defaultActuallyPersistent);
+        return new LeafData(material, DEFAULT_DISTANCE, DEFAULT_PERSISTENCE, this.defaultActuallyPersistent);
     }
 
     public boolean isLogBlock(BlockData block) {
@@ -93,11 +119,6 @@ public class Config {
 
     private boolean isLogBlock(Material material) {
         return Tag.LOGS.isTagged(material);
-    }
-
-    public void setDefaultState(WrappedBlockState state) {
-        state.setDistance(this.defaultDistance);
-        state.setPersistent(this.defaultPersistent);
     }
 
     @Nullable
@@ -125,11 +146,11 @@ public class Config {
     }
 
     public int getDefaultDistance() {
-        return defaultDistance;
+        return DEFAULT_DISTANCE;
     }
 
     public boolean isDefaultPersistent() {
-        return defaultPersistent;
+        return DEFAULT_PERSISTENCE;
     }
 
     public boolean isDefaultActuallyPersistent() {
@@ -158,7 +179,6 @@ public class Config {
         this.load();
     }
 
-    private static final String DEFAULT_STATE_KEY = "default-state";
     private static final String DISTANCE_KEY = "distance";
     private static final String PERSISTENT_KEY = "persistent";
     private static final String ACTUALLY_PERSISTENT = "actually-persistent";
@@ -166,6 +186,7 @@ public class Config {
     private static final String MATERIAL = "material";
     private static final String MODEL_DATA = "model-data";
     private static final String LEAF_MATERIAL = "leaf-material";
+    private static final String STATE_ID = "state-id";
 
     private static final String LEAF_DROP_REPLACEMENTS = "leaf-drop-replacement";
     private static final String SAPLING = "sapling";
@@ -183,8 +204,6 @@ public class Config {
         this.plugin.saveDefaultConfig();
         final FileConfiguration config = this.plugin.getConfig();
         this.enabled = config.getBoolean("enabled", false);
-        this.defaultDistance = config.getInt(DEFAULT_STATE_KEY + "." + DISTANCE_KEY, 3);
-        this.defaultPersistent = config.getBoolean(DEFAULT_STATE_KEY + "." + PERSISTENT_KEY, false);
 
         final ConfigurationSection logSection = config.getConfigurationSection(LOGS + "." + NOTE_BLOCKS);
         if (logSection != null) {
@@ -193,29 +212,45 @@ public class Config {
 
         final ConfigurationSection itemSection = config.getConfigurationSection(ITEMS_KEY);
         if (itemSection == null) return;
-        for (String id : itemSection.getKeys(false)) {
-            final Material material = Material.getMaterial(itemSection.getString(id + "." + MATERIAL));
-            final Material leafMaterial = Material.getMaterial(itemSection.getString(id + "." + LEAF_MATERIAL));
-            final int modelData = itemSection.getInt(id + "." + MODEL_DATA, -1);
-            final int distance = itemSection.getInt(id + "." + DISTANCE_KEY, this.defaultDistance);
-            final boolean persistent = itemSection.getBoolean(id + "." + PERSISTENT_KEY, this.defaultPersistent);
-            final boolean actuallyPersistent = itemSection.getBoolean(id + "." + ACTUALLY_PERSISTENT, false);
+        for (String configId : itemSection.getKeys(false)) {
+            final int stateId = itemSection.getInt(configId + "." + STATE_ID, -1);
+            final LeafData leafData;
+            final boolean actuallyPersistent = itemSection.getBoolean(configId + "." + ACTUALLY_PERSISTENT, false);
+            final Material material = Material.getMaterial(itemSection.getString(configId + "." + MATERIAL));
+            final int modelData = itemSection.getInt(configId + "." + MODEL_DATA, -1);
+            if (stateId == -1) {
+                final Material leafMaterial = Material.getMaterial(itemSection.getString(configId + "." + LEAF_MATERIAL));
+                final int distance = itemSection.getInt(configId + "." + DISTANCE_KEY, DEFAULT_DISTANCE);
+                final boolean persistent = itemSection.getBoolean(configId + "." + PERSISTENT_KEY, DEFAULT_PERSISTENCE);
+                leafData = new LeafData(leafMaterial, distance, persistent, actuallyPersistent);
+            } else {
+                leafData = this.calculateNextLeafState(actuallyPersistent, stateId);
+            }
             final ItemStack itemStack = new ItemStack(material);
             final ItemMeta itemMeta = itemStack.getItemMeta();
             if (itemMeta != null) {
-                itemMeta.setDisplayName(id);
+                itemMeta.setDisplayName(configId);
                 if (modelData != -1) itemMeta.setCustomModelData(modelData);
-                itemMeta.getPersistentDataContainer().set(PDCUtil.ITEM_KEY, PersistentDataType.STRING, id);
+                itemMeta.getPersistentDataContainer().set(PDCUtil.ITEM_KEY, PersistentDataType.STRING, configId);
                 itemStack.setItemMeta(itemMeta);
             }
-            this.leafItems.put(id, new LeafItem(id, itemStack, leafMaterial, distance, persistent, actuallyPersistent));
-            final ConfigurationSection saplingSection = itemSection.getConfigurationSection(id + "." + SAPLING);
+//            this.leafItems.put(id, new LeafItem(configId, itemStack, leafMaterial, distance, persistent, actuallyPersistent));
+            final LeafItem leafItem = new LeafItem(
+                    configId,
+                    itemStack,
+                    leafData.material(),
+                    leafData.distance(),
+                    leafData.persistent(),
+                    leafData.actuallyPersistent()
+            );
+            this.leafItems.put(configId, leafItem);
+            final ConfigurationSection saplingSection = itemSection.getConfigurationSection(configId + "." + SAPLING);
             if (saplingSection != null) {
-                this.saplings.put(id, this.loadItemStack(saplingSection));
+                this.saplings.put(configId, this.loadItemStack(saplingSection));
             }
-            final ConfigurationSection leafDropReplacementSection = itemSection.getConfigurationSection(id + "." + LEAF_DROP_REPLACEMENTS);
+            final ConfigurationSection leafDropReplacementSection = itemSection.getConfigurationSection(configId + "." + LEAF_DROP_REPLACEMENTS);
             if (leafDropReplacementSection != null) {
-                this.leafDropReplacements.put(id, this.loadItemStack(leafDropReplacementSection));
+                this.leafDropReplacements.put(configId, this.loadItemStack(leafDropReplacementSection));
             }
         }
     }
@@ -246,10 +281,26 @@ public class Config {
         if (itemMeta != null) {
             if (name != null) itemMeta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
             if (section.contains(MODEL_DATA)) itemMeta.setCustomModelData(modelData);
-            if (!lore.isEmpty()) itemMeta.setLore(lore.stream().map(s -> ChatColor.translateAlternateColorCodes('&', s)).collect(Collectors.toList()));
+            if (!lore.isEmpty())
+                itemMeta.setLore(lore.stream().map(s -> ChatColor.translateAlternateColorCodes('&', s)).collect(Collectors.toList()));
             itemStack.setItemMeta(itemMeta);
         }
         return itemStack::clone;
+    }
+
+
+    private LeafData calculateNextLeafState(boolean actuallyPersistent, int i) {
+        final int id = i % STATES_PER_LEAF;
+        final Material material = LEAVES.get(i / STATES_PER_LEAF);
+        final int distance = id % 7 + 1;
+        final boolean persistent = id >= 7;
+        final WrappedBlockState state = WrappedBlockState.getDefaultState(
+                PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
+                StateTypes.getByName(material.toString().toLowerCase())
+        ).clone();
+        state.setDistance(distance);
+        state.setPersistent(persistent);
+        return new LeafData(material, distance, persistent, actuallyPersistent);
     }
 
 }
