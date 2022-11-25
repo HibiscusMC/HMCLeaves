@@ -57,7 +57,7 @@ public class HMCLeavesAPI {
             Location location,
             LeafData serverData
     ) {
-        setLeafAt(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ(), serverData, true);
+        setLeafAt(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ(), serverData);
     }
 
     public void setLeafAt(
@@ -65,8 +65,7 @@ public class HMCLeavesAPI {
             int x,
             int y,
             int z,
-            LeafData serverData,
-            boolean sendToPlayers
+            LeafData serverData
     ) {
         final Position2D chunkPos = new Position2D(world.getUID(), x >> 4, z >> 4);
         final Position position = new Position(ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
@@ -89,9 +88,6 @@ public class HMCLeavesAPI {
             leaves.setPersistent(serverData.persistent() || serverData.distance() < 7);
             block.setBlockData(leaves, false);
         }
-//        if (sendToPlayers) {
-//            PacketHelper.sendBlock(world.getUID(), x, y, z, state);
-//        }
     }
 
     public void removeLeafAt(World world, int x, int y, int z, boolean sendToPlayers) {

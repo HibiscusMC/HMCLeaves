@@ -66,10 +66,6 @@ public class LeafUpdater {
     }
 
     private static final Map<Long, ChunkSnapshot> cachedSnapshots = new ConcurrentHashMap<>();
-    //    private static final Multimap<Long, Location> leafStatesToTick = Multimaps.newMultimap(
-//            new ConcurrentHashMap<>(),
-//            ConcurrentLinkedDeque::new
-//    );
     private static final Map<Long, UniqueConcurrentLinkedDeque<Location>> leafStatesToTick = new ConcurrentHashMap<>();
     private static final Map<Location, FakeLeafState> toUpdate = new HashMap<>();
 
@@ -110,8 +106,6 @@ public class LeafUpdater {
                 }
             }
             if (nextToTick.isEmpty()) removeToTick(currentTick + 1);
-//            Bukkit.broadcastMessage("Reached update depth: " + updateDepth);
-//            Bukkit.broadcastMessage("To update size: " + toUpdate.size());
             final Map<Location, FakeLeafState> toUpdateCopy = new HashMap<>(toUpdate);
             toUpdate.clear();
             final LeafCache leafCache = PLUGIN.getLeafCache();
@@ -199,7 +193,6 @@ public class LeafUpdater {
             updateNeighbors(leafCache, location);
             return true;
         }
-//        if (state == null) return false;
         final int distance = getLowestDistance(leafCache, location);
         if (state != null && distance == state.actualDistance() && blockData instanceof final Leaves leaves) {
             if (

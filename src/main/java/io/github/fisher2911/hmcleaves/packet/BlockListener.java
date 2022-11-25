@@ -42,18 +42,12 @@ import io.github.fisher2911.hmcleaves.LeafCache;
 import io.github.fisher2911.hmcleaves.util.ChunkUtil;
 import io.github.fisher2911.hmcleaves.util.Position;
 import io.github.fisher2911.hmcleaves.util.Position2D;
-import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Location;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.type.Leaves;
 import org.bukkit.entity.Player;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 public class BlockListener {
@@ -79,22 +73,22 @@ public class BlockListener {
                 if (!(event.getPlayer() instanceof final Player player)) return;
                 final UUID world = player.getWorld().getUID();
                 if (event.getPacketType() == PacketType.Play.Server.CHUNK_DATA) {
-                    BlockListener.this.registerChunkListener(world, new WrapperPlayServerChunkData(event));
+                    BlockListener.this.handleChunkChange(world, new WrapperPlayServerChunkData(event));
                     return;
                 }
                 if (event.getPacketType() == PacketType.Play.Server.BLOCK_CHANGE) {
-                    BlockListener.this.registerSingleChangeListener(world, event, new WrapperPlayServerBlockChange(event));
+                    BlockListener.this.handleSingleBlockChange(world, event, new WrapperPlayServerBlockChange(event));
                     return;
                 }
                 if (event.getPacketType() == PacketType.Play.Server.MULTI_BLOCK_CHANGE) {
-                    BlockListener.this.registerMultiChangeListener(world, new WrapperPlayServerMultiBlockChange(event));
+                    BlockListener.this.handleMultiBlockChange(world, new WrapperPlayServerMultiBlockChange(event));
                     return;
                 }
             }
         });
     }
 
-    private void registerChunkListener(UUID world, WrapperPlayServerChunkData packet) {
+    private void handleChunkChange(UUID world, WrapperPlayServerChunkData packet) {
         final Column column = packet.getColumn();
         final BaseChunk[] chunks = column.getChunks();
         for (int i = 0; i < chunks.length; i++) {
@@ -108,7 +102,6 @@ public class BlockListener {
                 final int difference = y - worldY;
                 if (difference < 0 || difference > 15) continue;
                 final FakeLeafState fakeLeafState = entry.getValue();
-//                final WrappedBlockState state = entry.getValue();
                 final WrappedBlockState state = fakeLeafState.state();
                 final int actualY = Math.abs(ChunkUtil.getCoordInChunk(position.y()));
                 try {
@@ -126,111 +119,50 @@ public class BlockListener {
         }
     }
 
-    private void registerSingleChangeListener(UUID world, PacketSendEvent event, WrapperPlayServerBlockChange packet) {
+    private void handleSingleBlockChange(UUID world, PacketSendEvent event, WrapperPlayServerBlockChange packet) {
         final Vector3i position = packet.getBlockPosition();
         final int x = position.getX();
         final int y = position.getY();
         final int z = position.getZ();
         final Location location = new Location(Bukkit.getWorld(world), x, y, z);
         final WrappedBlockState state = packet.getBlockState();
-        final Map<Location, BlockData> toUpdate = new HashMap<>();
-        final Set<Location> addedLogs = new HashSet<>();
-        final Set<Location> removedLogs = new HashSet<>();
-        this.checkBlock(location, state, toUpdate, addedLogs, removedLogs);
+        this.checkBlock(location, state);
         final ItemType itemType = ItemTypes.getTypePlacingState(state.getType());
-        if (!toUpdate.isEmpty()) {
-//        Bukkit.broadcastMessage("Removed logs size: " + removedLogs.size());
-//        Bukkit.broadcastMessage("Added logs size: " + addedLogs.size());
-//        LeafUpdater.doUpdate(toUpdate, addedLogs, removedLogs);
-//            for (Location loc : toUpdate.keySet()) {
-//                LeafUpdater3.scheduleTick(loc);
-//            }
-        }
-        if (itemType == null || !BlockTags.LEAVES.contains(itemType.getPlacedType()) || !(event.getPlayer() instanceof final Player player)) {
+        if (itemType == null || !BlockTags.LEAVES.contains(itemType.getPlacedType()) || !(event.getPlayer() instanceof Player)) {
             return;
         }
-//        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
         PacketEvents.getAPI().getPlayerManager().sendPacketSilently(
                 event.getPlayer(),
                 new WrapperPlayServerBlockChange(packet.getBlockPosition(), state.getGlobalId())
         );
         event.setCancelled(true);
-//        });
     }
 
-    private void registerMultiChangeListener(UUID world, WrapperPlayServerMultiBlockChange packet) {
+    private void handleMultiBlockChange(UUID world, WrapperPlayServerMultiBlockChange packet) {
         final var blocks = packet.getBlocks();
-        final Map<Location, BlockData> toUpdate = new HashMap<>();
-        final Set<Location> addedLogs = new HashSet<>();
-        final Set<Location> removedLogs = new HashSet<>();
         for (WrapperPlayServerMultiBlockChange.EncodedBlock block : blocks) {
             final Location location = new Location(Bukkit.getWorld(world), block.getX(), block.getY(), block.getZ());
             final WrappedBlockState state = PacketHelper.getState(block);
-            this.checkBlock(location, state, toUpdate, addedLogs, removedLogs);
+            this.checkBlock(location, state);
             block.setBlockState(state);
         }
-        if (toUpdate.isEmpty()) return;
-//        Bukkit.broadcastMessage("Removed logs size: " + removedLogs.size());
-//        Bukkit.broadcastMessage("Added logs size: " + addedLogs.size());
-//        LeafUpdater.doUpdate(toUpdate, addedLogs, removedLogs);
-//        for (Location loc : toUpdate.keySet()) {
-//            LeafUpdater3.scheduleTick(loc);
-//        }
     }
 
     private void checkBlock(
             Location location,
-            WrappedBlockState state,
-            Map<Location, BlockData> toUpdate,
-            Set<Location> addedLogs,
-            Set<Location> removedLogs
+            WrappedBlockState state
     ) {
         final ChunkSnapshot snapshot = ChunkUtil.getSnapshotAt(location);
         if (snapshot == null) return;
         final int x = location.getBlockX();
         final int y = location.getBlockY();
         final int z = location.getBlockZ();
-        final ItemType itemType = ItemTypes.getTypePlacingState(state.getType());
         final BlockData blockData = snapshot.getBlockData(ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
-        if (this.leafCache.isLogAt(location)) {
-            if (this.config.isLogBlock(blockData)) return;
-//            this.leafCache.removeLogAt(location);
-//            removedLogs.add(location);
-            toUpdate.put(location, blockData);
-            return;
-        }
-        if (this.config.isLogBlock(blockData)) {
-//                if (leafCache.isLogAt(location)) continue;
-//            this.leafCache.setLogAt(location);
-            toUpdate.put(location, blockData);
-//            addedLogs.add(location);
-            return;
-        }
+        if (this.leafCache.isLogAt(location)) return;
+        if (this.config.isLogBlock(blockData)) return;
         final FakeLeafState fakeLeafState = this.leafCache.getAt(location);
-        if (fakeLeafState == null) {
-            if (!BlockTags.LEAVES.contains(state.getType())) return;
-            final FakeLeafState newState = this.leafCache.createAtOrGetAndSet(
-                    location,
-                    SpigotConversionUtil.toBukkitItemMaterial(itemType)
-            );
-            if (blockData instanceof final Leaves leaves) {
-                newState.actuallyPersistent(leaves.isPersistent());
-                newState.actualDistance(leaves.getDistance());
-            }
-//            state.setPersistent(newState.state().isPersistent());
-//            state.setDistance(newState.state().getDistance());
-            toUpdate.put(location, blockData);
-            return;
-        }
-        if (!BlockTags.LEAVES.contains(state.getType())) {
-//            this.leafCache.remove(location);
-            // we only really care about checking for updates if it can
-            // save another leaf from decaying
-            if (fakeLeafState.actualDistance() < 6) {
-                toUpdate.put(location, blockData);
-            }
-            return;
-        }
+        if (fakeLeafState == null) return;
+        if (!BlockTags.LEAVES.contains(state.getType())) return;
         state.setPersistent(fakeLeafState.state().isPersistent());
         state.setDistance(fakeLeafState.state().getDistance());
     }

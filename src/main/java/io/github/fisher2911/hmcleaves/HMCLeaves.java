@@ -44,7 +44,6 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
 
     private Config config;
     private LeafCache leafCache;
-    ;
 
     @Override
     public void onLoad() {
