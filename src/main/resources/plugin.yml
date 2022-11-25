@@ -1,5 +1,5 @@
 name: HMCLeaves
-version: "1.1.0-beta"
+version: "1.2.0-beta"
 main: io.github.fisher2911.hmcleaves.HMCLeaves
 softdepend: [ Oraxen, ItemsAdder, WorldEdit ]
 api-version: 1.16
