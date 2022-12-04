@@ -48,7 +48,7 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
     @Override
     public void onLoad() {
         final PacketEventsAPI<Plugin> api = SpigotPacketEventsBuilder.build(this);
-        api.getSettings().debug(true);
+        api.getSettings().debug(false).checkForUpdates(false);
         PacketEvents.setAPI(api);
         PacketEvents.getAPI().load();
     }

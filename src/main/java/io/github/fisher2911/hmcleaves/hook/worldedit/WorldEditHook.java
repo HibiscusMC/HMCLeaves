@@ -39,6 +39,7 @@ import io.github.fisher2911.hmcleaves.FakeLeafState;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.LeafCache;
 import io.github.fisher2911.hmcleaves.util.LeafUpdater;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.data.BlockData;
@@ -113,9 +114,10 @@ public class WorldEditHook {
                 state.actuallyPersistent(false);
                 state.state().setPersistent(leaves.isPersistent());
                 state.state().setDistance(leaves.getDistance());
+                leaves.setDistance(7);
                 leafCache.set(location, state);
-                LeafUpdater.scheduleTick(location);
-                return getExtent().setBlock(pos, block);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> LeafUpdater.scheduleTick(location), 3);
+                return getExtent().setBlock(pos, BukkitAdapter.adapt(leaves));
             }
         });
     }

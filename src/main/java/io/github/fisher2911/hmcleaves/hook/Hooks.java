@@ -67,4 +67,5 @@ public class Hooks {
         if (worldEditHook == null) return;
         worldEditHook.trySaveSchematic(player);
     }
+
 }

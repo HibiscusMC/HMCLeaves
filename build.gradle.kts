@@ -46,6 +46,9 @@ dependencies {
     implementation("org.bstats:bstats-bukkit:3.0.0")
     compileOnly("com.sk89q.worldedit:worldedit-core:7.2.12-SNAPSHOT")
     compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.12-SNAPSHOT")
+    implementation(platform("com.intellectualsites.bom:bom-1.18.x:1.19"))
+    compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Core")
+    compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Bukkit") { isTransitive = false }
 }
 
 tasks {
