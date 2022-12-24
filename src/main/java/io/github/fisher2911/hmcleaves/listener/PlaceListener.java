@@ -33,13 +33,13 @@ import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.util.Position;
 import io.github.fisher2911.hmcleaves.util.Position2D;
 import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -47,6 +47,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryCreativeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -82,16 +83,21 @@ public class PlaceListener implements Listener {
         if (itemStack == null) return;
         final ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta == null) return;
-        final String id = PDCUtil.getLeafDataItemId(itemStack);/* itemMeta.getPersistentDataContainer().get(PDCUtil.ITEM_KEY, PersistentDataType.STRING);*/
-        final Chunk chunk = toPlace.getChunk();
-        final Position2D chunkPos = new Position2D(toPlace.getWorld().getUID(), chunk.getX(), chunk.getZ());
-        final Position position = new Position(ChunkUtil.getCoordInChunk(toPlace.getX()), toPlace.getY(), ChunkUtil.getCoordInChunk(toPlace.getZ()));
+        final String id = PDCUtil.getLeafDataItemId(itemStack);
         final LeafItem leafItem = plugin.config().getItem(id);
         LeafData leafData = leafItem != null ? leafItem.leafData() : PDCUtil.getLeafData(itemMeta.getPersistentDataContainer());
         if (leafData == null) {
             final Material material = itemStack.getType();
             if (!Tag.LEAVES.isTagged(material)) return;
             leafData = new LeafData(material, this.plugin.config().getDefaultDistance(), this.plugin.config().isDefaultPersistent(), true);
+        }
+        final BlockState previousState = toPlace.getState();
+        toPlace.setType(leafData.material(), false);
+        final BlockPlaceEvent blockPlaceEvent = new BlockPlaceEvent(toPlace, toPlace.getState(), toPlace, itemStack, event.getPlayer(), true, event.getHand());
+        Bukkit.getPluginManager().callEvent(blockPlaceEvent);
+        if (blockPlaceEvent.isCancelled()) {
+            previousState.update(true, false);
+            return;
         }
         HMCLeavesAPI.getInstance().setLeafAt(
                 toPlace.getLocation(),
@@ -136,7 +142,8 @@ public class PlaceListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void onActionClick(InventoryCreativeEvent event) {
-        if (event.getClick() != ClickType.CREATIVE) return;;
+        if (event.getClick() != ClickType.CREATIVE) return;
+        ;
         if (!(event.getWhoClicked() instanceof final Player player)) return;
         final RayTraceResult rayTrace = player.rayTraceBlocks(6);
         if (rayTrace == null) return;
