@@ -21,23 +21,30 @@
 package io.github.fisher2911.hmcleaves;
 
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
+import org.bukkit.Material;
 
 public class FakeLeafState {
 
-    public static FakeLeafState NULL = new FakeLeafState(null, false, 0);
+    public static FakeLeafState NULL = new FakeLeafState(null, null, false, 0);
 
     private final WrappedBlockState state;
+    private final Material material;
     private boolean actuallyPersistent;
     private int actualDistance;
 
-    public FakeLeafState(WrappedBlockState state, boolean actuallyPersistent, int actualDistance) {
+    public FakeLeafState(WrappedBlockState state, Material material, boolean actuallyPersistent, int actualDistance) {
         this.state = state;
+        this.material = material;
         this.actuallyPersistent = actuallyPersistent;
         this.actualDistance = actualDistance;
     }
 
     public WrappedBlockState state() {
         return this.state;
+    }
+
+    public Material material() {
+        return this.material;
     }
 
     public boolean actuallyPersistent() {
@@ -57,7 +64,7 @@ public class FakeLeafState {
     }
 
     public FakeLeafState snapshot() {
-        return new FakeLeafState(this.state.clone(), this.actuallyPersistent, this.actualDistance);
+        return new FakeLeafState(this.state.clone(), this.material, this.actuallyPersistent, this.actualDistance);
     }
 
     @Override
@@ -65,6 +72,7 @@ public class FakeLeafState {
         return "FakeLeafState{" +
                 "persistent=" + state.isPersistent() +
                 ", distance=" + state.getDistance() +
+                ", material=" + material +
                 ", actuallyPersistent=" + actuallyPersistent +
                 ", actualDistance=" + actualDistance +
                 '}';

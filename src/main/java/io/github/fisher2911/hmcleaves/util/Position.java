@@ -23,11 +23,12 @@ package io.github.fisher2911.hmcleaves.util;
 import org.bukkit.Location;
 
 import java.util.Objects;
+import java.util.UUID;
 
-public record Position(int x, int y, int z) {
+public record Position(UUID world,  int x, int y, int z) {
 
     public static Position fromLocation(Location location) {
-        return new Position(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+        return new Position(location.getWorld().getUID(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
     }
 
     public int getXInChunk() {

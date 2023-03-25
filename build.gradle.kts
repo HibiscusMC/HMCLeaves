@@ -41,8 +41,10 @@ dependencies {
     compileOnly("com.github.oraxen:oraxen:-SNAPSHOT")
     compileOnly("com.github.LoneDev6:api-itemsadder:3.0.0")
     implementation("com.github.retrooper.packetevents:spigot:2.0-SNAPSHOT")
-    implementation("com.jeff_media:CustomBlockData:2.0.1")
-    implementation("com.jeff_media:MorePersistentDataTypes:2.3.1")
+//    implementation("com.jeff_media:CustomBlockData:2.0.1")
+//    implementation("com.jeff_media:MorePersistentDataTypes:2.3.1")
+    compileOnly("org.xerial:sqlite-jdbc:3.39.2.0")
+    implementation("com.zaxxer:HikariCP:3.3.0")
     implementation("org.bstats:bstats-bukkit:3.0.0")
     compileOnly("com.sk89q.worldedit:worldedit-core:7.2.12-SNAPSHOT")
     compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.12-SNAPSHOT")
@@ -63,9 +65,10 @@ tasks {
 
     shadowJar {
         relocate("com.github.retrooper.packetevents", "io.github.fisher2911.hmcleaves.packetevents.spigot")
-        relocate("com.jeff_media.customblockdata", "io.github.fisher2911.hmcleaves.customblockdata")
-        relocate("com.jeff_media.morepersistentdatatypes", "io.github.fisher2911.hmcleaves.morepersistentdatatypes")
+//        relocate("com.jeff_media.customblockdata", "io.github.fisher2911.hmcleaves.customblockdata")
+//        relocate("com.jeff_media.morepersistentdatatypes", "io.github.fisher2911.hmcleaves.morepersistentdatatypes")
         relocate("org.bstats", "io.github.fisher2911.hmcleaves.bstats")
+        relocate("com.zaxxer.hikari", "io.github.fisher2911.hmcleaves.hikari")
         archiveFileName.set("HMCLeaves-${version}.jar")
 
         dependencies {

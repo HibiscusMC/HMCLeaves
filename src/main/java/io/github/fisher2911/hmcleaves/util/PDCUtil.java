@@ -89,48 +89,48 @@ public class PDCUtil {
         itemStack.setItemMeta(itemMeta);
     }
 
-    public static void removeTreeBlock(PersistentDataContainer container) {
-        container.remove(LOG_BLOCK_KEY);
-    }
+//    public static void removeTreeBlock(PersistentDataContainer container) {
+//        container.remove(LOG_BLOCK_KEY);
+//    }
 
-    public static void setLogBlock(PersistentDataContainer container) {
-        container.set(LOG_BLOCK_KEY, PersistentDataType.BYTE, (byte) 1);
-    }
+//    public static void setLogBlock(PersistentDataContainer container) {
+//        container.set(LOG_BLOCK_KEY, PersistentDataType.BYTE, (byte) 1);
+//    }
 
-    public static void setDistance(PersistentDataContainer container, byte distance) {
-        container.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, distance);
-    }
+//    public static void setDistance(PersistentDataContainer container, byte distance) {
+//        container.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, distance);
+//    }
 
-    public static void setPersistent(PersistentDataContainer container, byte persistent) {
-        container.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, persistent);
-    }
+//    public static void setPersistent(PersistentDataContainer container, byte persistent) {
+//        container.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, persistent);
+//    }
 
-    public static void setPersistent(PersistentDataContainer container, boolean persistent) {
-        setPersistent(container, (byte) (persistent ? 1 : 0));
-    }
+//    public static void setPersistent(PersistentDataContainer container, boolean persistent) {
+//        setPersistent(container, (byte) (persistent ? 1 : 0));
+//    }
 
-    public static void setActualPersistent(PersistentDataContainer container, byte persistent) {
-        container.set(PDCUtil.ACTUAL_PERSISTENCE_KEY, PersistentDataType.BYTE, persistent);
-    }
+//    public static void setActualPersistent(PersistentDataContainer container, byte persistent) {
+//        container.set(PDCUtil.ACTUAL_PERSISTENCE_KEY, PersistentDataType.BYTE, persistent);
+//    }
 
-    public static void setActualPersistent(PersistentDataContainer container, boolean persistent) {
-        container.set(PDCUtil.ACTUAL_PERSISTENCE_KEY, PersistentDataType.BYTE, (byte) (persistent ? 1 : 0));
-    }
+//    public static void setActualPersistent(PersistentDataContainer container, boolean persistent) {
+//        container.set(PDCUtil.ACTUAL_PERSISTENCE_KEY, PersistentDataType.BYTE, (byte) (persistent ? 1 : 0));
+//    }
 
-    public static void setActualDistance(PersistentDataContainer container, byte distance) {
-        container.set(PDCUtil.ACTUAL_DISTANCE_KEY, PersistentDataType.BYTE, distance);
-    }
+//    public static void setActualDistance(PersistentDataContainer container, byte distance) {
+//        container.set(PDCUtil.ACTUAL_DISTANCE_KEY, PersistentDataType.BYTE, distance);
+//    }
 
-    public static void clearLeafData(PersistentDataContainer container) {
-        container.remove(DISTANCE_KEY);
-        container.remove(PERSISTENCE_KEY);
-        container.remove(ACTUAL_PERSISTENCE_KEY);
-        container.remove(ACTUAL_DISTANCE_KEY);
-        container.remove(MATERIAL_KEY);
-    }
+//    public static void clearLeafData(PersistentDataContainer container) {
+//        container.remove(DISTANCE_KEY);
+//        container.remove(PERSISTENCE_KEY);
+//        container.remove(ACTUAL_PERSISTENCE_KEY);
+//        container.remove(ACTUAL_DISTANCE_KEY);
+//        container.remove(MATERIAL_KEY);
+//    }
 
-    public static void clearLogData(PersistentDataContainer container) {
-        container.remove(LOG_BLOCK_KEY);
-    }
+//    public static void clearLogData(PersistentDataContainer container) {
+//        container.remove(LOG_BLOCK_KEY);
+//    }
 
 }

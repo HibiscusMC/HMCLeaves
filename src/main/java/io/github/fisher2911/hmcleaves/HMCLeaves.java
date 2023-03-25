@@ -23,6 +23,7 @@ package io.github.fisher2911.hmcleaves;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.PacketEventsAPI;
 import io.github.fisher2911.hmcleaves.command.LeavesCommand;
+import io.github.fisher2911.hmcleaves.data.DataManager;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.listener.ChunkListener;
 import io.github.fisher2911.hmcleaves.listener.LeafDropListener;
@@ -44,6 +45,7 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
 
     private Config config;
     private LeafCache leafCache;
+    private DataManager dataManager;
 
     @Override
     public void onLoad() {
@@ -66,6 +68,8 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
         }
         this.leafCache = new LeafCache(this, new ConcurrentHashMap<>());
         PacketEvents.getAPI().init();
+        this.dataManager = new DataManager(this);
+        this.dataManager.load();
         this.getServer().getPluginManager().registerEvents(this, this);
         this.registerListeners();
         new BlockListener(this, this.leafCache).register();
@@ -100,6 +104,10 @@ public final class HMCLeaves extends JavaPlugin implements Listener {
 
     public LeafCache getLeafCache() {
         return this.leafCache;
+    }
+
+    public DataManager getDataManager() {
+        return this.dataManager;
     }
 
 }

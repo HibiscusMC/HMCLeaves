@@ -129,7 +129,7 @@ public class PlaceListener implements Listener {
         }
         final FakeLeafState fakeLeafState = this.plugin.getLeafCache().getAt(
                 new Position2D(clicked.getWorld().getUID(), clicked.getChunk().getX(), clicked.getChunk().getZ()),
-                new Position(ChunkUtil.getCoordInChunk(clicked.getX()), clicked.getY(), ChunkUtil.getCoordInChunk(clicked.getZ()))
+                new Position(clicked.getWorld().getUID(), ChunkUtil.getCoordInChunk(clicked.getX()), clicked.getY(), ChunkUtil.getCoordInChunk(clicked.getZ()))
         );
         if (fakeLeafState == null) {
             player.sendMessage("Actual distance: " + leaves.getDistance() + " actual persistence: " + leaves.isPersistent());
@@ -143,7 +143,6 @@ public class PlaceListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void onActionClick(InventoryCreativeEvent event) {
         if (event.getClick() != ClickType.CREATIVE) return;
-        ;
         if (!(event.getWhoClicked() instanceof final Player player)) return;
         final RayTraceResult rayTrace = player.rayTraceBlocks(6);
         if (rayTrace == null) return;
@@ -151,7 +150,7 @@ public class PlaceListener implements Listener {
         if (clicked == null) return;
         final Location location = clicked.getLocation();
         final Position2D chunkPos = new Position2D(location.getWorld().getUID(), location.getChunk().getX(), location.getChunk().getZ());
-        final Position position = new Position(ChunkUtil.getCoordInChunk(location.getBlockX()), location.getBlockY(), ChunkUtil.getCoordInChunk(location.getBlockZ()));
+        final Position position = new Position(clicked.getWorld().getUID(), ChunkUtil.getCoordInChunk(location.getBlockX()), location.getBlockY(), ChunkUtil.getCoordInChunk(location.getBlockZ()));
         final FakeLeafState fakeLeafState = this.plugin.getLeafCache().getAt(chunkPos, position);
         if (fakeLeafState == null) return;
         final LeafItem leafItem = this.plugin.config().getByState(fakeLeafState);

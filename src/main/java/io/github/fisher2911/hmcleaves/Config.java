@@ -97,13 +97,17 @@ public class Config {
     }
 
     public FakeLeafState getDefaultState(Material material) {
+        final var type = StateTypes.getByName(material.toString().toLowerCase());
+        if (type == null) {
+            this.plugin.getLogger().severe("Could not find state type for " + material.toString());
+        }
         final WrappedBlockState state = WrappedBlockState.getDefaultState(
                 PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
                 StateTypes.getByName(material.toString().toLowerCase())
         ).clone();
         state.setDistance(DEFAULT_DISTANCE);
         state.setPersistent(DEFAULT_PERSISTENCE);
-        return new FakeLeafState(state, this.defaultActuallyPersistent, this.defaultActuallyPersistent ? 1 : 7);
+        return new FakeLeafState(state, material, this.defaultActuallyPersistent, this.defaultActuallyPersistent ? 1 : 7);
     }
 
     public LeafData getDefaultData(Material material) {

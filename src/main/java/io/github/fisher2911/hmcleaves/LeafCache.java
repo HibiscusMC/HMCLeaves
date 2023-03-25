@@ -76,7 +76,7 @@ public class LeafCache {
 
     public void setLogAt(UUID world, int x, int y, int z) {
         final Position2D chunkPos = new Position2D(world, x >> 4, z >> 4);
-        final Position position = new Position(ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
+        final Position position = new Position(world, ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
         this.setLogAt(chunkPos, position);
     }
 
@@ -92,7 +92,7 @@ public class LeafCache {
 
     public boolean removeLogAt(UUID world, int x, int y, int z) {
         final Position2D chunkPos = new Position2D(world, x >> 4, z >> 4);
-        final Position position = new Position(ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
+        final Position position = new Position(world, ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
         return this.removeLogAt(chunkPos, position);
     }
 
@@ -130,7 +130,7 @@ public class LeafCache {
         final int chunkX = x >> 4;
         final int chunkZ = z >> 4;
         final Position2D chunkPos = new Position2D(world, chunkX, chunkZ);
-        final Position position = new Position(ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
+        final Position position = new Position(world, ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
         return this.getAt(chunkPos, position);
     }
 
@@ -143,13 +143,13 @@ public class LeafCache {
 
     public boolean isLogAt(UUID world, int x, int y, int z) {
         final Position2D chunkPos = new Position2D(world, x >> 4, z >> 4);
-        final Position position = new Position(ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
+        final Position position = new Position(world, ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
         return this.isLogAt(chunkPos, position);
     }
 
     public void set(UUID world, int x, int y, int z, FakeLeafState state) {
         final Position2D chunkPos = new Position2D(world, x >> 4, z >> 4);
-        final Position position = new Position(ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
+        final Position position = new Position(world, ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
         this.addData(chunkPos, position, state);
     }
 
@@ -166,7 +166,7 @@ public class LeafCache {
 
     public FakeLeafState remove(UUID world, int x, int y, int z) {
         final Position2D chunkPos = new Position2D(world, x >> 4, z >> 4);
-        final Position position = new Position(ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
+        final Position position = new Position(world, ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
         return this.remove(chunkPos, position);
     }
 
@@ -176,7 +176,7 @@ public class LeafCache {
         final int y = location.getBlockY();
         final int z = location.getBlockZ();
         final Position2D chunkPos = new Position2D(world, x >> 4, z >> 4);
-        final Position position = new Position(ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
+        final Position position = new Position(world, ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
         return this.getOrAddChunkData(chunkPos).computeIfAbsent(position, k -> this.createDefault(material));
     }
 

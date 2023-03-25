@@ -23,16 +23,15 @@ package io.github.fisher2911.hmcleaves.api;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes;
-import com.jeff_media.customblockdata.CustomBlockData;
 import io.github.fisher2911.hmcleaves.FakeLeafState;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.LeafData;
 import io.github.fisher2911.hmcleaves.packet.PacketHelper;
 import io.github.fisher2911.hmcleaves.util.ChunkUtil;
 import io.github.fisher2911.hmcleaves.util.LeafUpdater;
-import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.util.Position;
 import io.github.fisher2911.hmcleaves.util.Position2D;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -68,20 +67,23 @@ public class HMCLeavesAPI {
             LeafData serverData
     ) {
         final Position2D chunkPos = new Position2D(world.getUID(), x >> 4, z >> 4);
-        final Position position = new Position(ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
+        final Position position = new Position(chunkPos.world(), ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
         final FakeLeafState fakeLeafState = this.plugin.config().getDefaultState(serverData.material());
         final var state = fakeLeafState.state();
         state.setDistance(serverData.distance());
         state.setPersistent(serverData.persistent());
-        final FakeLeafState newState = new FakeLeafState(state, serverData.actuallyPersistent(), 7);
+        final FakeLeafState newState = new FakeLeafState(state, serverData.material(), serverData.actuallyPersistent(), 7);
         this.plugin.getLeafCache().addData(chunkPos, position, newState);
         final Block block = world.getBlockAt(x, y, z);
         block.setType(serverData.material(), false);
-        final CustomBlockData customBlockData = new CustomBlockData(block, plugin);
-        PDCUtil.setPersistent(customBlockData, serverData.persistent());
-        PDCUtil.setDistance(customBlockData, (byte) serverData.distance());
-        PDCUtil.setActualPersistent(customBlockData, serverData.actuallyPersistent());
-        PDCUtil.setActualDistance(customBlockData, (byte) 7);
+//        final CustomBlockData customBlockData = new CustomBlockData(block, plugin);
+//        PDCUtil.setPersistent(customBlockData, serverData.persistent());
+//        PDCUtil.setDistance(customBlockData, (byte) serverData.distance());
+//        PDCUtil.setActualPersistent(customBlockData, serverData.actuallyPersistent());
+//        PDCUtil.setActualDistance(customBlockData, (byte) 7);
+        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
+           this.plugin.getDataManager().saveLeaf(chunkPos, position, newState);
+        });
         LeafUpdater.scheduleTick(new Location(world, x, y, z));
 
         if (block.getBlockData() instanceof Leaves leaves) {
@@ -92,7 +94,7 @@ public class HMCLeavesAPI {
 
     public void removeLeafAt(World world, int x, int y, int z, boolean sendToPlayers) {
         final Position2D chunkPos = new Position2D(world.getUID(), x >> 4, z >> 4);
-        final Position position = new Position(ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
+        final Position position = new Position(chunkPos.world(), ChunkUtil.getCoordInChunk(x), y, ChunkUtil.getCoordInChunk(z));
         this.plugin.getLeafCache().remove(chunkPos, position);
         world.getBlockAt(x, y, z).setType(Material.AIR);
         if (sendToPlayers) {
@@ -101,6 +103,9 @@ public class HMCLeavesAPI {
                     StateTypes.getByName(Material.AIR.toString().toLowerCase())
             ));
         }
+        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
+            this.plugin.getDataManager().deleteLeaf(chunkPos, position);
+        });
     }
 
 }

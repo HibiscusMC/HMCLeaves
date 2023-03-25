@@ -20,12 +20,11 @@
 
 package io.github.fisher2911.hmcleaves.listener;
 
-import com.jeff_media.customblockdata.CustomBlockData;
 import io.github.fisher2911.hmcleaves.Config;
 import io.github.fisher2911.hmcleaves.FakeLeafState;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.LeafCache;
-import io.github.fisher2911.hmcleaves.util.ChunkUtil;
+import io.github.fisher2911.hmcleaves.data.DataManager;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.util.Position;
 import io.github.fisher2911.hmcleaves.util.Position2D;
@@ -35,6 +34,7 @@ import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -43,12 +43,12 @@ import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 public class ChunkListener implements Listener {
 
@@ -98,7 +98,7 @@ public class ChunkListener implements Listener {
                 for (int y = world.getMinHeight(); y < world.getMaxHeight(); y++) {
                     for (int z = 0; z < 16; z++) {
                         final Material material = snapshot.getBlockType(x, y, z);
-                        final Position position = new Position(x, y, z);
+                        final Position position = new Position(world.getUID(), x, y, z);
                         if (!Tag.LEAVES.isTagged(material)) {
                             if (this.config.isLogBlock(snapshot.getBlockData(x, y, z))) {
                                 addedLogs.add(position);
@@ -111,6 +111,7 @@ public class ChunkListener implements Listener {
                         if (!(snapshot.getBlockData(x, y, z) instanceof Leaves leaves)) continue;
                         final FakeLeafState actualState = new FakeLeafState(
                                 defaultState.state(),
+                                material,
                                 leaves.isPersistent(),
                                 leaves.getDistance()
                         );
@@ -119,75 +120,81 @@ public class ChunkListener implements Listener {
                     }
                 }
             }
+            if (!world.isChunkLoaded(chunkX, chunkZ)) return;
+            final DataManager dataManager = this.plugin.getDataManager();
+            dataManager.saveLeaves(added);
+            dataManager.saveLogs(addedLogs);
             Bukkit.getScheduler().runTask(this.plugin, () -> {
-                if (!world.isChunkLoaded(chunkX, chunkZ)) return;
-                for (var entry : added.entrySet()) {
-                    final var position = entry.getKey();
-                    final var data = entry.getValue();
-                    final PersistentDataContainer blockData = new CustomBlockData(
-                            chunk.getBlock(position.x(), position.y(), position.z()),
-                            this.plugin
-                    );
-                    blockData.set(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE, (byte) data.state().getDistance());
-                    blockData.set(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE, (byte) (data.state().isPersistent() ? 1 : 0));
-                    blockData.set(PDCUtil.ACTUAL_PERSISTENCE_KEY, PersistentDataType.BYTE, (byte) (data.actuallyPersistent() ? 1 : 0));
-                    blockData.set(PDCUtil.ACTUAL_DISTANCE_KEY, PersistentDataType.BYTE, (byte) data.actualDistance());
-                }
-                for (var position : addedLogs) {
-                    final PersistentDataContainer blockData = new CustomBlockData(
-                            chunk.getBlock(position.x(), position.y(), position.z()),
-                            this.plugin
-                    );
-                    PDCUtil.setLogBlock(blockData);
-                }
                 PDCUtil.setHasLeafData(chunk.getPersistentDataContainer());
             });
         });
     }
 
     private void loadPDCData(Chunk chunk) {
-        final Position2D chunkPos = new Position2D(chunk.getWorld().getUID(), chunk.getX(), chunk.getZ());
-        final var blocks = CustomBlockData.getBlocksWithCustomData(this.plugin, chunk);
-        for (var block : blocks) {
-            final CustomBlockData blockData = new CustomBlockData(block, this.plugin);
-            if (!Tag.LEAVES.isTagged(block.getType()) && blockData.has(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE)) {
-                PDCUtil.clearLeafData(blockData);
-                continue;
-            }
-            final boolean isLog = this.config.isLogBlock(block.getBlockData());
-            if (!isLog && blockData.has(PDCUtil.LOG_BLOCK_KEY, PersistentDataType.BYTE)) {
-                PDCUtil.clearLogData(blockData);
-                continue;
-            }
-            final Position position = new Position(ChunkUtil.getCoordInChunk(block.getX()), block.getY(), ChunkUtil.getCoordInChunk(block.getZ()));
-            if (isLog) {
-                this.cache.setLogAt(chunkPos, position);
-                continue;
-            }
-            if (!(block.getBlockData() instanceof Leaves leaves)) continue;
-            Byte distance = blockData.get(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE);
-            if (distance == null) distance = (byte) leaves.getDistance();
-            Byte persistent = blockData.get(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE);
-            if (persistent == null) persistent = (byte) (leaves.isPersistent() ? 1 : 0);
-            Byte actuallyPersistent = blockData.get(PDCUtil.ACTUAL_PERSISTENCE_KEY, PersistentDataType.BYTE);
-            if (actuallyPersistent == null) actuallyPersistent = (byte) (leaves.isPersistent() ? 1 : 0);
-            final Byte actualDistance = blockData.get(PDCUtil.ACTUAL_DISTANCE_KEY, PersistentDataType.BYTE);
-            final FakeLeafState fakeLeafState = this.plugin.config().getDefaultState(block.getType());
-            if (fakeLeafState == null) continue;
-            final var state = fakeLeafState.state();
-            state.setDistance(distance);
-            state.setPersistent(persistent == 1);
-            try {
-                this.cache.addData(
-                        chunkPos,
-                        position,
-                        new FakeLeafState(state, actuallyPersistent == 1, actualDistance == null ? 7 : actualDistance)
-                );
-            } catch (Exception e) {
-                this.plugin.getLogger().severe("Block threw error: " + block.getX() + ", " + block.getY() + ", " + block.getZ());
-                e.printStackTrace();
-            }
-        }
+        final World world = chunk.getWorld();
+        final UUID worldUUID = world.getUID();
+        final Position2D chunkPos = new Position2D(worldUUID, chunk.getX(), chunk.getZ());
+        final Set<Position> leavesToDelete = new HashSet<>();
+        final Set<Position> logsToDelete = new HashSet<>();
+        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
+//            final var blocks = CustomBlockData.getBlocksWithCustomData(this.plugin, chunk);
+            final DataManager dataManager = this.plugin.getDataManager();
+            final Map<Position, FakeLeafState> leafStates = dataManager.loadLeavesInChunk(chunkPos);
+            final var logs = dataManager.loadLogsInChunk(chunkPos);
+            Bukkit.getScheduler().runTask(this.plugin, () -> {
+                for (var entry : leafStates.entrySet()) {
+                    final Position position = entry.getKey();
+                    final FakeLeafState state = entry.getValue();
+//                final CustomBlockData blockData = new CustomBlockData(block, this.plugin);
+                    final Material leafMaterial = state.material();
+                    if (!Tag.LEAVES.isTagged(leafMaterial)/* && blockData.has(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE)*/) {
+//                    PDCUtil.clearLeafData(blockData);
+                        leavesToDelete.add(entry.getKey());
+                        continue;
+                    }
+//                final Position position = new Position(ChunkUtil.getCoordInChunk(block.getX()), block.getY(), ChunkUtil.getCoordInChunk(block.getZ()));
+                    final Block block = world.getBlockAt(position.x(), position.y(), position.z());
+                    if (!(block.getBlockData() instanceof Leaves leaves)) continue;
+//                    Byte distance = blockData.get(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE);
+//                    if (distance == null) distance = (byte) leaves.getDistance();
+//                    Byte persistent = blockData.get(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE);
+//                    if (persistent == null) persistent = (byte) (leaves.isPersistent() ? 1 : 0);
+//                    Byte actuallyPersistent = blockData.get(PDCUtil.ACTUAL_PERSISTENCE_KEY, PersistentDataType.BYTE);
+//                    if (actuallyPersistent == null) actuallyPersistent = (byte) (leaves.isPersistent() ? 1 : 0);
+//                    final Byte actualDistance = blockData.get(PDCUtil.ACTUAL_DISTANCE_KEY, PersistentDataType.BYTE);
+//                    final FakeLeafState fakeLeafState = this.plugin.config().getDefaultState(block.getType());
+//                    if (fakeLeafState == null) continue;
+//                    final var state = fakeLeafState.state();
+//                    state.setDistance(distance);
+//                    state.setPersistent(persistent == 1);
+                    try {
+                        this.cache.addData(
+                                chunkPos,
+                                position,
+                                state
+//                                new FakeLeafState(state, actuallyPersistent == 1, actualDistance == null ? 7 : actualDistance)
+                        );
+                    } catch (Exception e) {
+                        this.plugin.getLogger().severe("Block threw error: " + block.getX() + ", " + block.getY() + ", " + block.getZ());
+                        e.printStackTrace();
+                    }
+                }
+                for (var position : logs) {
+                    final Block block = world.getBlockAt(position.x(), position.y(), position.z());
+                    final Material material = block.getType();
+                    if (!Tag.LOGS.isTagged(material)) {
+                        logsToDelete.add(position);
+                        continue;
+                    }
+                    this.cache.setLogAt(chunkPos, position);
+                }
+
+                Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
+                    if (!leavesToDelete.isEmpty()) dataManager.deleteLeaves(leavesToDelete);
+                    if (!logsToDelete.isEmpty()) dataManager.deleteLogs(logsToDelete);
+                });
+            });
+        });
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)

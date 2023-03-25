@@ -20,11 +20,11 @@
 
 package io.github.fisher2911.hmcleaves.util;
 
-import com.jeff_media.customblockdata.CustomBlockData;
 import io.github.fisher2911.hmcleaves.Config;
 import io.github.fisher2911.hmcleaves.FakeLeafState;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.LeafCache;
+import io.github.fisher2911.hmcleaves.data.DataManager;
 import io.github.fisher2911.hmcleaves.util.collection.UniqueConcurrentLinkedDeque;
 import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
@@ -38,7 +38,9 @@ import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -113,34 +115,43 @@ public class LeafUpdater {
             CURRENT_TICK.addAndGet(1);
             previousTaskFinished.set(true);
             Bukkit.getScheduler().runTask(PLUGIN, () -> {
+                final Set<Position> logsToSave = new HashSet<>();
+                final Set<Position> logsToRemove = new HashSet<>();
+                final Map<Position, FakeLeafState> leavesToSave = new HashMap<>();
+                final Set<Position> leavesToRemove = new HashSet<>();
                 for (var entry : toUpdateCopy.entrySet()) {
                     final Location location = entry.getKey();
                     final BlockData blockData = location.getBlock().getBlockData();
                     final FakeLeafState state = entry.getValue();
                     final Block block = location.getBlock();
+                    final Position position = Position.fromLocation(location);
                     if (state == null) {
                         if (config.isLogBlock(blockData)) {
-                            PDCUtil.setLogBlock(new CustomBlockData(block, PLUGIN));
+//                            PDCUtil.setLogBlock(new CustomBlockData(block, PLUGIN));
+                            logsToSave.add(position);
                             leafCache.setLogAt(location);
                             continue;
                         }
                         if (leafCache.isLogAt(location)) {
                             leafCache.removeLogAt(location);
-                            PDCUtil.removeTreeBlock(new CustomBlockData(block, PLUGIN));
+//                            PDCUtil.removeTreeBlock(new CustomBlockData(block, PLUGIN));
+                            logsToRemove.add(position);
                             continue;
                         }
                         continue;
                     }
                     if (!(blockData instanceof final Leaves leaves)) {
                         leafCache.remove(location);
-                        PDCUtil.clearLeafData(new CustomBlockData(block, PLUGIN));
+//                        PDCUtil.clearLeafData(new CustomBlockData(block, PLUGIN));
+                        leavesToRemove.add(position);
                         continue;
                     }
-                    final CustomBlockData customBlockData = new CustomBlockData(block, PLUGIN);
-                    PDCUtil.setActualDistance(customBlockData, (byte) state.actualDistance());
-                    PDCUtil.setActualPersistent(customBlockData, state.actuallyPersistent());
-                    PDCUtil.setDistance(customBlockData, (byte) state.state().getDistance());
-                    PDCUtil.setPersistent(customBlockData, (byte) (state.state().isPersistent() ? 1 : 0));
+//                    final CustomBlockData customBlockData = new CustomBlockData(block, PLUGIN);
+//                    PDCUtil.setActualDistance(customBlockData, (byte) state.actualDistance());
+//                    PDCUtil.setActualPersistent(customBlockData, state.actuallyPersistent());
+//                    PDCUtil.setDistance(customBlockData, (byte) state.state().getDistance());
+//                    PDCUtil.setPersistent(customBlockData, (byte) (state.state().isPersistent() ? 1 : 0));
+                    leavesToSave.put(position, state);
                     if (
                             (state.actuallyPersistent() || state.actualDistance() < LEAF_DECAY_DISTANCE) &&
                                     (leaves.getDistance() >= LEAF_DECAY_DISTANCE)
@@ -154,6 +165,21 @@ public class LeafUpdater {
                     leaves.setPersistent(false);
                     block.setBlockData(leaves, false);
                 }
+                Bukkit.getScheduler().runTaskAsynchronously(PLUGIN, () -> {
+                    final DataManager dataManager = PLUGIN.getDataManager();
+                    if (!logsToSave.isEmpty()) {
+                        dataManager.saveLogs(logsToSave);
+                    }
+                    if (!logsToRemove.isEmpty()) {
+                        dataManager.deleteLogs(logsToRemove);
+                    }
+                    if (!leavesToSave.isEmpty()) {
+                        dataManager.saveLeaves(leavesToSave);
+                    }
+                    if (!leavesToRemove.isEmpty()) {
+                        dataManager.deleteLeaves(leavesToRemove);
+                    }
+                });
             });
         }, 1, 1);
 
