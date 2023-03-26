@@ -62,6 +62,7 @@ public class DataManager {
         final HikariConfig config = new HikariConfig();
         config.setJdbcUrl("jdbc:sqlite:" + this.databasePath);
         this.dataSource = new HikariDataSource(config);
+        this.createTables();
     }
 
     @Nullable
