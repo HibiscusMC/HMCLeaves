@@ -143,18 +143,28 @@ public class ChunkListener implements Listener {
             final var logs = dataManager.loadLogsInChunk(chunkPos);
             Bukkit.getScheduler().runTask(this.plugin, () -> {
                 for (var entry : leafStates.entrySet()) {
-                    final Position position = entry.getKey();
+                    final Position positionInChunk = entry.getKey();
+                    final Position position = new Position(
+                            positionInChunk.world(),
+                            positionInChunk.x() + chunk.getX() * 16,
+                            positionInChunk.y(),
+                            positionInChunk.getZInChunk() + chunk.getZ() * 16
+                    );
                     final FakeLeafState state = entry.getValue();
 //                final CustomBlockData blockData = new CustomBlockData(block, this.plugin);
                     final Material leafMaterial = state.material();
+                    Bukkit.broadcastMessage("Material: " + leafMaterial);
                     if (!Tag.LEAVES.isTagged(leafMaterial)/* && blockData.has(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE)*/) {
 //                    PDCUtil.clearLeafData(blockData);
+                        Bukkit.broadcastMessage("Not tagged leaves: " + position);
                         leavesToDelete.add(entry.getKey());
                         continue;
                     }
-//                final Position position = new Position(ChunkUtil.getCoordInChunk(block.getX()), block.getY(), ChunkUtil.getCoordInChunk(block.getZ()));
                     final Block block = world.getBlockAt(position.x(), position.y(), position.z());
+                    Bukkit.broadcastMessage("Block: " + block.getType() + " " + block.getBlockData().getMaterial());
+                    Bukkit.broadcastMessage("Position: " + position);
                     if (!(block.getBlockData() instanceof Leaves leaves)) continue;
+                    Bukkit.broadcastMessage("Is leaf: " + position + " : " + state.state().getDistance() + " " + state.actualDistance());
 //                    Byte distance = blockData.get(PDCUtil.DISTANCE_KEY, PersistentDataType.BYTE);
 //                    if (distance == null) distance = (byte) leaves.getDistance();
 //                    Byte persistent = blockData.get(PDCUtil.PERSISTENCE_KEY, PersistentDataType.BYTE);
@@ -170,7 +180,7 @@ public class ChunkListener implements Listener {
                     try {
                         this.cache.addData(
                                 chunkPos,
-                                position,
+                                positionInChunk,
                                 state
 //                                new FakeLeafState(state, actuallyPersistent == 1, actualDistance == null ? 7 : actualDistance)
                         );
@@ -179,14 +189,19 @@ public class ChunkListener implements Listener {
                         e.printStackTrace();
                     }
                 }
-                for (var position : logs) {
-                    final Block block = world.getBlockAt(position.x(), position.y(), position.z());
+                for (var positionInChunk : logs) {
+                    final Position position = new Position(
+                            positionInChunk.world(),
+                            positionInChunk.x() + chunk.getX() * 16,
+                            positionInChunk.y(),
+                            positionInChunk.getZInChunk() + chunk.getZ() * 16
+                    );                    final Block block = world.getBlockAt(position.x(), position.y(), position.z());
                     final Material material = block.getType();
                     if (!Tag.LOGS.isTagged(material)) {
                         logsToDelete.add(position);
                         continue;
                     }
-                    this.cache.setLogAt(chunkPos, position);
+                    this.cache.setLogAt(chunkPos, positionInChunk);
                 }
 
                 Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {

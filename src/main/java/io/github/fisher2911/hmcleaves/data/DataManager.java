@@ -20,8 +20,6 @@
 
 package io.github.fisher2911.hmcleaves.data;
 
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import io.github.fisher2911.hmcleaves.FakeLeafState;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.util.Position;
@@ -34,6 +32,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -47,7 +46,8 @@ public class DataManager {
 
     private final HMCLeaves plugin;
     private final Path databasePath;
-    private HikariDataSource dataSource;
+    //    private HikariDataSource dataSource;
+    private Connection connection;
 
     public DataManager(HMCLeaves plugin) {
         this.plugin = plugin;
@@ -59,16 +59,18 @@ public class DataManager {
         if (!folder.exists()) {
             folder.mkdirs();
         }
-        final HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:sqlite:" + this.databasePath);
-        this.dataSource = new HikariDataSource(config);
-        this.createTables();
+        try {
+            connection = DriverManager.getConnection("jdbc:sqlite:" + this.databasePath.toString());
+            this.createTables();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Could not connect to database!", e);
+        }
     }
 
     @Nullable
     public Connection getConnection() throws SQLException {
-        if (this.dataSource == null) throw new IllegalStateException("Datasource not loaded!");
-        return this.dataSource.getConnection();
+        if (this.connection == null) throw new IllegalStateException("Database connection not loaded!");
+        return this.connection;
     }
 
     private static final String LEAVES_TABLE_NAME = "leaves";
@@ -128,7 +130,7 @@ public class DataManager {
                     LEAVES_TABLE_PERSISTENT_COL + ", " +
                     LEAVES_TABLE_DISTANCE_COL + ", " +
                     LEAVES_TABLE_ACTUAL_PERSISTENCE_COL + ", " +
-                    LEAVES_TABLE_ACTUAL_DISTANCE_COL +
+                    LEAVES_TABLE_ACTUAL_DISTANCE_COL + ", " +
                     LEAVES_TABLE_MATERIAL_COL +
                     ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
@@ -180,7 +182,7 @@ public class DataManager {
                     LOGS_TABLE_CHUNK_Z_COL + ", " +
                     LOGS_TABLE_X_COL + ", " +
                     LOGS_TABLE_Y_COL + ", " +
-                    LOGS_TABLE_Z_COL + ", " +
+                    LOGS_TABLE_Z_COL +
                     ") VALUES (?, ?, ?, ?, ?, ?);";
 
     private static final String GET_LOG_STATEMENT =
@@ -195,7 +197,7 @@ public class DataManager {
             "SELECT " +
                     LOGS_TABLE_X_COL + ", " +
                     LOGS_TABLE_Y_COL + ", " +
-                    LOGS_TABLE_Z_COL + ", " +
+                    LOGS_TABLE_Z_COL + " " +
                     " FROM " + LOGS_TABLE_NAME + " WHERE " +
                     LOGS_TABLE_WORLD_UUID_COL + " = ? AND " +
                     LOGS_TABLE_CHUNK_X_COL + " = ? AND " +
@@ -215,7 +217,8 @@ public class DataManager {
                     LOGS_TABLE_Z_COL + " = ?;";
 
     public void createTables() {
-        try (final Connection connection = this.getConnection()) {
+        try {
+            final Connection connection = this.getConnection();
             if (connection == null) throw new IllegalStateException("Connection is null! (createTables())");
             try (final PreparedStatement statement = connection.prepareStatement(LEAVES_CREATE_TABLE_STATEMENT)) {
                 statement.execute();
@@ -229,7 +232,8 @@ public class DataManager {
     }
 
     public void saveLeaf(Position2D chunkPos, Position position, FakeLeafState state) {
-        try (final Connection connection = this.getConnection()) {
+        try {
+            final Connection connection = this.getConnection();
             if (connection == null) throw new IllegalStateException("Connection is null! (setLeaf())");
             try (final PreparedStatement statement = connection.prepareStatement(SET_LEAF_STATEMENT)) {
                 statement.setBytes(1, uuidToBytes(chunkPos.world()));
@@ -251,7 +255,8 @@ public class DataManager {
     }
 
     public void saveLeaves(Map<Position, FakeLeafState> leaves) {
-        try (final Connection connection = this.getConnection()) {
+        try {
+            final Connection connection = this.getConnection();
             if (connection == null) throw new IllegalStateException("Connection is null! (setLeaves())");
             try (final PreparedStatement statement = connection.prepareStatement(SET_LEAF_STATEMENT)) {
                 for (Map.Entry<Position, FakeLeafState> entry : leaves.entrySet()) {
@@ -280,7 +285,8 @@ public class DataManager {
 
     public Map<Position, FakeLeafState> loadLeavesInChunk(Position2D position2D) {
         final Map<Position, FakeLeafState> leaves = new HashMap<>();
-        try (final Connection connection = this.getConnection()) {
+        try {
+            final Connection connection = this.getConnection();
             if (connection == null) throw new IllegalStateException("Connection is null! (loadLeaveInChunk())");
             try (final PreparedStatement statement = connection.prepareStatement(GET_LEAVES_IN_CHUNK_STATEMENT)) {
                 statement.setBytes(1, uuidToBytes(position2D.world()));
@@ -302,11 +308,17 @@ public class DataManager {
         } catch (final SQLException e) {
             e.printStackTrace();
         }
+        if (!leaves.isEmpty()) {
+            for (int i = 0; i < 20; i++) {
+                this.plugin.getLogger().info("Loaded " + leaves.size() + " leaves in chunk " + position2D);
+            }
+        }
         return leaves;
     }
 
     public void deleteLeaf(Position2D chunkPos, Position position) {
-        try (final Connection connection = this.getConnection()) {
+        try {
+            final Connection connection = this.getConnection();
             if (connection == null) throw new IllegalStateException("Connection is null! (deleteLeaf())");
             try (final PreparedStatement statement = connection.prepareStatement(DELETE_LEAF_STATEMENT)) {
                 statement.setBytes(1, uuidToBytes(chunkPos.world()));
@@ -323,7 +335,8 @@ public class DataManager {
     }
 
     public void deleteLeaves(Collection<Position> leafPositions) {
-        try (final Connection connection = this.getConnection()) {
+        try {
+            final Connection connection = this.getConnection();
             if (connection == null) throw new IllegalStateException("Connection is null! (deleteLeaves())");
             try (final PreparedStatement statement = connection.prepareStatement(DELETE_LEAF_STATEMENT)) {
                 for (Position position : leafPositions) {
@@ -341,7 +354,8 @@ public class DataManager {
     }
 
     public void deleteLeavesInChunk(Position2D chunkPos) {
-        try (final Connection connection = this.getConnection()) {
+        try {
+            final Connection connection = this.getConnection();
             if (connection == null) throw new IllegalStateException("Connection is null! (deleteLeaves())");
             try (final PreparedStatement statement = connection.prepareStatement(DELETE_LEAVES_IN_CHUNK_STATEMENT)) {
                 statement.setBytes(1, uuidToBytes(chunkPos.world()));
@@ -355,7 +369,8 @@ public class DataManager {
     }
 
     public void saveLog(Position2D chunkPos, Position position, Material material) {
-        try (final Connection connection = this.getConnection()) {
+        try {
+            final Connection connection = this.getConnection();
             if (connection == null) throw new IllegalStateException("Connection is null! (setLog())");
             try (final PreparedStatement statement = connection.prepareStatement(SET_LOG_STATEMENT)) {
                 statement.setBytes(1, uuidToBytes(chunkPos.world()));
@@ -372,7 +387,8 @@ public class DataManager {
     }
 
     public void saveLogs(Collection<Position> logs) {
-        try (final Connection connection = this.getConnection()) {
+        try {
+            final Connection connection = this.getConnection();
             if (connection == null) throw new IllegalStateException("Connection is null! (setLogs())");
             try (final PreparedStatement statement = connection.prepareStatement(SET_LOG_STATEMENT)) {
                 for (Position position : logs) {
@@ -395,7 +411,8 @@ public class DataManager {
 
     public Collection<Position> loadLogsInChunk(Position2D position2D) {
         final Collection<Position> logs = new HashSet<>();
-        try (final Connection connection = this.getConnection()) {
+        try {
+            final Connection connection = this.getConnection();
             if (connection == null) throw new IllegalStateException("Connection is null! (loadLogsInChunk())");
             try (final PreparedStatement statement = connection.prepareStatement(GET_LOGS_IN_CHUNK_STATEMENT)) {
                 statement.setBytes(1, uuidToBytes(position2D.world()));
@@ -415,7 +432,8 @@ public class DataManager {
     }
 
     public void deleteLog(Position2D chunkPos, Position position) {
-        try (final Connection connection = this.getConnection()) {
+        try {
+            final Connection connection = this.getConnection();
             if (connection == null) throw new IllegalStateException("Connection is null! (deleteLog())");
             try (final PreparedStatement statement = connection.prepareStatement(DELETE_LOG_STATEMENT)) {
                 statement.setBytes(1, uuidToBytes(chunkPos.world()));
@@ -432,7 +450,8 @@ public class DataManager {
     }
 
     public void deleteLogs(Collection<Position> logPositions) {
-        try (final Connection connection = this.getConnection()) {
+        try {
+            final Connection connection = this.getConnection();
             if (connection == null) throw new IllegalStateException("Connection is null! (deleteLogs())");
             try (final PreparedStatement statement = connection.prepareStatement(DELETE_LOG_STATEMENT)) {
                 for (Position position : logPositions) {
@@ -450,7 +469,8 @@ public class DataManager {
     }
 
     public void deleteLogsInChunk(Position2D chunkPos) {
-        try (final Connection connection = this.getConnection()) {
+        try {
+            final Connection connection = this.getConnection();
             if (connection == null) throw new IllegalStateException("Connection is null! (deleteLogs())");
             try (final PreparedStatement statement = connection.prepareStatement(DELETE_LOGS_IN_CHUNK_STATEMENT)) {
                 statement.setBytes(1, uuidToBytes(chunkPos.world()));
