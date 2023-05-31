@@ -21,11 +21,14 @@
 package io.github.fisher2911.hmcleaves.hook.oraxen;
 
 import io.github.fisher2911.hmcleaves.hook.ItemHook;
-import io.github.fisher2911.hmcleaves.util.LeafUpdater;
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.api.events.OraxenNoteBlockBreakEvent;
 import io.th0rgal.oraxen.api.events.OraxenNoteBlockPlaceEvent;
-import org.bukkit.block.Block;
+import io.th0rgal.oraxen.mechanics.MechanicFactory;
+import io.th0rgal.oraxen.mechanics.MechanicsManager;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory;
+import org.bukkit.block.data.type.NoteBlock;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.inventory.ItemStack;
@@ -44,16 +47,25 @@ public class OraxenHook implements ItemHook {
         return OraxenItems.getItemById(id).build();
     }
 
+    @Override
+    @Nullable
+    public Integer getBlockId(String id) {
+        final MechanicFactory mechanicFactory = MechanicsManager.getMechanicFactory("noteblock");
+        if (!(mechanicFactory instanceof final NoteBlockMechanicFactory noteBlockMechanicFactory)) return null;
+        final NoteBlock noteBlock = noteBlockMechanicFactory.createNoteBlockData(id);
+        return SpigotConversionUtil.fromBukkitBlockData(noteBlock).getGlobalId();
+    }
+
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onNoteblockPlace(OraxenNoteBlockPlaceEvent event) {
-        final Block block = event.getBlock();
-        LeafUpdater.scheduleTick(block.getLocation());
+//        final Block block = event.getBlock();
+//        LeafUpdater.scheduleTick(block.getLocation());
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onNoteblockRemove(OraxenNoteBlockBreakEvent event) {
-        final Block block = event.getBlock();
-        LeafUpdater.scheduleTick(block.getLocation());
+//        final Block block = event.getBlock();
+//        LeafUpdater.scheduleTick(block.getLocation());
     }
 
 }

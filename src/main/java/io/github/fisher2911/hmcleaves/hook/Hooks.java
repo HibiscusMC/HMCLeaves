@@ -63,6 +63,11 @@ public class Hooks {
         return itemHook == null ? null : itemHook.getItem(id);
     }
 
+    @Nullable
+    public static Integer getBlockId(String id) {
+        return itemHook == null ? null : itemHook.getBlockId(id);
+    }
+
     public static void trySaveSchematic(Player player) {
         if (worldEditHook == null) return;
         worldEditHook.trySaveSchematic(player);

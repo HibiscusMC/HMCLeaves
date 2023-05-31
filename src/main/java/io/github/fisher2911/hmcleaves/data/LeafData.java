@@ -18,20 +18,25 @@
  *
  */
 
-package io.github.fisher2911.hmcleaves;
+package io.github.fisher2911.hmcleaves.data;
 
+import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import org.bukkit.Material;
 
-public record LeafData(Material material, int distance, boolean persistent, boolean actuallyPersistent) {
+public record LeafData(
+        String id,
+        int sendBlockId,
+        Material realBlockType,
+        int displayDistance,
+        boolean displayPersistence
+) implements BlockData {
 
     @Override
-    public String toString() {
-        return "LeafData{" +
-                "material=" + material +
-                ", distance=" + distance +
-                ", persistent=" + persistent +
-                ", actuallyPersistent=" + actuallyPersistent +
-                '}';
+    public WrappedBlockState getNewState() {
+        final WrappedBlockState newState = WrappedBlockState.getByGlobalId(this.sendBlockId);
+        newState.setDistance(this.displayDistance);
+        newState.setPersistent(this.displayPersistence);
+        return newState;
     }
 
 }

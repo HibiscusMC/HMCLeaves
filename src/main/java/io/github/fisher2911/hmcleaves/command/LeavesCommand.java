@@ -20,15 +20,13 @@
 
 package io.github.fisher2911.hmcleaves.command;
 
-import io.github.fisher2911.hmcleaves.Config;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
-import io.github.fisher2911.hmcleaves.LeafItem;
+import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
@@ -39,8 +37,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
-public class LeavesCommand implements CommandExecutor, TabExecutor {
+public class LeavesCommand implements TabExecutor {
 
     public static final String ITEM_PERMISSION = "hmcleaves.command.item";
     public static final String DEBUG_TOOL_PERMISSION = "hmcleaves.command.debugtool";
@@ -53,11 +52,11 @@ public class LeavesCommand implements CommandExecutor, TabExecutor {
     private static final String TRANSFORM_SCHEM_ARG = "transformschem";
 
     private final HMCLeaves plugin;
-    private final Config config;
+    private final LeavesConfig leavesConfig;
 
     public LeavesCommand(HMCLeaves plugin) {
         this.plugin = plugin;
-        this.config = this.plugin.config();
+        this.leavesConfig = this.plugin.getLeavesConfig();
     }
 
     @Override
@@ -76,7 +75,7 @@ public class LeavesCommand implements CommandExecutor, TabExecutor {
             final ItemMeta itemMeta = debugTool.getItemMeta();
             itemMeta.setDisplayName(ChatColor.RED + "Debug Tool");
             debugTool.setItemMeta(itemMeta);
-            PDCUtil.setLeafDataItem(debugTool, Config.DEBUG_TOOL_ID);
+            PDCUtil.setItemId(debugTool, LeavesConfig.DEBUG_TOOL_ID);
             player.getInventory().addItem(debugTool);
             player.sendMessage(ChatColor.GREEN + "Debug Tool added to your inventory.");
             return true;
@@ -87,12 +86,13 @@ public class LeavesCommand implements CommandExecutor, TabExecutor {
             return true;
         }
         if (sender.hasPermission(ITEM_PERMISSION) && args[0].equalsIgnoreCase(GIVE_ARG)) {
-            final LeafItem item = this.config.getItem(args[1]);
-            if (item == null) {
+            final Supplier<ItemStack> itemSupplier = this.leavesConfig.getItem(args[1]);
+            final ItemStack itemStack;
+            if (itemSupplier == null || (itemStack = itemSupplier.get()) == null) {
                 sender.sendMessage(ChatColor.RED + "Item not found.");
                 return true;
             }
-            player.getInventory().addItem(item.itemStack());
+            player.getInventory().addItem(itemStack);
             sender.sendMessage(ChatColor.GREEN + "Item added to inventory.");
             return true;
         }
@@ -106,7 +106,8 @@ public class LeavesCommand implements CommandExecutor, TabExecutor {
     }
 
     @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+    @Nullable
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         final List<String> tabs = new ArrayList<>();
         if (args.length < 1) return tabs;
         final String arg = args[0];
@@ -114,11 +115,12 @@ public class LeavesCommand implements CommandExecutor, TabExecutor {
             if (sender.hasPermission(RELOAD_PERMISSION) && RELOAD_ARG.startsWith(arg)) tabs.add(RELOAD_ARG);
             if (sender.hasPermission(ITEM_PERMISSION) && GIVE_ARG.startsWith(arg)) tabs.add(GIVE_ARG);
             if (sender.hasPermission(DEBUG_TOOL_PERMISSION) && DEBUG_TOOL_ARG.startsWith(arg)) tabs.add(DEBUG_TOOL_ARG);
-            if (sender.hasPermission(SAVE_SCHEM_PERMISSION) && TRANSFORM_SCHEM_ARG.startsWith(arg)) tabs.add(TRANSFORM_SCHEM_ARG);
+            if (sender.hasPermission(SAVE_SCHEM_PERMISSION) && TRANSFORM_SCHEM_ARG.startsWith(arg))
+                tabs.add(TRANSFORM_SCHEM_ARG);
         }
         if (args.length == 2 && sender.hasPermission(ITEM_PERMISSION) && arg.equalsIgnoreCase(GIVE_ARG)) {
             final String itemArg = args[1];
-            for (String items : this.config.getLeafItems().keySet()) {
+            for (String items : this.leavesConfig.getItems().keySet()) {
                 if (items.startsWith(itemArg)) {
                     tabs.add(items);
                 }
@@ -126,4 +128,5 @@ public class LeavesCommand implements CommandExecutor, TabExecutor {
         }
         return tabs;
     }
+
 }

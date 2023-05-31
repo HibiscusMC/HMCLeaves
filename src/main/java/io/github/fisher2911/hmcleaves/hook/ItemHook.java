@@ -32,4 +32,7 @@ public interface ItemHook extends Listener {
     @Nullable
     ItemStack getItem(String id);
 
+    @Nullable
+    Integer getBlockId(String id);
+
 }

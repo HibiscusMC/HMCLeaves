@@ -20,12 +20,12 @@
 
 package io.github.fisher2911.hmcleaves.hook.itemsadder;
 
+import dev.lone.itemsadder.api.CustomBlock;
 import dev.lone.itemsadder.api.CustomStack;
 import dev.lone.itemsadder.api.Events.CustomBlockBreakEvent;
 import dev.lone.itemsadder.api.Events.CustomBlockPlaceEvent;
 import io.github.fisher2911.hmcleaves.hook.ItemHook;
-import io.github.fisher2911.hmcleaves.util.LeafUpdater;
-import org.bukkit.block.Block;
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.inventory.ItemStack;
@@ -48,16 +48,24 @@ public class ItemsAdderHook implements ItemHook {
         return stack.getItemStack();
     }
 
+    @Override
+    @Nullable
+    public Integer getBlockId(String id) {
+        final CustomBlock block = CustomBlock.getInstance(id);
+        if (block == null) return null;
+        return SpigotConversionUtil.fromBukkitBlockData(block.getBaseBlockData()).getGlobalId();
+    }
+
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onNoteblockPlace(CustomBlockPlaceEvent event) {
-        final Block block = event.getBlock();
-        LeafUpdater.scheduleTick(block.getLocation());
+//        final Block block = event.getBlock();
+//        LeafUpdater.scheduleTick(block.getLocation());
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onNoteblockRemove(CustomBlockBreakEvent event) {
-        final Block block = event.getBlock();
-        LeafUpdater.scheduleTick(block.getLocation());
+//        final Block block = event.getBlock();
+//        LeafUpdater.scheduleTick(block.getLocation());
     }
 
 }

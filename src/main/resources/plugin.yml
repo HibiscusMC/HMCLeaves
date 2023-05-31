@@ -1,7 +1,7 @@
 name: HMCLeaves
 version: "1.3.0-beta"
 main: io.github.fisher2911.hmcleaves.HMCLeaves
-softdepend: [ Oraxen, ItemsAdder, WorldEdit, FastAsyncWorldEdit ]
+softdepend: [ Oraxen, ItemsAdder, WorldEdit, FastAsyncWorldEdit, ProtocolLib, ProtocolSupport, ViaVersion, ViaBackwards, ViaRewind, Geyser-Spigot ]
 api-version: 1.16
 loadbefore:
   - RoseLoot

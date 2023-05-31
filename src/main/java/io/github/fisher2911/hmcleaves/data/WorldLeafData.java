@@ -18,8 +18,10 @@
  *
  */
 
-package io.github.fisher2911.hmcleaves.util;
+package io.github.fisher2911.hmcleaves.data;
 
-public record Pair<T, Z>(T first, Z second) {
+import org.bukkit.Material;
+
+public record WorldLeafData(LeafData leafData, int worldDistance, boolean worldPersistence, Material worldMaterial) {
 
 }

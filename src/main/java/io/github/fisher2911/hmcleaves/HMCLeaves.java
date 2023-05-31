@@ -22,18 +22,14 @@ package io.github.fisher2911.hmcleaves;
 
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.PacketEventsAPI;
+import io.github.fisher2911.hmcleaves.cache.BlockCache;
 import io.github.fisher2911.hmcleaves.command.LeavesCommand;
-import io.github.fisher2911.hmcleaves.data.DataManager;
+import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
-import io.github.fisher2911.hmcleaves.listener.ChunkListener;
+import io.github.fisher2911.hmcleaves.listener.InteractionListener;
 import io.github.fisher2911.hmcleaves.listener.LeafDropListener;
-import io.github.fisher2911.hmcleaves.listener.LeafUpdateListener;
-import io.github.fisher2911.hmcleaves.listener.PlaceListener;
-import io.github.fisher2911.hmcleaves.packet.BlockListener;
-import io.github.fisher2911.hmcleaves.util.LeafUpdater;
+import io.github.fisher2911.hmcleaves.packet.PacketListener;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
-import org.bstats.bukkit.Metrics;
-import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -41,73 +37,65 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class HMCLeaves extends JavaPlugin implements Listener {
+public class HMCLeaves extends JavaPlugin {
 
-    private Config config;
-    private LeafCache leafCache;
-    private DataManager dataManager;
+    private LeavesConfig leavesConfig;
+    private BlockCache blockCache;
 
     @Override
     public void onLoad() {
         final PacketEventsAPI<Plugin> api = SpigotPacketEventsBuilder.build(this);
-        api.getSettings().debug(false).checkForUpdates(false);
+        api.getSettings().checkForUpdates(false);
         PacketEvents.setAPI(api);
         PacketEvents.getAPI().load();
     }
 
     @Override
     public void onEnable() {
-        this.config = new Config(this, new HashMap<>());
-        this.config.load();
-        if (!this.config.isEnabled()) {
-            this.getLogger().severe("-=-=-=-=-=HMCLeaves=-=-=-=-=-");
-            this.getLogger().severe("HMCLeaves is disabled in config.yml");
-            this.getLogger().severe("Disabling your server, make sure to set \"enabled\":true in config.yml, along with your default leaf state!");
-            this.getLogger().severe("-=-=-=-=-=HMCLeaves=-=-=-=-=-");
-            return;
-        }
-        this.leafCache = new LeafCache(this, new ConcurrentHashMap<>());
+        this.leavesConfig = new LeavesConfig(
+                this,
+                new HashMap<>(),
+                new HashMap<>(),
+                new HashMap<>(),
+                new HashMap<>()
+        );
+        this.blockCache = new BlockCache(new ConcurrentHashMap<>());
         PacketEvents.getAPI().init();
-        this.dataManager = new DataManager(this);
-        this.dataManager.load();
-        this.getServer().getPluginManager().registerEvents(this, this);
+        this.registerPacketListeners();
         this.registerListeners();
-        new BlockListener(this, this.leafCache).register();
-        this.getCommand("hmcleaves").setExecutor(new LeavesCommand(this));
         Hooks.load(this);
-        LeafUpdater.start();
-        final int bStatsPluginId = 16900;
-        Metrics metrics = new Metrics(this, bStatsPluginId);
+        this.leavesConfig.load();
+        this.getCommand("hmcleaves").setExecutor(new LeavesCommand(this));
     }
 
-    private void registerListeners() {
-        List.of(
-                        new ChunkListener(this),
-                        new PlaceListener(this),
-                        new LeafDropListener(this),
-                        new LeafUpdateListener(this)
-                ).
-                forEach(listener -> this.getServer().getPluginManager().registerEvents(listener, this));
+    public void reload() {
+        this.leavesConfig.reload();
     }
 
     @Override
     public void onDisable() {
     }
 
-    public void reload() {
-        this.config.reload();
+    private void registerPacketListeners() {
+        PacketEvents.getAPI().getEventManager().registerListener(new PacketListener(this.blockCache));
+//        ProtocolLibrary.getProtocolManager().addPacketListener(new BlockPacketListener(this, ListenerPriority.HIGH));
+//        ProtocolLibrary.getProtocolManager().addPacketListener(new ChunkPacketListener(this, ListenerPriority.HIGH));
     }
 
-    public Config config() {
-        return this.config;
+    private void registerListeners() {
+        List.of(
+                        new InteractionListener(this),
+                        new LeafDropListener(this)
+                )
+                .forEach(listener -> getServer().getPluginManager().registerEvents(listener, this));
     }
 
-    public LeafCache getLeafCache() {
-        return this.leafCache;
+    public LeavesConfig getLeavesConfig() {
+        return leavesConfig;
     }
 
-    public DataManager getDataManager() {
-        return this.dataManager;
+    public BlockCache getBlockCache() {
+        return blockCache;
     }
 
 }

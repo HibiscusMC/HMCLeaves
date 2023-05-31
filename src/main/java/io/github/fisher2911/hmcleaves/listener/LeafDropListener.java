@@ -20,10 +20,10 @@
 
 package io.github.fisher2911.hmcleaves.listener;
 
-import io.github.fisher2911.hmcleaves.Config;
-import io.github.fisher2911.hmcleaves.FakeLeafState;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
-import io.github.fisher2911.hmcleaves.LeafItem;
+import io.github.fisher2911.hmcleaves.config.LeavesConfig;
+import io.github.fisher2911.hmcleaves.data.BlockData;
+import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.type.Leaves;
@@ -35,33 +35,39 @@ import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.function.Supplier;
+
 public class LeafDropListener implements Listener {
 
     private final HMCLeaves plugin;
-    private final Config config;
+    private final LeavesConfig leavesConfig;
 
     public LeafDropListener(HMCLeaves plugin) {
         this.plugin = plugin;
-        this.config = this.plugin.config();
+        this.leavesConfig = this.plugin.getLeavesConfig();
     }
 
     @EventHandler(priority = EventPriority.LOW)
     public void onItemDrop(BlockDropItemEvent event) {
         final Block block = event.getBlock();
-        final FakeLeafState data = this.plugin.getLeafCache().getAt(block.getLocation());
-        if (data == null) return;
-        final LeafItem leafItem = this.config.getByState(data);
-        if (leafItem == null) return;
+        final Position position = Position.fromLocation(block.getLocation());
+        final BlockData data = this.plugin.getBlockCache().getBlockData(position);
+        if (data == BlockData.EMPTY) return;
+        final String id = data.id();
         for (Item item : event.getItems()) {
             final ItemStack itemStack = item.getItemStack();
             if (Tag.LEAVES.isTagged(itemStack.getType())) {
-                final ItemStack dropReplacement = this.config.getLeafDropReplacement(leafItem.id());
+                final Supplier<ItemStack> dropReplacementSupplier = this.leavesConfig.getLeafDropReplacement(id);
+                if (dropReplacementSupplier == null) continue;
+                final ItemStack dropReplacement = dropReplacementSupplier.get();
                 if (dropReplacement == null) continue;
                 this.transferItemData(itemStack, dropReplacement);
                 continue;
             }
             if (Tag.SAPLINGS.isTagged(itemStack.getType())) {
-                final ItemStack sapling = this.config.getSapling(leafItem.id());
+                final Supplier<ItemStack> saplingSupplier = this.leavesConfig.getSapling(id);
+                if (saplingSupplier == null) continue;
+                final ItemStack sapling = saplingSupplier.get();
                 if (sapling == null) continue;
                 this.transferItemData(itemStack, sapling);
             }
@@ -72,22 +78,37 @@ public class LeafDropListener implements Listener {
     public void onItemDrop(ItemSpawnEvent event) {
         final Block block = event.getLocation().getBlock();
         if (!(block.getBlockData() instanceof final Leaves leaves)) return;
-        final FakeLeafState data = this.plugin.getLeafCache().getAt(block.getLocation());
-        final LeafItem leafItem = this.config.getByState(data);
-        if (leafItem == null) return;
+        final Position position = Position.fromLocation(block.getLocation());
+        final BlockData blockData = this.plugin.getBlockCache().getBlockData(position);
+        final String id = blockData.id();
         final Item item = event.getEntity();
         final ItemStack itemStack = item.getItemStack();
         if (Tag.LEAVES.isTagged(itemStack.getType())) {
-            final ItemStack dropReplacement = this.config.getLeafDropReplacement(leafItem.id());
+            final Supplier<ItemStack> dropReplacementSupplier = this.leavesConfig.getLeafDropReplacement(id);
+            if (dropReplacementSupplier == null) return;
+            final ItemStack dropReplacement = dropReplacementSupplier.get();
             if (dropReplacement == null) return;
             this.transferItemData(itemStack, dropReplacement);
             return;
         }
         if (Tag.SAPLINGS.isTagged(itemStack.getType())) {
-            final ItemStack sapling = this.config.getSapling(leafItem.id());
+            final Supplier<ItemStack> saplingSupplier = this.leavesConfig.getSapling(id);
+            if (saplingSupplier == null) return;
+            final ItemStack sapling = saplingSupplier.get();
             if (sapling == null) return;
             this.transferItemData(itemStack, sapling);
         }
+//        if (Tag.LEAVES.isTagged(itemStack.getType())) {
+//            final ItemStack dropReplacement = this.le.getLeafDropReplacement(leafItem.id());
+//            if (dropReplacement == null) return;
+//            this.transferItemData(itemStack, dropReplacement);
+//            return;
+//        }
+//        if (Tag.SAPLINGS.isTagged(itemStack.getType())) {
+//            final ItemStack sapling = this.config.getSapling(leafItem.id());
+//            if (sapling == null) return;
+//            this.transferItemData(itemStack, sapling);
+//        }
     }
 
     private void transferItemData(ItemStack original, ItemStack toTransfer) {

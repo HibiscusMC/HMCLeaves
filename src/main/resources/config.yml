@@ -4,43 +4,21 @@ enabled: false
 # THE BELOW STATES ARE THE DEFAULT STATES FOR LEAVES GENERATED IN THE WORLD
 # 13, 27, 41, 55, 69, 83, 97, 111, 125
 
-items:
-  "palm_leaves":
-    leaf-material: OAK_LEAVES
-    material: PAPER
-    model-data: 1 # If using Oraxen/IA, you can ignore this option. Get the leaf item from /o inv or /ia.
-    # Blockstate Data
-    distance: 6
-    persistent: true
-    # Will this leaf decay, or will it be persistent?
-    actually-persistent: false
-    # The item that replaces the normal sapling drop. For example if you have an item that is textured to look like a sapling that matches the tree this leaf goes with
-    sapling:
-      hook-id: test-sapling
-      material: OAK_SAPLING
-      amount: 1
-      name: "&aTest"
-      model-data: 1
-      lore:
-        - "&7This is a test"
-        - "&7This is a test"
-    # The item that should replace the leaf normally dropped from shears, for example an Oraxen / ItemsAdder leaf item that players use to place this leaf
-    leaf-drop-replacement:
-      hook-id: test
-      material: OAK_LEAVES
-      amount: 1
-      name: "&aTest"
-      model-data: 1
-      lore:
-        - "&7This is a test"
-        - "&7This is a test"
-  "palm_leaves_persistent":
+# default materials that are actually in the world
+default-leaf-material: OAK_LEAVES
+default-log-material: OAK_LOG
+default-stripped-log-material: STRIPPED_OAK_LOG
+
+leaves:
+  "glowstone_leaves":
     leaf-material: OAK_LEAVES
     material: PAPER
     model-data: 1
-    persistent: true
-    actually-persistent: true
-    distance: 6
+    name: "&5Glowstone Leaves"
+    lore:
+      - "&aLine 1"
+      - "&bLine 2"
+    state-id: 1
     sapling:
       hook-id: test-sapling
       material: OAK_SAPLING
@@ -59,11 +37,19 @@ items:
       lore:
         - "&7This is a test"
         - "&7This is a test"
-# In this section, you can define custom logs. When a leaf is placed on a custom log, it will not decay.
+
 logs:
-  noteblocks:
-    # Name of log
-    palm_log:
-      # Blockstate data for the log
-      instrument: FLUTE
-      note: 21
+  "netherite_log":
+    log-material: OAK_LOG
+    stripped-log-material: STRIPPED_OAK_LOG
+    material: NETHERITE_BLOCK
+    model-data: 2
+    name: "&5Netherite Block"
+    lore:
+        - "&aLine 1"
+    instrument: BANJO
+    note: 1
+#items:
+#  "palm_leaves":
+#    leaf-material: OAK_LEAVES
+#    material: PAPER

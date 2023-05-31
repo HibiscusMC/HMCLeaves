@@ -18,31 +18,31 @@
  *
  */
 
-package io.github.fisher2911.hmcleaves;
+package io.github.fisher2911.hmcleaves.data;
 
-import org.bukkit.Instrument;
+import io.github.fisher2911.hmcleaves.cache.BlockCache;
+import io.github.fisher2911.hmcleaves.world.Position;
+import org.bukkit.Location;
+import org.bukkit.entity.Player;
 
-import java.util.Locale;
-import java.util.Objects;
+public class LeafDataManager {
 
-public record NoteBlockState(Instrument instrument, byte note) {
+    private final BlockCache blockCache;
 
-    @Override
-    public String toString() {
-        return this.instrument.name().toLowerCase(Locale.ROOT) + ":" + this.note;
+    public LeafDataManager(BlockCache blockCache) {
+        this.blockCache = blockCache;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final NoteBlockState that = (NoteBlockState) o;
-        return note == that.note && instrument == that.instrument;
+    public BlockCache getLeafCache() {
+        return blockCache;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(instrument, note);
+    public BlockData breakBlock(Player player, Location location) {
+        return this.blockCache.removeBlockData(Position.fromLocation(location));
+    }
+
+    public void placeBlock(Player player, Location location, BlockData blockData) {
+        this.blockCache.addBlockData(Position.fromLocation(location), blockData);
     }
 
 }

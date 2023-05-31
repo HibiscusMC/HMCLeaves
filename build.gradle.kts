@@ -32,17 +32,16 @@ repositories {
     maven("https://oss.sonatype.org/content/repositories/snapshots")
     maven("https://oss.sonatype.org/content/repositories/central")
     maven("https://jitpack.io")
-    maven("https://hub.jeff-media.com/nexus/repository/jeff-media-public/")
+//    maven("https://hub.jeff-media.com/nexus/repository/jeff-media-public/")
     maven("https://maven.enginehub.org/repo/")
+//    maven("https://repo.dmulloy2.net/repository/public/")
+    maven("https://repo.codemc.io/repository/maven-snapshots/")
 }
 
 dependencies {
     compileOnly("org.spigotmc:spigot-api:1.16.5-R0.1-SNAPSHOT")
     compileOnly("com.github.oraxen:oraxen:-SNAPSHOT")
     compileOnly("com.github.LoneDev6:api-itemsadder:3.0.0")
-    implementation("com.github.retrooper.packetevents:spigot:2.0-SNAPSHOT")
-//    implementation("com.jeff_media:CustomBlockData:2.0.1")
-//    implementation("com.jeff_media:MorePersistentDataTypes:2.3.1")
     compileOnly("org.xerial:sqlite-jdbc:3.39.2.0")
     implementation("com.zaxxer:HikariCP:3.3.0")
     implementation("org.bstats:bstats-bukkit:3.0.0")
@@ -51,6 +50,8 @@ dependencies {
     implementation(platform("com.intellectualsites.bom:bom-1.18.x:1.19"))
     compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Core")
     compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Bukkit") { isTransitive = false }
+    implementation("com.github.retrooper.packetevents:spigot:2.0.0-SNAPSHOT")
+//    compileOnly("com.comphenix.protocol:ProtocolLib:5.0.0")
 }
 
 tasks {
@@ -64,11 +65,12 @@ tasks {
     }
 
     shadowJar {
-        relocate("com.github.retrooper.packetevents", "io.github.fisher2911.hmcleaves.packetevents.spigot")
-//        relocate("com.jeff_media.customblockdata", "io.github.fisher2911.hmcleaves.customblockdata")
-//        relocate("com.jeff_media.morepersistentdatatypes", "io.github.fisher2911.hmcleaves.morepersistentdatatypes")
+        relocate("com.github.retrooper.packetevents", "io.github.fisher2911.hmcleaves.packetevents.api")
+        relocate("io.github.retrooper.packetevents", "io.github.fisher2911.hmcleaves.packetevents.impl")
+        relocate("net.kyori", "io.github.fisher2911.hmcleaves.packetevents.kyori")
         relocate("org.bstats", "io.github.fisher2911.hmcleaves.bstats")
         relocate("com.zaxxer.hikari", "io.github.fisher2911.hmcleaves.hikari")
+
         archiveFileName.set("HMCLeaves-${version}.jar")
 
         dependencies {
