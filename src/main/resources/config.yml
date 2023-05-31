@@ -48,7 +48,7 @@ logs:
     lore:
         - "&aLine 1"
     instrument: BANJO
-    note: 1
+    note: 2
 #items:
 #  "palm_leaves":
 #    leaf-material: OAK_LEAVES
