@@ -57,7 +57,6 @@ public class InteractionListener implements Listener {
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) return;
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
-        Bukkit.broadcastMessage("Clicked block");
         final ItemStack clickedWith = event.getItem();
         if (clickedWith == null) return;
         final Block block = event.getClickedBlock();

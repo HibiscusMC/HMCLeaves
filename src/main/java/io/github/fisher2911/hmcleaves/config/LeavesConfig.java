@@ -49,17 +49,21 @@ public class LeavesConfig {
 
     public static final String DEBUG_TOOL_ID = "leaves_debug_tool";
 
+    private static final String DEFAULT_LEAF_ID = "default_leaf_id";
+    private static final String DEFAULT_LOG_ID = "default_log_id";
+    private static final String DEFAULT_STRIPPED_LOG_ID = "default_stripped_log_id";
+
     private static final int STATES_PER_LEAF = 7 * 2;
     private static final List<Material> LEAVES = new ArrayList<>();
     private static final List<Material> LOGS = new ArrayList<>();
     private static final List<Material> STRIPPED_LOGS = new ArrayList<>();
 
     private static WrappedBlockState getLeafById(int id) {
-        if (id < 1) {
-            throw new IllegalStateException("Leaf id must be greater than 0!");
+        if (id < 0) {
+            throw new IllegalStateException("Leaf id must be 0 or greater!");
         }
         final int materialId = id / STATES_PER_LEAF;
-        final int distance = id % 7;
+        final int distance = id % 7 + 1;
         final boolean persistent = id % STATES_PER_LEAF > STATES_PER_LEAF / 2;
         final Material material = LEAVES.get(materialId);
         final WrappedBlockState state = WrappedBlockState.getDefaultState(
@@ -130,8 +134,23 @@ public class LeavesConfig {
         }
 
         LEAVES.remove(defaultLeafMaterial);
+        LEAVES.add(defaultLeafMaterial);
         LOGS.remove(defaultLogMaterial);
+        LOGS.add(defaultLogMaterial);
         STRIPPED_LOGS.remove(defaultStrippedLogMaterial);
+        STRIPPED_LOGS.add(defaultStrippedLogMaterial);
+    }
+
+    public static int getMaxLeafId() {
+        return LEAVES.size() * STATES_PER_LEAF - 1;
+    }
+
+    public static int getMaxLogId() {
+        return LOGS.size() - 1;
+    }
+
+    public static int getMaxStrippedLogId() {
+        return STRIPPED_LOGS.size() - 1;
     }
 
     private final HMCLeaves plugin;
@@ -161,6 +180,18 @@ public class LeavesConfig {
         final String itemId = PDCUtil.getItemId(itemStack);
         if (itemId == null) return null;
         return this.blockDataMap.get(itemId);
+    }
+
+    public BlockData getDefaultLeafData() {
+        return this.blockDataMap.get(DEFAULT_LEAF_ID);
+    }
+
+    public BlockData getDefaultLogData() {
+        return this.blockDataMap.get(DEFAULT_LOG_ID);
+    }
+
+    public BlockData getDefaultStrippedLogData() {
+        return this.blockDataMap.get(DEFAULT_STRIPPED_LOG_ID);
     }
 
     @Nullable
@@ -248,6 +279,13 @@ public class LeavesConfig {
             this.loadSapling(leavesSection, itemId);
             this.loadLeafDropReplacement(leavesSection, itemId);
         }
+        this.blockDataMap.put(DEFAULT_LEAF_ID, BlockData.leafData(
+                DEFAULT_LEAF_ID,
+                getLeafById(getMaxLeafId()).getGlobalId(),
+                this.defaultLeafMaterial,
+                getLeafById(getMaxLeafId()).getDistance(),
+                getLeafById(getMaxLeafId()).isPersistent()
+        ));
     }
 
     private void loadSapling(ConfigurationSection config, String itemId) {
@@ -303,6 +341,24 @@ public class LeavesConfig {
             );
             this.blockDataMap.put(itemId, blockData);
         }
+        this.blockDataMap.put(DEFAULT_LOG_ID, BlockData.logData(
+                DEFAULT_LOG_ID,
+                DEFAULT_STRIPPED_LOG_ID,
+                getLogById(getMaxLogId()).getGlobalId(),
+                this.defaultLogMaterial,
+                this.defaultStrippedLogMaterial,
+                false,
+                getLogById(getMaxStrippedLogId()).getGlobalId()
+        ));
+        this.blockDataMap.put(DEFAULT_STRIPPED_LOG_ID, BlockData.logData(
+                DEFAULT_LOG_ID,
+                DEFAULT_STRIPPED_LOG_ID,
+                getLogById(getMaxLogId()).getGlobalId(),
+                this.defaultLogMaterial,
+                this.defaultStrippedLogMaterial,
+                true,
+                getLogById(getMaxStrippedLogId()).getGlobalId()
+        ));
     }
 
     private Material loadMaterial(ConfigurationSection section, String path, Material defaultMaterial) {

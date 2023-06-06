@@ -74,7 +74,7 @@ public class PacketListener extends PacketListenerAbstract {
         }
     }
 
-    private static final int HEIGHT_BELOW_0 = 64;
+    private static final int HEIGHT_BELOW_ZERO = 64;
 
     private void handleChunkSend(PacketSendEvent event, UUID world) {
         final WrapperPlayServerChunkData packet = new WrapperPlayServerChunkData(event);
@@ -84,7 +84,7 @@ public class PacketListener extends PacketListenerAbstract {
         final BaseChunk[] chunks = column.getChunks();
         for (int i = 0; i < chunks.length; i++) {
             final BaseChunk chunk = chunks[i];
-            final int worldY = i * 16 - HEIGHT_BELOW_0;
+            final int worldY = i * 16 - HEIGHT_BELOW_ZERO;
             final ChunkPosition chunkPos = ChunkPosition.at(world, chunkX, chunkZ);
             if (worldY > 64) continue;
             final ChunkBlockCache chunkCache = this.blockCache.getChunkBlockCache(chunkPos);
@@ -94,12 +94,14 @@ public class PacketListener extends PacketListenerAbstract {
                 final int difference = position.y() - worldY;
                 if (difference < 0 || difference > 15) continue;
                 final var blockData = entry.getValue();
+                final int actualX = ChunkUtil.getCoordInChunk(position.x());
                 final int actualY = Math.abs(ChunkUtil.getCoordInChunk(position.y()));
+                final int actualZ = ChunkUtil.getCoordInChunk(position.z());
                 chunk.set(
                         PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
-                        position.x(),
+                        actualX,
                         actualY,
-                        position.z(),
+                        actualZ,
                         blockData.getNewState().getGlobalId()
                 );
             }

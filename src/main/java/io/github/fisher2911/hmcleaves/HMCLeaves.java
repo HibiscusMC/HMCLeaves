@@ -26,6 +26,7 @@ import io.github.fisher2911.hmcleaves.cache.BlockCache;
 import io.github.fisher2911.hmcleaves.command.LeavesCommand;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
+import io.github.fisher2911.hmcleaves.listener.ChunkLoadListener;
 import io.github.fisher2911.hmcleaves.listener.InteractionListener;
 import io.github.fisher2911.hmcleaves.listener.LeafDropListener;
 import io.github.fisher2911.hmcleaves.packet.PacketListener;
@@ -85,7 +86,9 @@ public class HMCLeaves extends JavaPlugin {
     private void registerListeners() {
         List.of(
                         new InteractionListener(this),
-                        new LeafDropListener(this)
+                        new LeafDropListener(this),
+                        new ChunkLoadListener(this)
+
                 )
                 .forEach(listener -> getServer().getPluginManager().registerEvents(listener, this));
     }

@@ -47,7 +47,6 @@ public class ChunkBlockCache {
 
     public void setBlockData(Position position, BlockData blockData) {
         this.blockDataMap.put(position, blockData);
-        Bukkit.broadcastMessage("Size: " + this.blockDataMap.size());
     }
 
     @NotNull
