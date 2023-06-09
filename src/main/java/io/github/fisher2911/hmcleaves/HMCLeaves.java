@@ -23,10 +23,13 @@ package io.github.fisher2911.hmcleaves;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.PacketEventsAPI;
 import io.github.fisher2911.hmcleaves.cache.BlockCache;
+import io.github.fisher2911.hmcleaves.cache.ChunkBlockCache;
+import io.github.fisher2911.hmcleaves.cache.WorldBlockCache;
 import io.github.fisher2911.hmcleaves.command.LeavesCommand;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
+import io.github.fisher2911.hmcleaves.data.LeafDatabase;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
-import io.github.fisher2911.hmcleaves.listener.ChunkLoadListener;
+import io.github.fisher2911.hmcleaves.listener.WorldAndChunkLoadListener;
 import io.github.fisher2911.hmcleaves.listener.InteractionListener;
 import io.github.fisher2911.hmcleaves.listener.LeafDropListener;
 import io.github.fisher2911.hmcleaves.packet.PacketListener;
@@ -42,6 +45,7 @@ public class HMCLeaves extends JavaPlugin {
 
     private LeavesConfig leavesConfig;
     private BlockCache blockCache;
+    private LeafDatabase leafDatabase;
 
     @Override
     public void onLoad() {
@@ -61,11 +65,13 @@ public class HMCLeaves extends JavaPlugin {
                 new HashMap<>()
         );
         this.blockCache = new BlockCache(new ConcurrentHashMap<>());
+        this.leafDatabase = new LeafDatabase(this);
         PacketEvents.getAPI().init();
         this.registerPacketListeners();
         this.registerListeners();
         Hooks.load(this);
         this.leavesConfig.load();
+        this.leafDatabase.load();
         this.getCommand("hmcleaves").setExecutor(new LeavesCommand(this));
     }
 
@@ -75,19 +81,25 @@ public class HMCLeaves extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        for (var entry : this.blockCache.getCache().entrySet()) {
+            final WorldBlockCache worldBlockCache = entry.getValue();
+            for (var chunkEntry : worldBlockCache.getBlockCacheMap().entrySet()) {
+                final ChunkBlockCache chunkBlockCache = chunkEntry.getValue();
+                if (chunkBlockCache.isClean()) continue;
+                this.leafDatabase.saveBlocksInChunk(chunkBlockCache);
+            }
+        }
     }
 
     private void registerPacketListeners() {
         PacketEvents.getAPI().getEventManager().registerListener(new PacketListener(this.blockCache));
-//        ProtocolLibrary.getProtocolManager().addPacketListener(new BlockPacketListener(this, ListenerPriority.HIGH));
-//        ProtocolLibrary.getProtocolManager().addPacketListener(new ChunkPacketListener(this, ListenerPriority.HIGH));
     }
 
     private void registerListeners() {
         List.of(
                         new InteractionListener(this),
                         new LeafDropListener(this),
-                        new ChunkLoadListener(this)
+                        new WorldAndChunkLoadListener(this)
 
                 )
                 .forEach(listener -> getServer().getPluginManager().registerEvents(listener, this));
@@ -99,6 +111,10 @@ public class HMCLeaves extends JavaPlugin {
 
     public BlockCache getBlockCache() {
         return blockCache;
+    }
+
+    public LeafDatabase getLeafDatabase() {
+        return leafDatabase;
     }
 
 }

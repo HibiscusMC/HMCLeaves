@@ -176,6 +176,11 @@ public class LeavesConfig {
         this.leafDropItemSupplierMap = leafDropItemSupplierMap;
     }
 
+    @Nullable
+    public BlockData getBlockData(String id) {
+        return this.blockDataMap.get(id);
+    }
+
     public BlockData getBlockData(ItemStack itemStack) {
         final String itemId = PDCUtil.getItemId(itemStack);
         if (itemId == null) return null;

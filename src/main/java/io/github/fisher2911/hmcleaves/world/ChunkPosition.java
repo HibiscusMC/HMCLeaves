@@ -58,4 +58,13 @@ public record ChunkPosition(UUID world, int x, int z) {
         return world.getChunkAt(this.x, this.z);
     }
 
+    @Override
+    public String toString() {
+        return "ChunkPosition{" +
+                "world=" + world +
+                ", x=" + x +
+                ", z=" + z +
+                '}';
+    }
+
 }

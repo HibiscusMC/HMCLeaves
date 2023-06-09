@@ -29,10 +29,13 @@ import io.github.fisher2911.hmcleaves.data.LogData;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.type.Leaves;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -61,20 +64,25 @@ public class InteractionListener implements Listener {
         if (clickedWith == null) return;
         final Block block = event.getClickedBlock();
         if (block == null) return;
-        final Location placeLocation = block.getRelative(event.getBlockFace()).getLocation();
+        final Location placeLocation;
+        if (block.getType() == Material.GRASS) {
+            placeLocation = block.getLocation();
+        } else {
+            placeLocation = block.getRelative(event.getBlockFace()).getLocation();
+        }
         final World world = placeLocation.getWorld();
         if (world == null) return;
+        if (!(world.getNearbyEntities(placeLocation.clone().add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5, LivingEntity.class::isInstance).isEmpty()))
+            return;
         final BlockData blockData = this.leavesConfig.getBlockData(clickedWith);
         if (this.doDebugTool(clickedWith, event.getPlayer(), block)) return;
         if (blockData == null) return;
         if (world.getNearbyEntities(placeLocation.getBlock().getBoundingBox()).size() > 0) return;
-        if (blockData instanceof LeafData leafData) {
-            event.getPlayer().sendMessage(leafData.displayDistance() + " " + leafData.displayDistance() + " " + leafData.getNewState().getType().getName());
-        }
-        if (blockData instanceof LogData) {
-            event.getPlayer().sendMessage(blockData.getNewState().getType().getName());
-        }
         event.setCancelled(true);
+        final Player player = event.getPlayer();
+        if (player.getGameMode() != GameMode.CREATIVE) {
+            clickedWith.setAmount(clickedWith.getAmount() - 1);
+        }
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
             this.blockCache.addBlockData(Position.fromLocation(placeLocation), blockData);
             final Block placedBlock = placeLocation.getBlock();
@@ -92,8 +100,8 @@ public class InteractionListener implements Listener {
         }
         final BlockData blockData = this.blockCache.getBlockData(Position.fromLocation(clicked.getLocation()));
         if (!(clicked.getBlockData() instanceof final Leaves leaves) || !(blockData instanceof final LeafData leafData)) {
-            if (blockData instanceof LogData) {
-                player.sendMessage("Log");
+            if (blockData instanceof final LogData logData) {
+                player.sendMessage("Log type: " + logData.realBlockType());
             }
             return true;
         }

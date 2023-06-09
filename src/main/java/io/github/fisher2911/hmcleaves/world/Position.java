@@ -62,4 +62,15 @@ public record Position(UUID world, int x, int y, int z) {
     public ChunkPosition getChunkPosition() {
         return new ChunkPosition(this.world, this.x >> 4, this.z >> 4);
     }
+
+    @Override
+    public String toString() {
+        return "Position{" +
+                "world=" + world +
+                ", x=" + x +
+                ", y=" + y +
+                ", z=" + z +
+                '}';
+    }
+
 }

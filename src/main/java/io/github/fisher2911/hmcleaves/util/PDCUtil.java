@@ -32,11 +32,11 @@ import java.util.Objects;
 
 public class PDCUtil {
 
-    private static final int CHUNK_VERSION = 3;
+    private static final byte CHUNK_VERSION = 3;
 
-    private static final HMCLeaves PLUGIN = HMCLeaves.getPlugin(HMCLeaves.class);
-    private static final NamespacedKey ITEM_ID_KEY = new NamespacedKey(PLUGIN, "item_id");
-    private static final NamespacedKey HAS_LEAF_DATA_KEY = new NamespacedKey(PLUGIN, "has_leaf_data");
+    public static final HMCLeaves PLUGIN = HMCLeaves.getPlugin(HMCLeaves.class);
+    public static final NamespacedKey ITEM_ID_KEY = new NamespacedKey(PLUGIN, "item_id");
+    public static final NamespacedKey HAS_LEAF_DATA_KEY = new NamespacedKey(PLUGIN, "has_leaf_data");
 
     @Nullable
     public static String getItemId(ItemStack itemStack) {
@@ -53,15 +53,12 @@ public class PDCUtil {
         itemStack.setItemMeta(itemMeta);
     }
 
-    public static boolean hasLeafData(PersistentDataContainer container) {
+    public static boolean chunkHasLeafData(PersistentDataContainer container) {
         return Objects.equals(container.get(HAS_LEAF_DATA_KEY, PersistentDataType.BYTE), CHUNK_VERSION);
     }
 
-    public static void setHasLeafData(ItemStack itemStack) {
-        final ItemMeta itemMeta = itemStack.getItemMeta();
-        if (itemMeta == null) return;
-        itemMeta.getPersistentDataContainer().set(HAS_LEAF_DATA_KEY, PersistentDataType.BYTE, (byte) CHUNK_VERSION);
-        itemStack.setItemMeta(itemMeta);
+    public static void setChunkHasLeafData(PersistentDataContainer container) {
+        container.set(HAS_LEAF_DATA_KEY, PersistentDataType.BYTE, (byte) CHUNK_VERSION);
     }
 
 }

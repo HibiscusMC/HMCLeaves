@@ -25,11 +25,14 @@ import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 public class WorldBlockCache {
 
@@ -73,7 +76,7 @@ public class WorldBlockCache {
     }
 
     private ChunkBlockCache createChunkBlockCache(Position position) {
-        final ChunkBlockCache chunkBlockCache = new ChunkBlockCache(position.getChunkPosition(), new ConcurrentHashMap<>());
+        final ChunkBlockCache chunkBlockCache = new ChunkBlockCache(position.getChunkPosition(), new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
         this.blockCacheMap.put(position.getChunkPosition(), chunkBlockCache);
         return chunkBlockCache;
     }
@@ -90,6 +93,18 @@ public class WorldBlockCache {
         final ChunkBlockCache chunkBlockCache = this.getChunkBlockCache(position);
         if (chunkBlockCache == null) return BlockData.EMPTY;
         return chunkBlockCache.removeBlockDataAt(position);
+    }
+
+    @Unmodifiable
+    public Map<ChunkPosition, ChunkBlockCache> getBlockCacheMap() {
+        return Collections.unmodifiableMap(this.blockCacheMap);
+    }
+
+    public void clearAll(Consumer<ChunkBlockCache> consumer) {
+        this.blockCacheMap.entrySet().removeIf(entry -> {
+            consumer.accept(entry.getValue());
+            return true;
+        });
     }
 
 }

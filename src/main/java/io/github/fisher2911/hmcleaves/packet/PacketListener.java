@@ -86,7 +86,6 @@ public class PacketListener extends PacketListenerAbstract {
             final BaseChunk chunk = chunks[i];
             final int worldY = i * 16 - HEIGHT_BELOW_ZERO;
             final ChunkPosition chunkPos = ChunkPosition.at(world, chunkX, chunkZ);
-            if (worldY > 64) continue;
             final ChunkBlockCache chunkCache = this.blockCache.getChunkBlockCache(chunkPos);
             if (chunkCache == null) continue;
             for (var entry : chunkCache.getBlockDataMap().entrySet()) {

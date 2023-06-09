@@ -25,7 +25,9 @@ import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,6 +39,11 @@ public class BlockCache {
 
     public BlockCache(Map<UUID, WorldBlockCache> cache) {
         this.cache = cache;
+    }
+
+    @Unmodifiable
+    public Map<UUID, WorldBlockCache> getCache() {
+        return Collections.unmodifiableMap(this.cache);
     }
 
     @Nullable
@@ -71,13 +78,22 @@ public class BlockCache {
         return worldBlockCache.removeBlockData(position);
     }
 
+    @Nullable
     public ChunkBlockCache getChunkBlockCache(Position position) {
         return this.getChunkBlockCache(position.getChunkPosition());
     }
 
+    @Nullable
     public ChunkBlockCache getChunkBlockCache(ChunkPosition position) {
         final WorldBlockCache worldBlockCache = this.getWorldBlockCache(position.world());
         if (worldBlockCache == null) return null;
         return worldBlockCache.getChunkBlockCache(position);
+    }
+
+    @Nullable
+    public ChunkBlockCache removeChunkBlockCache(ChunkPosition position) {
+        final WorldBlockCache worldBlockCache = this.getWorldBlockCache(position.world());
+        if (worldBlockCache == null) return null;
+        return worldBlockCache.removeChunkBlockCache(position);
     }
 }

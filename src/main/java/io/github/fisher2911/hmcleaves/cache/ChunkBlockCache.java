@@ -29,15 +29,24 @@ import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class ChunkBlockCache {
 
     private final ChunkPosition chunkPosition;
     private final Map<Position, BlockData> blockDataMap;
+    private final Map<Position, BlockData> removedPositions;
+    private boolean dirty;
+    private boolean saving;
+    private boolean safeToMarkClean;
 
-    public ChunkBlockCache(ChunkPosition chunkPosition, Map<Position, BlockData> blockDataMap) {
+    public ChunkBlockCache(ChunkPosition chunkPosition, Map<Position, BlockData> blockDataMap, Map<Position, BlockData> removedPositions) {
         this.chunkPosition = chunkPosition;
         this.blockDataMap = blockDataMap;
+        this.removedPositions = removedPositions;
+        this.dirty = false;
+        this.saving = false;
+        this.safeToMarkClean = true;
     }
 
     @NotNull
@@ -47,12 +56,16 @@ public class ChunkBlockCache {
 
     public void setBlockData(Position position, BlockData blockData) {
         this.blockDataMap.put(position, blockData);
+        this.removedPositions.remove(position);
+        this.markDirty();
     }
 
     @NotNull
     public BlockData removeBlockDataAt(Position position) {
         final BlockData blockData = this.blockDataMap.remove(position);
         if (blockData == null) return BlockData.EMPTY;
+        this.removedPositions.put(position, blockData);
+        this.markDirty();
         return blockData;
     }
 
@@ -64,4 +77,54 @@ public class ChunkBlockCache {
     public Map<Position, BlockData> getBlockDataMap() {
         return Collections.unmodifiableMap(this.blockDataMap);
     }
+
+//    @Unmodifiable
+//    public Map<Position, BlockData> getRemovedPositions() {
+//        return Collections.unmodifiableMap(this.removedPositions);
+//    }
+
+    public void clearRemovedPositions(Consumer<Map.Entry<Position, BlockData>> consumer) {
+        this.removedPositions.entrySet().removeIf(entry -> {
+            consumer.accept(entry);
+            return true;
+        });
+    }
+
+    public boolean isDirty() {
+        return dirty;
+    }
+
+    public boolean isClean() {
+        return !this.dirty;
+    }
+
+    public void markDirty() {
+        if (this.saving) {
+            this.setSafeToMarkClean(false);
+        }
+        this.dirty = true;
+    }
+
+    public void markClean() {
+        if (!this.isSafeToMarkClean()) return;
+        this.dirty = false;
+    }
+
+    public boolean isSaving() {
+        return this.saving;
+    }
+
+    public void setSaving(boolean saving) {
+        this.saving = saving;
+    }
+
+    public boolean isSafeToMarkClean() {
+        return this.safeToMarkClean;
+    }
+
+    public void setSafeToMarkClean(boolean safeToMarkClean) {
+        if (this.saving) return;
+        this.safeToMarkClean = safeToMarkClean;
+    }
+
 }
