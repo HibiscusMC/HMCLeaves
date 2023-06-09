@@ -26,6 +26,7 @@ import com.github.retrooper.packetevents.protocol.world.states.enums.Instrument;
 import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.data.BlockData;
+import io.github.fisher2911.hmcleaves.data.LogData;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
@@ -129,28 +130,48 @@ public class LeavesConfig {
             LEAVES.add(Material.valueOf("FLOWERING_AZALEA_LEAVES"));
 
             LOGS.add(Material.valueOf("MANGROVE_LOG"));
+            STRIPPED_LOGS.add(Material.valueOf("STRIPPED_MANGROVE_LOG"));
         } catch (IllegalArgumentException ignored) {
 
         }
 
-        LEAVES.remove(defaultLeafMaterial);
-        LEAVES.add(defaultLeafMaterial);
-        LOGS.remove(defaultLogMaterial);
-        LOGS.add(defaultLogMaterial);
-        STRIPPED_LOGS.remove(defaultStrippedLogMaterial);
-        STRIPPED_LOGS.add(defaultStrippedLogMaterial);
+//        LEAVES.remove(defaultLeafMaterial);
+//        LEAVES.add(defaultLeafMaterial);
+//        LOGS.remove(defaultLogMaterial);
+//        LOGS.add(defaultLogMaterial);
+//        STRIPPED_LOGS.remove(defaultStrippedLogMaterial);
+//        STRIPPED_LOGS.add(defaultStrippedLogMaterial);
     }
 
-    public static int getMaxLeafId() {
-        return LEAVES.size() * STATES_PER_LEAF - 1;
+    public static int getDefaultLeafId(Material leafMaterial) {
+        return /*LEAVES.size() * STATES_PER_LEAF - 1 -*/ LEAVES.indexOf(leafMaterial) * STATES_PER_LEAF;
     }
 
-    public static int getMaxLogId() {
-        return LOGS.size() - 1;
+    public static int getDefaultLogId(Material logMaterial) {
+        return LOGS.indexOf(logMaterial);
+//        return LOGS.size() - 1 - LOGS.indexOf(logMaterial);
     }
 
-    public static int getMaxStrippedLogId() {
-        return STRIPPED_LOGS.size() - 1;
+    public static int getDefaultStrippedLogId(Material logMaterial, boolean usingStrippedMaterial) {
+        if (usingStrippedMaterial) {
+            return STRIPPED_LOGS.indexOf(logMaterial);
+//            return STRIPPED_LOGS.size() - 1 - STRIPPED_LOGS.indexOf(strippedLogMaterial);
+        }
+        final int index = LOGS.indexOf(logMaterial);
+        return index + LOGS.size();
+//        return STRIPPED_LOGS.size() - 1 - index;
+    }
+
+    public static String getDefaultLeafStringId(Material material) {
+        return DEFAULT_LEAF_ID + "_" + material.name().toLowerCase();
+    }
+
+    public static String getDefaultLogStringId(Material material) {
+        return DEFAULT_LOG_ID + "_" + material.name().toLowerCase();
+    }
+
+    public static String getDefaultStrippedLogStringId(Material material) {
+        return DEFAULT_STRIPPED_LOG_ID + "_" + material.name().toLowerCase();
     }
 
     private final HMCLeaves plugin;
@@ -187,16 +208,16 @@ public class LeavesConfig {
         return this.blockDataMap.get(itemId);
     }
 
-    public BlockData getDefaultLeafData() {
-        return this.blockDataMap.get(DEFAULT_LEAF_ID);
+    public BlockData getDefaultLeafData(Material leafMaterial) {
+        return this.blockDataMap.get(getDefaultLeafStringId(leafMaterial));
     }
 
-    public BlockData getDefaultLogData() {
-        return this.blockDataMap.get(DEFAULT_LOG_ID);
+    public BlockData getDefaultLogData(Material logMaterial) {
+        return this.blockDataMap.get(getDefaultLogStringId(logMaterial));
     }
 
-    public BlockData getDefaultStrippedLogData() {
-        return this.blockDataMap.get(DEFAULT_STRIPPED_LOG_ID);
+    public BlockData getDefaultStrippedLogData(Material strippedLogMaterial) {
+        return this.blockDataMap.get(getDefaultStrippedLogStringId(strippedLogMaterial));
     }
 
     @Nullable
@@ -228,6 +249,7 @@ public class LeavesConfig {
 
     private static final String LEAF_MATERIAL_PATH = "leaf-material";
     private static final String LOG_MATERIAL_PATH = "log-material";
+    private static final String WORLD_PERSISTENCE_PATH = "world-persistence";
     private static final String STRIPPED_LOG_MATERIAL_PATH = "stripped-log-material";
     private static final String STATE_ID_PATH = "state-id";
 
@@ -261,6 +283,7 @@ public class LeavesConfig {
         this.itemSupplierMap.clear();
         this.saplingItemSupplierMap.clear();
         this.leafDropItemSupplierMap.clear();
+        this.plugin.reloadConfig();
         this.load();
     }
 
@@ -273,24 +296,35 @@ public class LeavesConfig {
             final int stateId = leavesSection.getInt(itemId + "." + STATE_ID_PATH);
             final WrappedBlockState state = getLeafById(stateId);
             final Material leafMaterial = this.loadMaterial(leavesSection, itemId + "." + LEAF_MATERIAL_PATH, this.defaultLeafMaterial);
+            final boolean worldPersistence = leavesSection.getBoolean(itemId + "." + WORLD_PERSISTENCE_PATH, state.isPersistent());
             final BlockData blockData = BlockData.leafData(
                     itemId,
                     state.getGlobalId(),
                     leafMaterial,
                     state.getDistance(),
-                    state.isPersistent()
+                    state.isPersistent(),
+                    worldPersistence
             );
             this.blockDataMap.put(itemId, blockData);
-            this.loadSapling(leavesSection, itemId);
-            this.loadLeafDropReplacement(leavesSection, itemId);
+            this.loadSapling(leavesSection.getConfigurationSection(itemId), itemId);
+            this.loadLeafDropReplacement(leavesSection.getConfigurationSection(itemId), itemId);
         }
-        this.blockDataMap.put(DEFAULT_LEAF_ID, BlockData.leafData(
-                DEFAULT_LEAF_ID,
-                getLeafById(getMaxLeafId()).getGlobalId(),
-                this.defaultLeafMaterial,
-                getLeafById(getMaxLeafId()).getDistance(),
-                getLeafById(getMaxLeafId()).isPersistent()
-        ));
+        for (Material leaf : LEAVES) {
+            final String defaultLeafStringId = getDefaultLeafStringId(leaf);
+            final int defaultLeafId = getDefaultLeafId(leaf);
+            final WrappedBlockState leafStateById = getLeafById(defaultLeafId);
+            System.out.println("Default leaf id: " + defaultLeafStringId + " | " + leafStateById.getType().getName() + " - " + leafStateById.isPersistent() + " - " + leafStateById.getDistance());
+            this.blockDataMap.put(defaultLeafStringId, BlockData.leafData(
+                    defaultLeafStringId,
+                    leafStateById.getGlobalId(),
+                    leaf,
+//                    this.defaultLeafMaterial,
+                    leafStateById.getDistance(),
+                    leafStateById.isPersistent(),
+                    false
+            ));
+            System.out.println(this.getDefaultLeafData(leaf).getNewState().getType().getName());
+        }
     }
 
     private void loadSapling(ConfigurationSection config, String itemId) {
@@ -308,7 +342,9 @@ public class LeavesConfig {
     }
 
     private static final String INSTRUMENT_PATH = "instrument";
+    private static final String STRIPPED_INSTRUMENT_PATH = "stripped-instrument";
     private static final String NOTE_PATH = "note";
+    private static final String STRIPPED_NOTE_PATH = "stripped-note";
     private static final String STRIPPED_LOG_ID_PATH = "stripped-log-id";
 
     private void loadLogsSection(FileConfiguration config) {
@@ -317,20 +353,26 @@ public class LeavesConfig {
         for (final var itemId : logsSection.getKeys(false)) {
             final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(logsSection.getConfigurationSection(itemId), itemId);
             this.itemSupplierMap.put(itemId, itemStackSupplier);
-            final int stateId = logsSection.getInt(itemId + "." + STATE_ID_PATH) - 1;
-            final String strippedLogId = logsSection.getString(itemId + "." + STRIPPED_LOG_ID_PATH);
+//            final int stateId = logsSection.getInt(itemId + "." + STATE_ID_PATH) - 1;
+            String strippedLogId = logsSection.getString(itemId + "." + STRIPPED_LOG_ID_PATH);
+            if (strippedLogId == null) {
+                strippedLogId = itemId;
+            }
 //            final WrappedBlockState logState = getLogById(stateId);
             final WrappedBlockState state = WrappedBlockState.getDefaultState(StateTypes.NOTE_BLOCK);
-            final WrappedBlockState strippedLogState = getStrippedLogByLogId(stateId);
+            final WrappedBlockState strippedLogState = WrappedBlockState.getDefaultState(StateTypes.NOTE_BLOCK);
+//            final WrappedBlockState strippedLogState = getStrippedLogByLogId(stateId);
             final Material logMaterial = this.loadMaterial(logsSection, itemId + "." + LOG_MATERIAL_PATH, this.defaultLogMaterial);
             final Material strippedLogMaterial = this.loadMaterial(logsSection, itemId + "." + STRIPPED_LOG_MATERIAL_PATH, this.defaultStrippedLogMaterial);
             try {
                 final Instrument instrument = Instrument.valueOf(logsSection.getString(itemId + "." + INSTRUMENT_PATH));
                 final int note = logsSection.getInt(itemId + "." + NOTE_PATH);
+                final Instrument strippedInstrument = Instrument.valueOf(logsSection.getString(itemId + "." + STRIPPED_INSTRUMENT_PATH));
+                final int strippedNote = logsSection.getInt(itemId + "." + STRIPPED_NOTE_PATH);
                 state.setInstrument(instrument);
                 state.setNote(note);
-                strippedLogState.setInstrument(instrument);
-                strippedLogState.setNote(note);
+                strippedLogState.setInstrument(strippedInstrument);
+                strippedLogState.setNote(strippedNote);
             } catch (IllegalArgumentException e) {
                 this.plugin.getLogger().severe("Invalid instrument or note for log " + itemId + " in config.yml");
             }
@@ -346,24 +388,27 @@ public class LeavesConfig {
             );
             this.blockDataMap.put(itemId, blockData);
         }
-        this.blockDataMap.put(DEFAULT_LOG_ID, BlockData.logData(
-                DEFAULT_LOG_ID,
-                DEFAULT_STRIPPED_LOG_ID,
-                getLogById(getMaxLogId()).getGlobalId(),
-                this.defaultLogMaterial,
-                this.defaultStrippedLogMaterial,
-                false,
-                getLogById(getMaxStrippedLogId()).getGlobalId()
-        ));
-        this.blockDataMap.put(DEFAULT_STRIPPED_LOG_ID, BlockData.logData(
-                DEFAULT_LOG_ID,
-                DEFAULT_STRIPPED_LOG_ID,
-                getLogById(getMaxLogId()).getGlobalId(),
-                this.defaultLogMaterial,
-                this.defaultStrippedLogMaterial,
-                true,
-                getLogById(getMaxStrippedLogId()).getGlobalId()
-        ));
+        for (Material logMaterial : LOGS) {
+            final String defaultLogStringId = getDefaultLogStringId(logMaterial);
+            final Material strippedLogMaterial = STRIPPED_LOGS.get(LOGS.indexOf(logMaterial));
+            final String defaultStrippedLogStringId = getDefaultStrippedLogStringId(strippedLogMaterial);
+            final LogData blockData = BlockData.logData(
+                    defaultLogStringId,
+                    defaultStrippedLogStringId,
+                    getLogById(getDefaultLogId(logMaterial)).getGlobalId(),
+                    logMaterial,
+                    strippedLogMaterial,
+//                    this.defaultLogMaterial,
+//                    this.defaultStrippedLogMaterial,
+                    false,
+                    getLogById(getDefaultStrippedLogId(logMaterial, false)).getGlobalId()
+            );
+            System.out.println("Default log id: " + defaultLogStringId + " | " + getLogById(getDefaultLogId(logMaterial)).getType().getName());
+            System.out.println("Default log id: " + defaultStrippedLogStringId + " | " + getLogById(getDefaultStrippedLogId(logMaterial, false)).getType().getName());
+            this.blockDataMap.put(defaultLogStringId, blockData);
+            this.blockDataMap.put(defaultStrippedLogStringId, blockData.strip());
+        }
+
     }
 
     private Material loadMaterial(ConfigurationSection section, String path, Material defaultMaterial) {

@@ -32,7 +32,9 @@ import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.listener.WorldAndChunkLoadListener;
 import io.github.fisher2911.hmcleaves.listener.InteractionListener;
 import io.github.fisher2911.hmcleaves.listener.LeafDropListener;
-import io.github.fisher2911.hmcleaves.packet.PacketListener;
+import io.github.fisher2911.hmcleaves.packet.BlockBreakManager;
+import io.github.fisher2911.hmcleaves.packet.LeafDecayListener;
+import io.github.fisher2911.hmcleaves.packet.LeavesPacketListener;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -46,6 +48,7 @@ public class HMCLeaves extends JavaPlugin {
     private LeavesConfig leavesConfig;
     private BlockCache blockCache;
     private LeafDatabase leafDatabase;
+    private BlockBreakManager blockBreakManager;
 
     @Override
     public void onLoad() {
@@ -66,6 +69,7 @@ public class HMCLeaves extends JavaPlugin {
         );
         this.blockCache = new BlockCache(new ConcurrentHashMap<>());
         this.leafDatabase = new LeafDatabase(this);
+        this.blockBreakManager = new BlockBreakManager(new ConcurrentHashMap<>(), this);
         PacketEvents.getAPI().init();
         this.registerPacketListeners();
         this.registerListeners();
@@ -92,15 +96,15 @@ public class HMCLeaves extends JavaPlugin {
     }
 
     private void registerPacketListeners() {
-        PacketEvents.getAPI().getEventManager().registerListener(new PacketListener(this.blockCache));
+        PacketEvents.getAPI().getEventManager().registerListener(new LeavesPacketListener(this));
     }
 
     private void registerListeners() {
         List.of(
                         new InteractionListener(this),
                         new LeafDropListener(this),
-                        new WorldAndChunkLoadListener(this)
-
+                        new WorldAndChunkLoadListener(this),
+                        new LeafDecayListener(this)
                 )
                 .forEach(listener -> getServer().getPluginManager().registerEvents(listener, this));
     }
@@ -115,6 +119,10 @@ public class HMCLeaves extends JavaPlugin {
 
     public LeafDatabase getLeafDatabase() {
         return leafDatabase;
+    }
+
+    public BlockBreakManager getBlockBreakManager() {
+        return blockBreakManager;
     }
 
 }

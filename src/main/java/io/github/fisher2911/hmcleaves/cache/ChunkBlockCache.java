@@ -29,7 +29,7 @@ import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class ChunkBlockCache {
 
@@ -83,11 +83,8 @@ public class ChunkBlockCache {
 //        return Collections.unmodifiableMap(this.removedPositions);
 //    }
 
-    public void clearRemovedPositions(Consumer<Map.Entry<Position, BlockData>> consumer) {
-        this.removedPositions.entrySet().removeIf(entry -> {
-            consumer.accept(entry);
-            return true;
-        });
+    public void clearRemovedPositions(Function<Map.Entry<Position, BlockData>, Boolean> function) {
+        this.removedPositions.entrySet().removeIf(function::apply);
     }
 
     public boolean isDirty() {

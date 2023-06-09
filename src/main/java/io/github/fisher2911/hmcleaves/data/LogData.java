@@ -23,6 +23,7 @@ package io.github.fisher2911.hmcleaves.data;
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 
 public record LogData(
         String id,
@@ -33,6 +34,12 @@ public record LogData(
         boolean stripped,
         int strippedSendBlockId
 ) implements BlockData {
+
+    @Override
+    public Material worldBlockType() {
+        if (this.stripped) return this.strippedBlockType;
+        return this.realBlockType;
+    }
 
     @Override
     public WrappedBlockState getNewState() {
@@ -48,6 +55,23 @@ public record LogData(
 
     private WrappedBlockState create(int blockId) {
         return WrappedBlockState.getByGlobalId(blockId);
+    }
+
+    public LogData strip() {
+        return new LogData(
+                this.id,
+                this.strippedLogId,
+                this.sendBlockId,
+                this.realBlockType,
+                this.strippedBlockType,
+                true,
+                this.strippedSendBlockId
+        );
+    }
+
+    @Override
+    public Sound placeSound() {
+        return Sound.BLOCK_WOOD_PLACE;
     }
 
 }

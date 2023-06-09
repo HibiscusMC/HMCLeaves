@@ -22,14 +22,21 @@ package io.github.fisher2911.hmcleaves.data;
 
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 
 public record LeafData(
         String id,
         int sendBlockId,
         Material realBlockType,
         int displayDistance,
-        boolean displayPersistence
+        boolean displayPersistence,
+        boolean worldPersistence
 ) implements BlockData {
+
+    @Override
+    public Material worldBlockType() {
+        return this.realBlockType;
+    }
 
     @Override
     public WrappedBlockState getNewState() {
@@ -37,6 +44,11 @@ public record LeafData(
         newState.setDistance(this.displayDistance);
         newState.setPersistent(this.displayPersistence);
         return newState;
+    }
+
+    @Override
+    public Sound placeSound() {
+        return Sound.BLOCK_GRASS_PLACE;
     }
 
 }

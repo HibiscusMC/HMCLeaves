@@ -22,6 +22,7 @@ package io.github.fisher2911.hmcleaves.data;
 
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.jetbrains.annotations.Nullable;
 
 public interface BlockData {
@@ -47,8 +48,19 @@ public interface BlockData {
         }
 
         @Override
+        public Material worldBlockType() {
+            return this.realBlockType();
+        }
+
+        @Override
         @Nullable
         public WrappedBlockState getNewState() {
+            return null;
+        }
+
+        @Override
+        @Nullable
+        public Sound placeSound() {
             return null;
         }
     };
@@ -62,19 +74,26 @@ public interface BlockData {
 
     Material realBlockType();
 
+    Material worldBlockType();
+
+    @Nullable
+    Sound placeSound();
+
     static LeafData leafData(
             String id,
             int sendBlockData,
             Material realBlockType,
             int displayDistance,
-            boolean displayPersistence
+            boolean displayPersistence,
+            boolean worldPersistence
     ) {
         return new LeafData(
                 id,
                 sendBlockData,
                 realBlockType,
                 displayDistance,
-                displayPersistence
+                displayPersistence,
+                worldPersistence
         );
     }
 

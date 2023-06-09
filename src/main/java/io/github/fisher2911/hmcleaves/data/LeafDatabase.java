@@ -243,10 +243,11 @@ public class LeafDatabase {
         chunk.setSaving(false);
         chunk.markClean();
         chunk.setSafeToMarkClean(true);
+//        System.out.println("Saving chunk: " + chunk.getChunkPosition());
     }
 
     private void saveLeafBlocksInChunk(ChunkBlockCache chunk) {
-        this.deleteRemovedLogBlocksInChunk(chunk);
+        this.deleteRemovedLeafBlocksInChunk(chunk);
         if (chunk.getBlockDataMap().isEmpty()) return;
         final Connection connection = this.getConnection();
         if (connection == null) throw new IllegalStateException("Could not connect to database!");
@@ -261,6 +262,7 @@ public class LeafDatabase {
                 final int blockY = position.y();
                 final int blockZ = position.z();
                 final BlockData blockData = entry.getValue();
+                if (!(blockData instanceof LeafData)) continue;
                 final String blockID = blockData.id();
                 statement.setBytes(1, worldUUIDBytes);
                 statement.setInt(2, chunkX);
@@ -303,7 +305,7 @@ public class LeafDatabase {
                 try {
                     final Position position = entry.getKey();
                     final BlockData blockData = entry.getValue();
-                    if (!(blockData instanceof LeafData)) return;
+                    if (!(blockData instanceof LeafData)) return false;
                     final int blockX = position.x();
                     final int blockY = position.y();
                     final int blockZ = position.z();
@@ -312,6 +314,7 @@ public class LeafDatabase {
                     statement.setInt(3, blockY);
                     statement.setInt(4, blockZ);
                     statement.addBatch();
+                    return true;
                 } catch (SQLException e) {
                     throw new IllegalStateException("Could not delete removed leaf blocks in chunk " + chunkX + ", " + chunkZ + "!", e);
                 }
@@ -342,10 +345,10 @@ public class LeafDatabase {
             statement.setInt(3, chunkZ);
             try (final ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
-                    final int blockX = resultSet.getInt("block_x");
-                    final int blockY = resultSet.getInt("block_y");
-                    final int blockZ = resultSet.getInt("block_z");
-                    final String blockID = resultSet.getString("block_id");
+                    final int blockX = resultSet.getInt(LEAVES_TABLE_BLOCK_X_COLUMN);
+                    final int blockY = resultSet.getInt(LEAVES_TABLE_BLOCK_Y_COLUMN);
+                    final int blockZ = resultSet.getInt(LEAVES_TABLE_BLOCK_Z_COLUMN);
+                    final String blockID = resultSet.getString(LEAVES_TABLE_BLOCK_ID_COLUMN);
                     final Position position = new Position(chunkPosition.world(), blockX, blockY, blockZ);
                     final BlockData blockData = config.getBlockData(blockID);
                     if (blockData == null) {
@@ -362,24 +365,24 @@ public class LeafDatabase {
         }
     }
 
-    public void saveLogBlock(UUID worldUUID, int chunkX, int chunkZ, int blockX, int blockY, int blockZ, String blockID, boolean stripped) {
-        final Connection connection = this.getConnection();
-        if (connection == null) throw new IllegalStateException("Could not connect to database!");
-        try (final PreparedStatement statement = connection.prepareStatement(SET_LOG_BLOCK_STATEMENT)) {
-            statement.setBytes(1, this.uuidToBytes(worldUUID));
-            statement.setInt(2, chunkX);
-            statement.setInt(3, chunkZ);
-            statement.setInt(4, blockX);
-            statement.setInt(5, blockY);
-            statement.setInt(6, blockZ);
-            statement.setString(7, blockID);
-            statement.setBoolean(8, stripped);
-            statement.execute();
-        } catch (SQLException e) {
-            throw new IllegalStateException("Could not set log block at position "
-                    + blockX + ", " + blockY + ", " + blockZ + "!", e);
-        }
-    }
+//    public void saveLogBlock(UUID worldUUID, int chunkX, int chunkZ, int blockX, int blockY, int blockZ, String blockID, boolean stripped) {
+//        final Connection connection = this.getConnection();
+//        if (connection == null) throw new IllegalStateException("Could not connect to database!");
+//        try (final PreparedStatement statement = connection.prepareStatement(SET_LOG_BLOCK_STATEMENT)) {
+//            statement.setBytes(1, this.uuidToBytes(worldUUID));
+//            statement.setInt(2, chunkX);
+//            statement.setInt(3, chunkZ);
+//            statement.setInt(4, blockX);
+//            statement.setInt(5, blockY);
+//            statement.setInt(6, blockZ);
+//            statement.setString(7, blockID);
+//            statement.setBoolean(8, stripped);
+//            statement.execute();
+//        } catch (SQLException e) {
+//            throw new IllegalStateException("Could not set log block at position "
+//                    + blockX + ", " + blockY + ", " + blockZ + "!", e);
+//        }
+//    }
 
     private void saveLogBlocksInChunk(ChunkBlockCache chunkBlockCache) {
         this.deleteRemovedLogBlocksInChunk(chunkBlockCache);
@@ -441,7 +444,7 @@ public class LeafDatabase {
                 try {
                     final Position position = entry.getKey();
                     final BlockData blockData = entry.getValue();
-                    if (!(blockData instanceof LogData)) return;
+                    if (!(blockData instanceof LogData)) return false;
                     final int blockX = position.x();
                     final int blockY = position.y();
                     final int blockZ = position.z();
@@ -450,6 +453,7 @@ public class LeafDatabase {
                     statement.setInt(3, blockY);
                     statement.setInt(4, blockZ);
                     statement.addBatch();
+                    return true;
                 } catch (SQLException e) {
                     throw new IllegalStateException("Could not delete removed log blocks in chunk " + chunkX + ", " + chunkZ + "!", e);
                 }
@@ -473,18 +477,22 @@ public class LeafDatabase {
             statement.setInt(3, chunkZ);
             try (final ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
-                    final int blockX = resultSet.getInt("block_x");
-                    final int blockY = resultSet.getInt("block_y");
-                    final int blockZ = resultSet.getInt("block_z");
-                    final String blockID = resultSet.getString("block_id");
+                    final int blockX = resultSet.getInt(LOGS_TABLE_BLOCK_X_COLUMN);
+                    final int blockY = resultSet.getInt(LOGS_TABLE_BLOCK_Y_COLUMN);
+                    final int blockZ = resultSet.getInt(LOGS_TABLE_BLOCK_Z_COLUMN);
+                    final String blockID = resultSet.getString(LOGS_TABLE_BLOCK_ID_COLUMN);
+                    final boolean stripped = resultSet.getBoolean(LOGS_TABLE_STRIPPED_COLUMN);
                     final Position position = new Position(chunkPosition.world(), blockX, blockY, blockZ);
                     final BlockData blockData = config.getBlockData(blockID);
-                    if (blockData == null) {
+                    if (!(blockData instanceof LogData logData)) {
                         this.plugin.getLogger().warning("Could not find block data for block ID " + blockID + " at position " +
                                 blockX + ", " + blockY + ", " + blockZ + "!");
                         continue;
                     }
-                    logBlocks.put(position, blockData);
+                    if (stripped) {
+                        logData = logData.strip();
+                    }
+                    logBlocks.put(position, logData);
                 }
             }
             return logBlocks;

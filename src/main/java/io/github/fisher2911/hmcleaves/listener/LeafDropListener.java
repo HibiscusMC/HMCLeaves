@@ -24,6 +24,7 @@ import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.world.Position;
+import org.bukkit.Bukkit;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.type.Leaves;
@@ -51,16 +52,27 @@ public class LeafDropListener implements Listener {
     public void onItemDrop(BlockDropItemEvent event) {
         final Block block = event.getBlock();
         final Position position = Position.fromLocation(block.getLocation());
-        final BlockData data = this.plugin.getBlockCache().getBlockData(position);
-        if (data == BlockData.EMPTY) return;
+        final BlockData data = this.plugin.getBlockCache().removeBlockData(position);
+        if (data == BlockData.EMPTY) {
+            Bukkit.broadcastMessage("Empty");
+            return;
+        }
         final String id = data.id();
         for (Item item : event.getItems()) {
             final ItemStack itemStack = item.getItemStack();
             if (Tag.LEAVES.isTagged(itemStack.getType())) {
+                Bukkit.broadcastMessage("Is leaf");
                 final Supplier<ItemStack> dropReplacementSupplier = this.leavesConfig.getLeafDropReplacement(id);
-                if (dropReplacementSupplier == null) continue;
+                if (dropReplacementSupplier == null){
+                    Bukkit.broadcastMessage("Supplier null");
+                    continue;
+                }
                 final ItemStack dropReplacement = dropReplacementSupplier.get();
-                if (dropReplacement == null) continue;
+                if (dropReplacement == null) {
+                    Bukkit.broadcastMessage("Replacement null");
+                    continue;
+                }
+                Bukkit.broadcastMessage("Transferring data");
                 this.transferItemData(itemStack, dropReplacement);
                 continue;
             }
@@ -79,7 +91,7 @@ public class LeafDropListener implements Listener {
         final Block block = event.getLocation().getBlock();
         if (!(block.getBlockData() instanceof final Leaves leaves)) return;
         final Position position = Position.fromLocation(block.getLocation());
-        final BlockData blockData = this.plugin.getBlockCache().getBlockData(position);
+        final BlockData blockData = this.plugin.getBlockCache().removeBlockData(position);
         final String id = blockData.id();
         final Item item = event.getEntity();
         final ItemStack itemStack = item.getItemStack();

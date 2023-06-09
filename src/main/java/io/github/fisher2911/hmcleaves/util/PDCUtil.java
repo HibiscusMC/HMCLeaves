@@ -32,7 +32,7 @@ import java.util.Objects;
 
 public class PDCUtil {
 
-    private static final byte CHUNK_VERSION = 3;
+    private static final byte CHUNK_VERSION = 4;
 
     public static final HMCLeaves PLUGIN = HMCLeaves.getPlugin(HMCLeaves.class);
     public static final NamespacedKey ITEM_ID_KEY = new NamespacedKey(PLUGIN, "item_id");

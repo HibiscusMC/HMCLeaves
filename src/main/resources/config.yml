@@ -1,6 +1,6 @@
 # "Enabled" must be true for the plugin to function properly
 # Make sure you have your default state properly set up below before enabling!
-enabled: false
+enabled: true
 # THE BELOW STATES ARE THE DEFAULT STATES FOR LEAVES GENERATED IN THE WORLD
 # 13, 27, 41, 55, 69, 83, 97, 111, 125
 
@@ -10,17 +10,19 @@ default-log-material: OAK_LOG
 default-stripped-log-material: STRIPPED_OAK_LOG
 
 leaves:
-  "glowstone_leaves":
+  "test_leaves":
+    world-persistence: false
     leaf-material: OAK_LEAVES
     material: PAPER
     model-data: 1
-    name: "&5Glowstone Leaves"
+    name: "&Test Leaves"
     lore:
       - "&aLine 1"
       - "&bLine 2"
     state-id: 1
     sapling:
-      hook-id: test-sapling
+      # hook id can also be the item id to use the HMCLeaves item
+#      hook-id: test-sapling
       material: OAK_SAPLING
       amount: 1
       name: "&aTest"
@@ -29,7 +31,7 @@ leaves:
         - "&7This is a test"
         - "&7This is a test"
     leaf-drop-replacement:
-      hook-id: test
+      hook-id: test_leaves"
       material: OAK_LEAVES
       amount: 1
       name: "&aTest"
@@ -39,17 +41,15 @@ leaves:
         - "&7This is a test"
 
 logs:
-  "netherite_log":
+  test_log:
     log-material: OAK_LOG
     stripped-log-material: STRIPPED_OAK_LOG
-    material: NETHERITE_BLOCK
+    material: PAPER
     model-data: 2
-    name: "&5Netherite Block"
+    name: "&5Test Log"
     lore:
-        - "&aLine 1"
+      - "&aLine 1"
     instrument: BANJO
     note: 2
-#items:
-#  "palm_leaves":
-#    leaf-material: OAK_LEAVES
-#    material: PAPER
+    stripped-instrument: BANJO
+    stripped-note: 3

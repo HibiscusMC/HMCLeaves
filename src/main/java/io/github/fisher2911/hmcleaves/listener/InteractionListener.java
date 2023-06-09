@@ -26,12 +26,14 @@ import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.LeafData;
 import io.github.fisher2911.hmcleaves.data.LogData;
+import io.github.fisher2911.hmcleaves.packet.PacketUtils;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.type.Leaves;
@@ -43,6 +45,9 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+
+import java.util.List;
+import java.util.Set;
 
 public class InteractionListener implements Listener {
 
@@ -72,23 +77,34 @@ public class InteractionListener implements Listener {
         }
         final World world = placeLocation.getWorld();
         if (world == null) return;
-        if (!(world.getNearbyEntities(placeLocation.clone().add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5, LivingEntity.class::isInstance).isEmpty()))
-            return;
         final BlockData blockData = this.leavesConfig.getBlockData(clickedWith);
         if (this.doDebugTool(clickedWith, event.getPlayer(), block)) return;
-        if (blockData == null) return;
-        if (world.getNearbyEntities(placeLocation.getBlock().getBoundingBox()).size() > 0) return;
-        event.setCancelled(true);
         final Player player = event.getPlayer();
+        if (this.checkStripLog(player, block, clickedWith)) return;
+        if (!(world.getNearbyEntities(placeLocation.clone().add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5, LivingEntity.class::isInstance).isEmpty())) {
+            return;
+        }
+        if (blockData == null) return;
+        event.setCancelled(true);
         if (player.getGameMode() != GameMode.CREATIVE) {
             clickedWith.setAmount(clickedWith.getAmount() - 1);
         }
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
             this.blockCache.addBlockData(Position.fromLocation(placeLocation), blockData);
             final Block placedBlock = placeLocation.getBlock();
+            PacketUtils.sendArmSwing(player, List.of(player));
+            final Sound sound = blockData.placeSound();
+            if (sound != null) {
+                world.playSound(placeLocation, sound, 1, 1);
+            }
             placedBlock.setType(blockData.realBlockType());
             if (placedBlock.getBlockData() instanceof final Leaves leaves) {
-                leaves.setPersistent(true);
+                if (!(blockData instanceof final LeafData leafData)) {
+                    return;
+                }
+                if (player.getGameMode() != GameMode.CREATIVE || leafData.worldPersistence()) {
+                    leaves.setPersistent(true);
+                }
                 placedBlock.setBlockData(leaves);
             }
         }, 1);
@@ -112,6 +128,27 @@ public class InteractionListener implements Listener {
         }
         player.sendMessage("Display distance: " + leafData.displayDistance() + " Display persistence: " + leafData.displayPersistence() + " " +
                 "server distance: " + leaves.getDistance() + " server persistence: " + leaves.isPersistent());
+        return true;
+    }
+
+    private static final Set<Material> AXES = Set.of(
+            Material.WOODEN_AXE,
+            Material.STONE_AXE,
+            Material.IRON_AXE,
+            Material.GOLDEN_AXE,
+            Material.DIAMOND_AXE,
+            Material.NETHERITE_AXE
+    );
+
+    private boolean checkStripLog(Player player, Block block, ItemStack clickedWith) {
+        if (!AXES.contains(clickedWith.getType())) return false;
+        final Position position = Position.fromLocation(block.getLocation());
+        final BlockData blockData = this.blockCache.getBlockData(position);
+        if (!(blockData instanceof final LogData logData)) return false;
+        if (logData.stripped()) return false;
+        final BlockData strippedData = logData.strip();
+        this.blockCache.addBlockData(position, strippedData);
+        block.setType(strippedData.worldBlockType());
         return true;
     }
 

@@ -21,6 +21,7 @@
 package io.github.fisher2911.hmcleaves.hook;
 
 import io.github.fisher2911.hmcleaves.HMCLeaves;
+import io.github.fisher2911.hmcleaves.hook.hmcleaves.HMCLeavesHook;
 import io.github.fisher2911.hmcleaves.hook.itemsadder.ItemsAdderHook;
 import io.github.fisher2911.hmcleaves.hook.oraxen.OraxenHook;
 import io.github.fisher2911.hmcleaves.hook.worldedit.WorldEditHook;
@@ -45,6 +46,9 @@ public class Hooks {
             plugin.getLogger().info("ItemsAdder found, loading hook");
             itemHook = new ItemsAdderHook();
             plugin.getServer().getPluginManager().registerEvents(itemHook, plugin);
+        }
+        if (itemHook == null) {
+            itemHook = new HMCLeavesHook(plugin);
         }
         if (plugin.getServer().getPluginManager().getPlugin("WorldEdit") != null) {
             plugin.getLogger().info("WorldEdit found, loading hook");

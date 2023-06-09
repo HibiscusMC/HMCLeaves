@@ -94,9 +94,9 @@ public class WorldAndChunkLoadListener implements Listener {
                         if (Tag.LOGS.isTagged(material)) {
                             final BlockData blockData;
                             if (material.toString().contains("STRIPPED")) {
-                                blockData = this.leavesConfig.getDefaultStrippedLogData();
+                                blockData = this.leavesConfig.getDefaultStrippedLogData(material);
                             } else {
-                                blockData = this.leavesConfig.getDefaultLogData();
+                                blockData = this.leavesConfig.getDefaultLogData(material);
                             }
                             final Position position = Position.at(
                                     worldUUID,
@@ -104,10 +104,14 @@ public class WorldAndChunkLoadListener implements Listener {
                                     y,
                                     chunkZ * 16 + z
                             );
-                            this.blockCache.addBlockData(
-                                    position,
-                                    blockData
-                            );
+                            try {
+                                this.blockCache.addBlockData(
+                                        position,
+                                        blockData
+                                );
+                            } catch (NullPointerException e) {
+                                System.out.println("NPE when trying to add " + material + " " + LeavesConfig.getDefaultLogStringId(material) + " " + blockData);
+                            }
                             continue;
                         }
                         if (!(bukkitBlockData instanceof Leaves)) continue;
@@ -119,12 +123,13 @@ public class WorldAndChunkLoadListener implements Listener {
                         );
                         this.blockCache.addBlockData(
                                 position,
-                                this.leavesConfig.getDefaultLeafData()
+                                this.leavesConfig.getDefaultLeafData(material)
                         );
                     }
                 }
             }
             this.leafDatabase.doDatabaseTaskAsync(() -> {
+                if (!this.plugin.isEnabled()) return;
                 Bukkit.getScheduler().runTask(this.plugin, () -> PDCUtil.setChunkHasLeafData(chunk.getPersistentDataContainer()));
                 final ChunkBlockCache newChunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
                 if (newChunkBlockCache == null) return;
