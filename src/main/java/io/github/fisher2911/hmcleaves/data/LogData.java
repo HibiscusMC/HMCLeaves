@@ -22,6 +22,7 @@ package io.github.fisher2911.hmcleaves.data;
 
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
+import org.bukkit.Axis;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 
@@ -32,7 +33,8 @@ public record LogData(
         Material realBlockType,
         Material strippedBlockType,
         boolean stripped,
-        int strippedSendBlockId
+        int strippedSendBlockId,
+        Axis axis
 ) implements BlockData {
 
     @Override
@@ -54,7 +56,17 @@ public record LogData(
     }
 
     private WrappedBlockState create(int blockId) {
-        return WrappedBlockState.getByGlobalId(blockId);
+        final WrappedBlockState state = WrappedBlockState.getByGlobalId(blockId);
+        state.setAxis(this.convertBlockAxis());
+        return state;
+    }
+
+    private com.github.retrooper.packetevents.protocol.world.states.enums.Axis convertBlockAxis() {
+        return switch (this.axis) {
+            case X -> com.github.retrooper.packetevents.protocol.world.states.enums.Axis.X;
+            case Y -> com.github.retrooper.packetevents.protocol.world.states.enums.Axis.Y;
+            case Z -> com.github.retrooper.packetevents.protocol.world.states.enums.Axis.Z;
+        };
     }
 
     public LogData strip() {
@@ -65,7 +77,8 @@ public record LogData(
                 this.realBlockType,
                 this.strippedBlockType,
                 true,
-                this.strippedSendBlockId
+                this.strippedSendBlockId,
+                this.axis
         );
     }
 

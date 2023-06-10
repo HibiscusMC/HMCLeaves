@@ -1,8 +1,6 @@
 # "Enabled" must be true for the plugin to function properly
 # Make sure you have your default state properly set up below before enabling!
 enabled: true
-# THE BELOW STATES ARE THE DEFAULT STATES FOR LEAVES GENERATED IN THE WORLD
-# 13, 27, 41, 55, 69, 83, 97, 111, 125
 
 # default materials that are actually in the world
 default-leaf-material: OAK_LEAVES

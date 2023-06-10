@@ -30,12 +30,14 @@ import io.github.fisher2911.hmcleaves.data.LeafDatabase;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
+import org.bukkit.Axis;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.World;
+import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -92,11 +94,16 @@ public class WorldAndChunkLoadListener implements Listener {
                         final org.bukkit.block.data.BlockData bukkitBlockData = snapshot.getBlockData(x, y, z);
                         final Material material = bukkitBlockData.getMaterial();
                         if (Tag.LOGS.isTagged(material)) {
+                            final Orientable orientable = (Orientable) bukkitBlockData;
+                            final Axis axis = orientable.getAxis();
                             final BlockData blockData;
                             if (material.toString().contains("STRIPPED")) {
-                                blockData = this.leavesConfig.getDefaultStrippedLogData(material);
+                                blockData = this.leavesConfig.getDefaultStrippedLogData(material, axis);
                             } else {
-                                blockData = this.leavesConfig.getDefaultLogData(material);
+                                blockData = this.leavesConfig.getDefaultLogData(material, axis);
+                            }
+                            if (blockData == null) {
+                                System.out.println("BlockData is null: " + LeavesConfig.getDefaultStrippedLogStringId(material) + "_" + axis.name().toLowerCase());
                             }
                             final Position position = Position.at(
                                     worldUUID,
@@ -111,6 +118,7 @@ public class WorldAndChunkLoadListener implements Listener {
                                 );
                             } catch (NullPointerException e) {
                                 System.out.println("NPE when trying to add " + material + " " + LeavesConfig.getDefaultLogStringId(material) + " " + blockData);
+                                System.out.println("Position: " + position);
                             }
                             continue;
                         }

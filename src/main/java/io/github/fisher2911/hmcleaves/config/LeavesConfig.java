@@ -30,6 +30,7 @@ import io.github.fisher2911.hmcleaves.data.LogData;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
+import org.bukkit.Axis;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
@@ -115,6 +116,15 @@ public class LeavesConfig {
         LOGS.add(Material.ACACIA_LOG);
         LOGS.add(Material.DARK_OAK_LOG);
         LOGS.add(Material.CRIMSON_STEM);
+        LOGS.add(Material.WARPED_STEM);
+        LOGS.add(Material.OAK_WOOD);
+        LOGS.add(Material.SPRUCE_WOOD);
+        LOGS.add(Material.BIRCH_WOOD);
+        LOGS.add(Material.JUNGLE_WOOD);
+        LOGS.add(Material.ACACIA_WOOD);
+        LOGS.add(Material.DARK_OAK_WOOD);
+        LOGS.add(Material.CRIMSON_HYPHAE);
+        LOGS.add(Material.WARPED_HYPHAE);
 
         STRIPPED_LOGS.add(Material.STRIPPED_OAK_LOG);
         STRIPPED_LOGS.add(Material.STRIPPED_SPRUCE_LOG);
@@ -123,6 +133,16 @@ public class LeavesConfig {
         STRIPPED_LOGS.add(Material.STRIPPED_ACACIA_LOG);
         STRIPPED_LOGS.add(Material.STRIPPED_DARK_OAK_LOG);
         STRIPPED_LOGS.add(Material.STRIPPED_CRIMSON_STEM);
+        STRIPPED_LOGS.add(Material.STRIPPED_WARPED_STEM);
+        STRIPPED_LOGS.add(Material.STRIPPED_OAK_WOOD);
+        STRIPPED_LOGS.add(Material.STRIPPED_SPRUCE_WOOD);
+        STRIPPED_LOGS.add(Material.STRIPPED_BIRCH_WOOD);
+        STRIPPED_LOGS.add(Material.STRIPPED_JUNGLE_WOOD);
+        STRIPPED_LOGS.add(Material.STRIPPED_ACACIA_WOOD);
+        STRIPPED_LOGS.add(Material.STRIPPED_DARK_OAK_WOOD);
+        STRIPPED_LOGS.add(Material.STRIPPED_CRIMSON_HYPHAE);
+        STRIPPED_LOGS.add(Material.STRIPPED_WARPED_HYPHAE);
+
         // 1.19 leaves / logs
         try {
             LEAVES.add(Material.valueOf("MANGROVE_LEAVES"));
@@ -130,17 +150,12 @@ public class LeavesConfig {
             LEAVES.add(Material.valueOf("FLOWERING_AZALEA_LEAVES"));
 
             LOGS.add(Material.valueOf("MANGROVE_LOG"));
+            LOGS.add(Material.valueOf("MANGROVE_WOOD"));
             STRIPPED_LOGS.add(Material.valueOf("STRIPPED_MANGROVE_LOG"));
+            STRIPPED_LOGS.add(Material.valueOf("STRIPPED_MANGROVE_WOOD"));
         } catch (IllegalArgumentException ignored) {
 
         }
-
-//        LEAVES.remove(defaultLeafMaterial);
-//        LEAVES.add(defaultLeafMaterial);
-//        LOGS.remove(defaultLogMaterial);
-//        LOGS.add(defaultLogMaterial);
-//        STRIPPED_LOGS.remove(defaultStrippedLogMaterial);
-//        STRIPPED_LOGS.add(defaultStrippedLogMaterial);
     }
 
     public static int getDefaultLeafId(Material leafMaterial) {
@@ -208,6 +223,14 @@ public class LeavesConfig {
         return this.blockDataMap.get(itemId);
     }
 
+    public BlockData getBlockData(ItemStack itemStack, Axis axis) {
+        final String itemId = PDCUtil.getItemId(itemStack);
+        if (itemId == null) return null;
+        final BlockData data = this.blockDataMap.get(itemId + "_" + axis.name().toLowerCase());
+        if (data != null) return data;
+        return this.blockDataMap.get(itemId);
+    }
+
     public BlockData getDefaultLeafData(Material leafMaterial) {
         return this.blockDataMap.get(getDefaultLeafStringId(leafMaterial));
     }
@@ -216,8 +239,16 @@ public class LeavesConfig {
         return this.blockDataMap.get(getDefaultLogStringId(logMaterial));
     }
 
+    public BlockData getDefaultLogData(Material logMaterial, Axis axis) {
+        return this.blockDataMap.get(getDefaultLogStringId(logMaterial) + "_" + axis.name().toLowerCase());
+    }
+
     public BlockData getDefaultStrippedLogData(Material strippedLogMaterial) {
         return this.blockDataMap.get(getDefaultStrippedLogStringId(strippedLogMaterial));
+    }
+
+    public BlockData getDefaultStrippedLogData(Material strippedLogMaterial, Axis axis) {
+        return this.blockDataMap.get(getDefaultStrippedLogStringId(strippedLogMaterial) + "_" + axis.name().toLowerCase());
     }
 
     @Nullable
@@ -377,36 +408,43 @@ public class LeavesConfig {
                 this.plugin.getLogger().severe("Invalid instrument or note for log " + itemId + " in config.yml");
             }
 
-            final BlockData blockData = BlockData.logData(
-                    itemId,
-                    strippedLogId,
-                    state.getGlobalId(),
-                    logMaterial,
-                    strippedLogMaterial,
-                    false,
-                    strippedLogState.getGlobalId()
-            );
-            this.blockDataMap.put(itemId, blockData);
+            for (Axis axis : Axis.values()) {
+                final String directionalId = itemId + "_" + axis.name().toLowerCase();
+                final BlockData blockData = BlockData.logData(
+                        directionalId,
+                        strippedLogId,
+                        state.getGlobalId(),
+                        logMaterial,
+                        strippedLogMaterial,
+                        false,
+                        strippedLogState.getGlobalId(),
+                        axis
+                );
+                this.blockDataMap.put(directionalId, blockData);
+            }
         }
         for (Material logMaterial : LOGS) {
-            final String defaultLogStringId = getDefaultLogStringId(logMaterial);
-            final Material strippedLogMaterial = STRIPPED_LOGS.get(LOGS.indexOf(logMaterial));
-            final String defaultStrippedLogStringId = getDefaultStrippedLogStringId(strippedLogMaterial);
-            final LogData blockData = BlockData.logData(
-                    defaultLogStringId,
-                    defaultStrippedLogStringId,
-                    getLogById(getDefaultLogId(logMaterial)).getGlobalId(),
-                    logMaterial,
-                    strippedLogMaterial,
+            for (Axis axis : Axis.values()) {
+                final String defaultLogStringId = getDefaultLogStringId(logMaterial) + "_" + axis.name().toLowerCase();
+                final Material strippedLogMaterial = STRIPPED_LOGS.get(LOGS.indexOf(logMaterial));
+                final String defaultStrippedLogStringId = getDefaultStrippedLogStringId(strippedLogMaterial) + "_" + axis.name().toLowerCase();
+                final LogData blockData = BlockData.logData(
+                        defaultLogStringId,
+                        defaultStrippedLogStringId,
+                        getLogById(getDefaultLogId(logMaterial)).getGlobalId(),
+                        logMaterial,
+                        strippedLogMaterial,
 //                    this.defaultLogMaterial,
 //                    this.defaultStrippedLogMaterial,
-                    false,
-                    getLogById(getDefaultStrippedLogId(logMaterial, false)).getGlobalId()
-            );
-            System.out.println("Default log id: " + defaultLogStringId + " | " + getLogById(getDefaultLogId(logMaterial)).getType().getName());
-            System.out.println("Default log id: " + defaultStrippedLogStringId + " | " + getLogById(getDefaultStrippedLogId(logMaterial, false)).getType().getName());
-            this.blockDataMap.put(defaultLogStringId, blockData);
-            this.blockDataMap.put(defaultStrippedLogStringId, blockData.strip());
+                        false,
+                        getLogById(getDefaultStrippedLogId(logMaterial, false)).getGlobalId(),
+                        axis
+                );
+                System.out.println("Default log id: " + defaultLogStringId + " | " + getLogById(getDefaultLogId(logMaterial)).getType().getName());
+                System.out.println("Default log id: " + defaultStrippedLogStringId + " | " + getLogById(getDefaultStrippedLogId(logMaterial, false)).getType().getName());
+                this.blockDataMap.put(defaultLogStringId, blockData);
+                this.blockDataMap.put(defaultStrippedLogStringId, blockData.strip());
+            }
         }
 
     }

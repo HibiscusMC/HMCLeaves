@@ -54,25 +54,20 @@ public class LeafDropListener implements Listener {
         final Position position = Position.fromLocation(block.getLocation());
         final BlockData data = this.plugin.getBlockCache().removeBlockData(position);
         if (data == BlockData.EMPTY) {
-            Bukkit.broadcastMessage("Empty");
             return;
         }
         final String id = data.id();
         for (Item item : event.getItems()) {
             final ItemStack itemStack = item.getItemStack();
             if (Tag.LEAVES.isTagged(itemStack.getType())) {
-                Bukkit.broadcastMessage("Is leaf");
                 final Supplier<ItemStack> dropReplacementSupplier = this.leavesConfig.getLeafDropReplacement(id);
                 if (dropReplacementSupplier == null){
-                    Bukkit.broadcastMessage("Supplier null");
                     continue;
                 }
                 final ItemStack dropReplacement = dropReplacementSupplier.get();
                 if (dropReplacement == null) {
-                    Bukkit.broadcastMessage("Replacement null");
                     continue;
                 }
-                Bukkit.broadcastMessage("Transferring data");
                 this.transferItemData(itemStack, dropReplacement);
                 continue;
             }

@@ -21,6 +21,7 @@
 package io.github.fisher2911.hmcleaves.data;
 
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
+import org.bukkit.Axis;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.jetbrains.annotations.Nullable;
@@ -100,22 +101,23 @@ public interface BlockData {
     static LogData logData(
             String id,
             String strippedLogId,
-            int sendBlockData,
+            int sendBlockId,
             Material realBlockType,
             Material strippedBlockType,
             boolean stripped,
-            int strippedSendBlockId
+            int strippedSendBlockId,
+            Axis axis
     ) {
         return new LogData(
                 id,
                 strippedLogId,
-                sendBlockData,
+                sendBlockId,
                 realBlockType,
                 strippedBlockType,
                 stripped,
-                strippedSendBlockId
+                strippedSendBlockId,
+                axis
         );
     }
-
 
 }

@@ -29,13 +29,17 @@ import io.github.fisher2911.hmcleaves.data.LogData;
 import io.github.fisher2911.hmcleaves.packet.PacketUtils;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.world.Position;
+import org.bukkit.Axis;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -65,6 +69,7 @@ public class InteractionListener implements Listener {
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) return;
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        event.getPlayer().sendMessage("Right clicked block");
         final ItemStack clickedWith = event.getItem();
         if (clickedWith == null) return;
         final Block block = event.getClickedBlock();
@@ -77,7 +82,8 @@ public class InteractionListener implements Listener {
         }
         final World world = placeLocation.getWorld();
         if (world == null) return;
-        final BlockData blockData = this.leavesConfig.getBlockData(clickedWith);
+        final Axis axis = this.axisFromBlockFace(event.getBlockFace());
+        final BlockData blockData = this.leavesConfig.getBlockData(clickedWith, axis);
         if (this.doDebugTool(clickedWith, event.getPlayer(), block)) return;
         final Player player = event.getPlayer();
         if (this.checkStripLog(player, block, clickedWith)) return;
@@ -85,19 +91,18 @@ public class InteractionListener implements Listener {
             return;
         }
         if (blockData == null) return;
-        event.setCancelled(true);
-        if (player.getGameMode() != GameMode.CREATIVE) {
-            clickedWith.setAmount(clickedWith.getAmount() - 1);
-        }
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
-            this.blockCache.addBlockData(Position.fromLocation(placeLocation), blockData);
             final Block placedBlock = placeLocation.getBlock();
+            placedBlock.setType(blockData.realBlockType(), true);
+            if (player.getGameMode() != GameMode.CREATIVE) {
+                clickedWith.setAmount(clickedWith.getAmount() - 1);
+            }
+            this.blockCache.addBlockData(Position.fromLocation(placeLocation), blockData);
             PacketUtils.sendArmSwing(player, List.of(player));
             final Sound sound = blockData.placeSound();
             if (sound != null) {
                 world.playSound(placeLocation, sound, 1, 1);
             }
-            placedBlock.setType(blockData.realBlockType());
             if (placedBlock.getBlockData() instanceof final Leaves leaves) {
                 if (!(blockData instanceof final LeafData leafData)) {
                     return;
@@ -105,9 +110,42 @@ public class InteractionListener implements Listener {
                 if (player.getGameMode() != GameMode.CREATIVE || leafData.worldPersistence()) {
                     leaves.setPersistent(true);
                 }
-                placedBlock.setBlockData(leaves);
+                leaves.setDistance(this.getDistance(placeLocation));
+                placedBlock.setBlockData(leaves, true);
+                return;
+            }
+            if (blockData instanceof final LogData logData && placedBlock.getBlockData() instanceof final Orientable orientable) {
+                orientable.setAxis(logData.axis());
+                placedBlock.setBlockData(orientable, true);
             }
         }, 1);
+    }
+
+    private static final Set<BlockFace> BLOCK_RELATIVE_FACES = Set.of(
+            BlockFace.UP,
+            BlockFace.DOWN,
+            BlockFace.NORTH,
+            BlockFace.EAST,
+            BlockFace.SOUTH,
+            BlockFace.WEST
+    );
+
+    private int getDistance(Location location) {
+        final Block block = location.getBlock();
+        int minDistance = 7;
+        for (BlockFace blockFace : BLOCK_RELATIVE_FACES) {
+            final Block relative = block.getRelative(blockFace);
+            // for some reason leaf distance isn't updating when placing near a log or leaf
+            if (Tag.LOGS.isTagged(relative.getType())) {
+                return 1;
+            }
+            // exit early if leaf state will update by itself
+            if (Tag.LEAVES.isTagged(relative.getType())) {
+                minDistance = Math.min(minDistance, ((Leaves) relative.getBlockData()).getDistance());
+            }
+            if (minDistance == 1) return 2;
+        }
+        return Math.min(minDistance + 1, 7);
     }
 
     private boolean doDebugTool(ItemStack itemStack, Player player, Block clicked) {
@@ -117,8 +155,10 @@ public class InteractionListener implements Listener {
         final BlockData blockData = this.blockCache.getBlockData(Position.fromLocation(clicked.getLocation()));
         if (!(clicked.getBlockData() instanceof final Leaves leaves) || !(blockData instanceof final LeafData leafData)) {
             if (blockData instanceof final LogData logData) {
-                player.sendMessage("Log type: " + logData.realBlockType());
+                player.sendMessage("Log type: " + logData.realBlockType() + " : " + clicked.getType());
+                return true;
             }
+            player.sendMessage("Block data is not leaf data or log data: " + blockData.getClass().getSimpleName());
             return true;
         }
         if (blockData == BlockData.EMPTY) {
@@ -150,6 +190,15 @@ public class InteractionListener implements Listener {
         this.blockCache.addBlockData(position, strippedData);
         block.setType(strippedData.worldBlockType());
         return true;
+    }
+
+    private Axis axisFromBlockFace(BlockFace face) {
+        return switch (face) {
+            case UP, DOWN -> Axis.Y;
+            case NORTH, SOUTH -> Axis.Z;
+            case EAST, WEST -> Axis.X;
+            default -> throw new IllegalStateException("Unexpected value: " + face);
+        };
     }
 
 }
