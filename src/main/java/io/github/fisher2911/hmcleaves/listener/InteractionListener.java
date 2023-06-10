@@ -44,8 +44,10 @@ import org.bukkit.block.data.type.Leaves;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -119,6 +121,25 @@ public class InteractionListener implements Listener {
                 placedBlock.setBlockData(orientable, true);
             }
         }, 1);
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onBlockPlace(BlockPlaceEvent event) {
+        final Block block = event.getBlock();
+        final Material material = block.getType();
+        final Position position = Position.fromLocation(block.getLocation());
+        if (block.getBlockData() instanceof Leaves) {
+            final BlockData blockData = this.leavesConfig.getDefaultLeafData(material);
+            if (blockData == null) return;
+            this.blockCache.addBlockData(position, blockData);
+            return;
+        }
+        if (Tag.LOGS.isTagged(material)) {
+            final Orientable orientable = (Orientable) block.getBlockData();
+            final BlockData blockData = this.leavesConfig.getDefaultLogData(material, orientable.getAxis());
+            if (blockData == null) return;
+            this.blockCache.addBlockData(position, blockData);
+        }
     }
 
     private static final Set<BlockFace> BLOCK_RELATIVE_FACES = Set.of(

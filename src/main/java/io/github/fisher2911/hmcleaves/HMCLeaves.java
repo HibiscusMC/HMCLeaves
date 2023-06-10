@@ -29,9 +29,9 @@ import io.github.fisher2911.hmcleaves.command.LeavesCommand;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.LeafDatabase;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
-import io.github.fisher2911.hmcleaves.listener.WorldAndChunkLoadListener;
 import io.github.fisher2911.hmcleaves.listener.InteractionListener;
 import io.github.fisher2911.hmcleaves.listener.LeafDropListener;
+import io.github.fisher2911.hmcleaves.listener.WorldAndChunkLoadListener;
 import io.github.fisher2911.hmcleaves.packet.BlockBreakManager;
 import io.github.fisher2911.hmcleaves.packet.LeafDecayListener;
 import io.github.fisher2911.hmcleaves.packet.LeavesPacketListener;
@@ -49,6 +49,7 @@ public class HMCLeaves extends JavaPlugin {
     private BlockCache blockCache;
     private LeafDatabase leafDatabase;
     private BlockBreakManager blockBreakManager;
+    private WorldAndChunkLoadListener worldAndChunkLoadListener;
 
     @Override
     public void onLoad() {
@@ -70,12 +71,14 @@ public class HMCLeaves extends JavaPlugin {
         this.blockCache = new BlockCache(new ConcurrentHashMap<>());
         this.leafDatabase = new LeafDatabase(this);
         this.blockBreakManager = new BlockBreakManager(new ConcurrentHashMap<>(), this);
+        this.worldAndChunkLoadListener = new WorldAndChunkLoadListener(this);
         PacketEvents.getAPI().init();
         this.registerPacketListeners();
         this.registerListeners();
         Hooks.load(this);
         this.leavesConfig.load();
         this.leafDatabase.load();
+        this.worldAndChunkLoadListener.loadDefaultWorlds();
         this.getCommand("hmcleaves").setExecutor(new LeavesCommand(this));
     }
 
@@ -103,7 +106,7 @@ public class HMCLeaves extends JavaPlugin {
         List.of(
                         new InteractionListener(this),
                         new LeafDropListener(this),
-                        new WorldAndChunkLoadListener(this),
+                        this.worldAndChunkLoadListener,
                         new LeafDecayListener(this)
                 )
                 .forEach(listener -> getServer().getPluginManager().registerEvents(listener, this));

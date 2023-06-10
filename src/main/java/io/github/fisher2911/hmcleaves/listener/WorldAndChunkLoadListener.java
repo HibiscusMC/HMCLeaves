@@ -64,6 +64,19 @@ public class WorldAndChunkLoadListener implements Listener {
         this.leafDatabase = plugin.getLeafDatabase();
     }
 
+    public void loadDefaultWorlds() {
+        for (World world : Bukkit.getWorlds()) {
+            for (Chunk chunk : world.getLoadedChunks()) {
+                final UUID worldUUID = world.getUID();
+                if (!(PDCUtil.chunkHasLeafData(chunk.getPersistentDataContainer()))) {
+                    this.loadNewChunkData(chunk);
+                    continue;
+                }
+                this.loadChunkFromDatabase(ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ()));
+            }
+        }
+    }
+
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
         final Chunk chunk = event.getChunk();
