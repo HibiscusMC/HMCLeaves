@@ -23,6 +23,8 @@ package io.github.fisher2911.hmcleaves.packet;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.cache.BlockCache;
 import io.github.fisher2911.hmcleaves.world.Position;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -41,6 +43,11 @@ public class LeafDecayListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onLeafDecay(LeavesDecayEvent event) {
         final Position position = Position.fromLocation(event.getBlock().getLocation());
-        this.blockCache.removeBlockData(position);
+        // delay so that saplings can be replaced
+        Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
+            this.blockCache.removeBlockData(position);
+            PacketUtils.sendBlock(Material.AIR, position, Bukkit.getOnlinePlayers());
+        }, 1);
     }
+
 }

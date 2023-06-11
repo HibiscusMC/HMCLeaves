@@ -71,7 +71,6 @@ public class InteractionListener implements Listener {
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) return;
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
-        event.getPlayer().sendMessage("Right clicked block");
         final ItemStack clickedWith = event.getItem();
         if (clickedWith == null) return;
         final Block block = event.getClickedBlock();
@@ -86,10 +85,14 @@ public class InteractionListener implements Listener {
         if (world == null) return;
         final Axis axis = this.axisFromBlockFace(event.getBlockFace());
         final BlockData blockData = this.leavesConfig.getBlockData(clickedWith, axis);
-        if (this.doDebugTool(clickedWith, event.getPlayer(), block)) return;
+        if (this.doDebugTool(clickedWith, event.getPlayer(), block)) {
+            event.setCancelled(true);
+            return;
+        }
         final Player player = event.getPlayer();
         if (this.checkStripLog(player, block, clickedWith)) return;
         if (!(world.getNearbyEntities(placeLocation.clone().add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5, LivingEntity.class::isInstance).isEmpty())) {
+            event.setCancelled(true);
             return;
         }
         if (blockData == null) return;
@@ -117,6 +120,7 @@ public class InteractionListener implements Listener {
                 return;
             }
             if (blockData instanceof final LogData logData && placedBlock.getBlockData() instanceof final Orientable orientable) {
+                Bukkit.broadcastMessage("Placing log");
                 orientable.setAxis(logData.axis());
                 placedBlock.setBlockData(orientable, true);
             }
@@ -164,7 +168,6 @@ public class InteractionListener implements Listener {
             if (Tag.LEAVES.isTagged(relative.getType())) {
                 minDistance = Math.min(minDistance, ((Leaves) relative.getBlockData()).getDistance());
             }
-            if (minDistance == 1) return 2;
         }
         return Math.min(minDistance + 1, 7);
     }
@@ -177,6 +180,7 @@ public class InteractionListener implements Listener {
         if (!(clicked.getBlockData() instanceof final Leaves leaves) || !(blockData instanceof final LeafData leafData)) {
             if (blockData instanceof final LogData logData) {
                 player.sendMessage("Log type: " + logData.realBlockType() + " : " + clicked.getType());
+                player.sendMessage(logData.getNewState().getInstrument().name() + " " + logData.getNewState().getNote());
                 return true;
             }
             player.sendMessage("Block data is not leaf data or log data: " + blockData.getClass().getSimpleName());

@@ -396,15 +396,15 @@ public class LeavesConfig {
             final Material logMaterial = this.loadMaterial(logsSection, itemId + "." + LOG_MATERIAL_PATH, this.defaultLogMaterial);
             final Material strippedLogMaterial = this.loadMaterial(logsSection, itemId + "." + STRIPPED_LOG_MATERIAL_PATH, this.defaultStrippedLogMaterial);
             try {
-                final Instrument instrument = Instrument.valueOf(logsSection.getString(itemId + "." + INSTRUMENT_PATH));
+                final Instrument instrument = Instrument.valueOf(logsSection.getString(itemId + "." + INSTRUMENT_PATH).toUpperCase());
                 final int note = logsSection.getInt(itemId + "." + NOTE_PATH);
-                final Instrument strippedInstrument = Instrument.valueOf(logsSection.getString(itemId + "." + STRIPPED_INSTRUMENT_PATH));
+                final Instrument strippedInstrument = Instrument.valueOf(logsSection.getString(itemId + "." + STRIPPED_INSTRUMENT_PATH).toUpperCase());
                 final int strippedNote = logsSection.getInt(itemId + "." + STRIPPED_NOTE_PATH);
                 state.setInstrument(instrument);
                 state.setNote(note);
                 strippedLogState.setInstrument(strippedInstrument);
                 strippedLogState.setNote(strippedNote);
-            } catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException | NullPointerException e) {
                 this.plugin.getLogger().severe("Invalid instrument or note for log " + itemId + " in config.yml");
             }
 

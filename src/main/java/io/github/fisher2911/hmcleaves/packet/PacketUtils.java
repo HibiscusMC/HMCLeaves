@@ -32,7 +32,9 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMu
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerRemoveEntityEffect;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.world.Position;
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 import java.util.Collection;
@@ -43,13 +45,26 @@ public class PacketUtils {
         return block.getBlockState(PacketEvents.getAPI().getServerManager().getVersion().toClientVersion());
     }
 
-    public static void sendBlockData(BlockData blockData, Position position, Player player) {
+    public static void sendBlockData(BlockData blockData, Position position, Collection<? extends Player> players) {
         final WrappedBlockState state = blockData.getNewState();
-        final WrapperPlayServerBlockChange packet = new WrapperPlayServerBlockChange(
-                new Vector3i(position.x(), position.y(), position.z()),
-                state.getGlobalId()
-        );
-        PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet);
+        for (Player player : players) {
+            final WrapperPlayServerBlockChange packet = new WrapperPlayServerBlockChange(
+                    new Vector3i(position.x(), position.y(), position.z()),
+                    state.getGlobalId()
+            );
+            PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet);
+        }
+    }
+
+    public static void sendBlock(Material material, Position position, Collection<? extends Player> players) {
+        final int id = SpigotConversionUtil.fromBukkitBlockData(material.createBlockData()).getGlobalId();
+        for (Player player : players) {
+            final WrapperPlayServerBlockChange packet = new WrapperPlayServerBlockChange(
+                    new Vector3i(position.x(), position.y(), position.z()),
+                    id
+            );
+            PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet);
+        }
     }
 
     public static void sendBlockBreakAnimation(Player player, Location location, int entityId, byte damage) {
