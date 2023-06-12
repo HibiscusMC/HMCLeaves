@@ -82,6 +82,15 @@ public class InteractionListener implements Listener {
             placeLocation = block.getRelative(event.getBlockFace()).getLocation();
         }
         final World world = placeLocation.getWorld();
+        final Material placeLocationType = placeLocation.getBlock().getType();
+
+        if (!placeLocationType.isAir() &&
+                placeLocationType != Material.GRASS &&
+                placeLocationType != Material.WATER &&
+                placeLocationType != Material.LAVA
+        ) {
+            return;
+        }
         if (world == null) return;
         final Axis axis = this.axisFromBlockFace(event.getBlockFace());
         final BlockData blockData = this.leavesConfig.getBlockData(clickedWith, axis);
@@ -91,12 +100,16 @@ public class InteractionListener implements Listener {
         }
         final Player player = event.getPlayer();
         if (this.checkStripLog(player, block, clickedWith)) return;
+        if (blockData == null) return;
+        if (block.getType().isInteractable() && !player.isSneaking()) return;
         if (!(world.getNearbyEntities(placeLocation.clone().add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5, LivingEntity.class::isInstance).isEmpty())) {
             event.setCancelled(true);
             return;
         }
-        if (blockData == null) return;
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
+            final BlockPlaceEvent blockPlaceEvent = new BlockPlaceEvent(block, block.getState(), block.getRelative(event.getBlockFace()), clickedWith, player, true, event.getHand());
+            Bukkit.getPluginManager().callEvent(blockPlaceEvent);
+            if (blockPlaceEvent.isCancelled()) return;
             final Block placedBlock = placeLocation.getBlock();
             placedBlock.setType(blockData.realBlockType(), true);
             if (player.getGameMode() != GameMode.CREATIVE) {
