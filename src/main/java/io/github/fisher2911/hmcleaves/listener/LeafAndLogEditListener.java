@@ -34,14 +34,19 @@ import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.data.Orientable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
+import org.bukkit.event.world.StructureGrowEvent;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -96,7 +101,11 @@ public class LeafAndLogEditListener implements Listener {
             final Position newPosition = Position.fromLocation(block.getRelative(direction).getLocation());
             final BlockData blockData = this.blockCache.getBlockData(originalPosition);
             // leaves get destroyed by pistons
-            if (blockData == BlockData.EMPTY || blockData instanceof LeafData) continue;
+            if (blockData == BlockData.EMPTY) continue;
+            if (blockData instanceof LeafData) {
+                this.blockCache.removeBlockData(originalPosition);
+                continue;
+            }
             if (!(blockData instanceof final LogData logData)) continue;
             if (blockData.equals(this.leavesConfig.getDefaultLogData(logData.realBlockType(), logData.axis()))) {
                 runnables.add(() -> {
@@ -193,16 +202,27 @@ public class LeafAndLogEditListener implements Listener {
         return adjacent;
     }
 
-//    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
-//    public void onBlockUpdate(BlockPhysicsEvent event) {
-//        final Block block = event.getBlock();
-//        final BlockData blockData = this.blockCache.getBlockData(Position.fromLocation(block.getLocation()));
-//        if (blockData == BlockData.EMPTY) return;
-//        if (!(blockData instanceof LogData)) return;
-//        if (event.getSourceBlock().getType() == Material.MOVING_PISTON) {
-//            event.setCancelled(true);
-//            Bukkit.broadcastMessage("canceled: " + event.getBlock().getLocation());
-//        }
-//    }
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onTreeGrow(StructureGrowEvent event) {
+        for (BlockState blockState : event.getBlocks()) {
+            final Position position = Position.fromLocation(blockState.getLocation());
+            final BlockData blockData;
+            if (Tag.LOGS.isTagged(blockState.getType())) {
+                final Orientable orientable = (Orientable) blockState.getBlockData();
+                blockData = this.leavesConfig.getDefaultLogData(blockState.getType(), orientable.getAxis());
+            } else if (Tag.LEAVES.isTagged(blockState.getType())) {
+                blockData = this.leavesConfig.getDefaultLeafData(blockState.getType());
+            } else {
+                continue;
+            }
+            this.blockCache.addBlockData(position, blockData);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onBlockBurn(BlockBurnEvent event) {
+        final Position position = Position.fromLocation(event.getBlock().getLocation());
+        this.blockCache.removeBlockData(position);
+    }
 
 }
