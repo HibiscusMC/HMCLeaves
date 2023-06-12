@@ -30,6 +30,7 @@ import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
 import com.github.retrooper.packetevents.protocol.player.DiggingAction;
 import com.github.retrooper.packetevents.protocol.world.chunk.BaseChunk;
 import com.github.retrooper.packetevents.protocol.world.chunk.Column;
+import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import com.github.retrooper.packetevents.util.Vector3i;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerDigging;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBlockChange;
@@ -44,10 +45,8 @@ import io.github.fisher2911.hmcleaves.util.ChunkUtil;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
-import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
-import org.bukkit.block.data.type.TechnicalPiston;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
@@ -83,6 +82,24 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         if (packetType == PacketType.Play.Server.MULTI_BLOCK_CHANGE) {
             this.handleMultiBlockChange(event, player.getWorld().getUID());
         }
+//        if (packetType == PacketType.Play.Server.KEEP_ALIVE) return;
+//        if (packetType == PacketType.Play.Server.TIME_UPDATE) return;
+//        if (packetType == PacketType.Play.Server.SYSTEM_CHAT_MESSAGE) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_RELATIVE_MOVE) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_RELATIVE_MOVE_AND_ROTATION) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_VELOCITY) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_HEAD_LOOK) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_TELEPORT) return;
+//        if (packetType == PacketType.Play.Server.UPDATE_LIGHT) return;
+//        if (packetType == PacketType.Play.Server.BUNDLE) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_STATUS) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_ROTATION) return;
+//        if (packetType == PacketType.Play.Server.SPAWN_ENTITY) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_METADATA) return;
+//        if (packetType == PacketType.Play.Server.UPDATE_ATTRIBUTES) return;
+//        if (packetType == PacketType.Play.Server.DESTROY_ENTITIES) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_EQUIPMENT) return;
+//        Bukkit.broadcastMessage(packetType.getName());
     }
 
     @Override
@@ -140,13 +157,15 @@ public class LeavesPacketListener extends PacketListenerAbstract {
             final BlockData blockData = this.blockCache.getBlockData(position);
             if (blockData == BlockData.EMPTY) return;
             final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(packet.getBlockState()).getMaterial();
-            if (blockData.worldBlockType() != worldMaterial && !worldMaterial.isAir() && worldMaterial != Material.MOVING_PISTON) {
-                this.blockCache.removeBlockData(position);
+            final WrappedBlockState sendState = blockData.getNewState();
+            final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(sendState).getMaterial();
+            if (worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial && !worldMaterial.isAir() && worldMaterial != Material.MOVING_PISTON) {
+//                this.blockCache.removeBlockData(position);
                 return;
             }
             final WrapperPlayServerBlockChange newPacket = new WrapperPlayServerBlockChange(
                     packet.getBlockPosition(),
-                    blockData.getNewState().getGlobalId()
+                    sendState.getGlobalId()
             );
             event.setCancelled(true);
             PacketEvents.getAPI().getPlayerManager().sendPacketSilently(event.getPlayer(), newPacket);
@@ -169,11 +188,13 @@ public class LeavesPacketListener extends PacketListenerAbstract {
                 final BlockData blockData = this.blockCache.getBlockData(position);
                 if (blockData == BlockData.EMPTY) continue;
                 final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(PacketUtils.getState(block)).getMaterial();
-                if (blockData.worldBlockType() != worldMaterial && !worldMaterial.isAir() && worldMaterial != Material.MOVING_PISTON) {
-                    this.blockCache.removeBlockData(position);
+                final WrappedBlockState sendState = blockData.getNewState();
+                final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(sendState).getMaterial();
+                if (worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial && !worldMaterial.isAir() && worldMaterial != Material.MOVING_PISTON) {
+//                    this.blockCache.removeBlockData(position);
                     continue;
                 }
-                block.setBlockState(blockData.getNewState());
+                block.setBlockState(sendState);
             }
         } catch (Exception e) {
             e.printStackTrace();

@@ -26,6 +26,8 @@ import org.bukkit.Axis;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 
+import java.util.Objects;
+
 public record LogData(
         String id,
         String strippedLogId,
@@ -47,11 +49,12 @@ public record LogData(
     public WrappedBlockState getNewState() {
         if (!this.stripped) {
             final Integer id = Hooks.getBlockId(this.id);
-            if (id == null) return this.create(this.sendBlockId);
-            return this.create(id);
+            return this.create(Objects.requireNonNullElse(id, this.sendBlockId));
         }
         final Integer id = Hooks.getBlockId(this.strippedLogId);
-        if (id == null) return this.create(this.strippedSendBlockId);
+        if (id == null) {
+            return this.create(this.strippedSendBlockId);
+        }
         return this.create(id);
     }
 
@@ -86,5 +89,16 @@ public record LogData(
     public Sound placeSound() {
         return Sound.BLOCK_WOOD_PLACE;
     }
+
+    @Override
+    public int sendBlockId() {
+        if (this.stripped) return this.strippedSendBlockId;
+        return this.sendBlockId;
+    }
+
+    public int getSendBlockId() {
+        return this.sendBlockId;
+    }
+
 
 }

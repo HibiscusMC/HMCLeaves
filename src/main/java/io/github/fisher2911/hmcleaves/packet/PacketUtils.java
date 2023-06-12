@@ -129,4 +129,20 @@ public class PacketUtils {
         }
     }
 
+//    public static void sendPistonPush(List<Block> blocks, BlockFace direction, Collection<? extends Player> players) {
+//        for (Block block : blocks) {
+//            final WrappedBlockState movingPistonState = StateTypes.MOVING_PISTON.createBlockState();
+//            final WrapperPlayServerBlockChange movingPistonPacket = new WrapperPlayServerBlockChange(
+//                    new Vector3i(block.getX(), block.getY(), block.getZ()),
+//                    movingPistonState.getGlobalId()
+//            );
+//            for (Player player : players) {
+//                PacketEvents.getAPI().getPlayerManager().sendPacketSilently(
+//                        player,
+//                        movingPistonPacket
+//                );
+//            }
+//        }
+//    }
+
 }

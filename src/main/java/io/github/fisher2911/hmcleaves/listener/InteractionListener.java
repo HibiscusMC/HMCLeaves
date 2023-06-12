@@ -39,6 +39,7 @@ import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.entity.LivingEntity;
@@ -51,6 +52,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Set;
@@ -107,11 +109,15 @@ public class InteractionListener implements Listener {
             return;
         }
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
-            final BlockPlaceEvent blockPlaceEvent = new BlockPlaceEvent(block, block.getState(), block.getRelative(event.getBlockFace()), clickedWith, player, true, event.getHand());
-            Bukkit.getPluginManager().callEvent(blockPlaceEvent);
-            if (blockPlaceEvent.isCancelled()) return;
             final Block placedBlock = placeLocation.getBlock();
-            placedBlock.setType(blockData.realBlockType(), true);
+            final BlockState previousState = placedBlock.getState();
+            placedBlock.setType(blockData.realBlockType(), false);
+            final BlockPlaceEvent blockPlaceEvent = createEvent(placedBlock, previousState, block, clickedWith, player, true, event.getHand());
+            Bukkit.getPluginManager().callEvent(blockPlaceEvent);
+            if (blockPlaceEvent.isCancelled()) {
+                previousState.update(true, false);
+                return;
+            }
             if (player.getGameMode() != GameMode.CREATIVE) {
                 clickedWith.setAmount(clickedWith.getAmount() - 1);
             }
@@ -141,6 +147,7 @@ public class InteractionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onBlockPlace(BlockPlaceEvent event) {
+        if (event instanceof LeafPlaceEvent || event instanceof LogPlaceEvent) return;
         final Block block = event.getBlock();
         final Material material = block.getType();
         final Position position = Position.fromLocation(block.getLocation());
@@ -191,8 +198,7 @@ public class InteractionListener implements Listener {
         final BlockData blockData = this.blockCache.getBlockData(Position.fromLocation(clicked.getLocation()));
         if (!(clicked.getBlockData() instanceof final Leaves leaves) || !(blockData instanceof final LeafData leafData)) {
             if (blockData instanceof final LogData logData) {
-                player.sendMessage("Log type: " + logData.realBlockType() + " : " + clicked.getType());
-                player.sendMessage(logData.getNewState().getInstrument().name() + " " + logData.getNewState().getNote());
+                player.sendMessage(logData.id() + " Log type: " + logData.realBlockType() + " : " + clicked.getType());
                 return true;
             }
             player.sendMessage("Block data is not leaf data or log data: " + blockData.getClass().getSimpleName());
@@ -236,6 +242,32 @@ public class InteractionListener implements Listener {
             case EAST, WEST -> Axis.X;
             default -> throw new IllegalStateException("Unexpected value: " + face);
         };
+    }
+
+    private static class LogPlaceEvent extends BlockPlaceEvent {
+
+        public LogPlaceEvent(@NotNull Block placedBlock, @NotNull BlockState replacedBlockState, @NotNull Block placedAgainst, @NotNull ItemStack itemInHand, @NotNull Player thePlayer, boolean canBuild, @NotNull EquipmentSlot hand) {
+            super(placedBlock, replacedBlockState, placedAgainst, itemInHand, thePlayer, canBuild, hand);
+        }
+
+    }
+
+    private static class LeafPlaceEvent extends BlockPlaceEvent {
+
+        public LeafPlaceEvent(@NotNull Block placedBlock, @NotNull BlockState replacedBlockState, @NotNull Block placedAgainst, @NotNull ItemStack itemInHand, @NotNull Player thePlayer, boolean canBuild, @NotNull EquipmentSlot hand) {
+            super(placedBlock, replacedBlockState, placedAgainst, itemInHand, thePlayer, canBuild, hand);
+        }
+
+    }
+
+    private static BlockPlaceEvent createEvent(@NotNull Block placedBlock, @NotNull BlockState replacedBlockState, @NotNull Block placedAgainst, @NotNull ItemStack itemInHand, @NotNull Player thePlayer, boolean canBuild, @NotNull EquipmentSlot hand) {
+        if (Tag.LOGS.isTagged(placedBlock.getType())) {
+            return new LogPlaceEvent(placedBlock, replacedBlockState, placedAgainst, itemInHand, thePlayer, canBuild, hand);
+        }
+        if (Tag.LEAVES.isTagged(placedBlock.getType())) {
+            return new LeafPlaceEvent(placedBlock, replacedBlockState, placedAgainst, itemInHand, thePlayer, canBuild, hand);
+        }
+        throw new IllegalArgumentException("Block is not a log or leaf: " + placedBlock.getType());
     }
 
 }
