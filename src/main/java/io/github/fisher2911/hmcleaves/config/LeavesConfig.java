@@ -42,8 +42,10 @@ import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -191,6 +193,8 @@ public class LeavesConfig {
 
     private final HMCLeaves plugin;
     private final Map<String, BlockData> blockDataMap;
+    // so that tab complete doesn't show directional ID's
+    private final Set<String> playerItemIds;
     private final Map<String, Supplier<ItemStack>> itemSupplierMap;
     private final Map<String, Supplier<ItemStack>> saplingItemSupplierMap;
     private final Map<String, Supplier<ItemStack>> leafDropItemSupplierMap;
@@ -206,6 +210,7 @@ public class LeavesConfig {
             Map<String, Supplier<ItemStack>> leafDropItemSupplierMap
     ) {
         this.plugin = plugin;
+        this.playerItemIds = new HashSet<>();
         this.blockDataMap = blockDataMap;
         this.itemSupplierMap = itemSupplierMap;
         this.saplingItemSupplierMap = saplingItemSupplierMap;
@@ -271,6 +276,11 @@ public class LeavesConfig {
         return this.leafDropItemSupplierMap.get(id);
     }
 
+    @Unmodifiable
+    public Set<String> getPlayerItemIds() {
+        return Collections.unmodifiableSet(playerItemIds);
+    }
+
     private static final String DEFAULT_LEAF_MATERIAL_PATH = "default-leaf-material";
     private static final String DEFAULT_LOG_MATERIAL_PATH = "default-log-material";
     private static final String DEFAULT_STRIPPED_LOG_MATERIAL_PATH = "default-stripped-log-material";
@@ -324,6 +334,7 @@ public class LeavesConfig {
         for (var itemId : leavesSection.getKeys(false)) {
             final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(leavesSection.getConfigurationSection(itemId), itemId);
             this.itemSupplierMap.put(itemId, itemStackSupplier);
+            this.playerItemIds.add(itemId);
             final int stateId = leavesSection.getInt(itemId + "." + STATE_ID_PATH);
             final WrappedBlockState state = getLeafById(stateId);
             final Material leafMaterial = this.loadMaterial(leavesSection, itemId + "." + LEAF_MATERIAL_PATH, this.defaultLeafMaterial);
@@ -344,7 +355,6 @@ public class LeavesConfig {
             final String defaultLeafStringId = getDefaultLeafStringId(leaf);
             final int defaultLeafId = getDefaultLeafId(leaf);
             final WrappedBlockState leafStateById = getLeafById(defaultLeafId);
-            System.out.println("Default leaf id: " + defaultLeafStringId + " | " + leafStateById.getType().getName() + " - " + leafStateById.isPersistent() + " - " + leafStateById.getDistance());
             this.blockDataMap.put(defaultLeafStringId, BlockData.leafData(
                     defaultLeafStringId,
                     leafStateById.getGlobalId(),
@@ -353,7 +363,6 @@ public class LeavesConfig {
                     leafStateById.isPersistent(),
                     false
             ));
-            System.out.println(this.getDefaultLeafData(leaf).getNewState().getType().getName());
         }
     }
 
@@ -381,8 +390,6 @@ public class LeavesConfig {
         final ConfigurationSection logsSection = config.getConfigurationSection(LOGS_PATH);
         if (logsSection == null) return;
         for (final var itemId : logsSection.getKeys(false)) {
-            final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(logsSection.getConfigurationSection(itemId), itemId);
-            this.itemSupplierMap.put(itemId, itemStackSupplier);
 //            final int stateId = logsSection.getInt(itemId + "." + STATE_ID_PATH) - 1;
             String strippedLogId = logsSection.getString(itemId + "." + STRIPPED_LOG_ID_PATH);
             if (strippedLogId == null) {
@@ -406,7 +413,9 @@ public class LeavesConfig {
             } catch (IllegalArgumentException | NullPointerException e) {
                 this.plugin.getLogger().severe("Invalid instrument or note for log " + itemId + " in config.yml");
             }
-
+            final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(logsSection.getConfigurationSection(itemId), itemId);
+            this.itemSupplierMap.put(itemId, itemStackSupplier);
+            this.playerItemIds.add(itemId);
             for (Axis axis : Axis.values()) {
                 final String directionalId = itemId + "_" + axis.name().toLowerCase();
                 final BlockData blockData = BlockData.logData(
@@ -420,6 +429,7 @@ public class LeavesConfig {
                         axis
                 );
                 this.blockDataMap.put(directionalId, blockData);
+                this.itemSupplierMap.put(directionalId, itemStackSupplier);
             }
         }
         for (Material logMaterial : LOGS) {
@@ -433,14 +443,10 @@ public class LeavesConfig {
                         getLogById(getDefaultLogId(logMaterial)).getGlobalId(),
                         logMaterial,
                         strippedLogMaterial,
-//                    this.defaultLogMaterial,
-//                    this.defaultStrippedLogMaterial,
                         false,
                         getLogById(getDefaultStrippedLogId(logMaterial, false)).getGlobalId(),
                         axis
                 );
-                System.out.println("Default log id: " + defaultLogStringId + " | " + getLogById(getDefaultLogId(logMaterial)).getType().getName());
-                System.out.println("Default log id: " + defaultStrippedLogStringId + " | " + getLogById(getDefaultStrippedLogId(logMaterial, false)).getType().getName());
                 this.blockDataMap.put(defaultLogStringId, blockData);
                 this.blockDataMap.put(defaultStrippedLogStringId, blockData.strip());
             }

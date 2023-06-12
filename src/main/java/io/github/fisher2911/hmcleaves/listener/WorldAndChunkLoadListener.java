@@ -115,9 +115,6 @@ public class WorldAndChunkLoadListener implements Listener {
                             } else {
                                 blockData = this.leavesConfig.getDefaultLogData(material, axis);
                             }
-                            if (blockData == null) {
-                                System.out.println("BlockData is null: " + LeavesConfig.getDefaultStrippedLogStringId(material) + "_" + axis.name().toLowerCase());
-                            }
                             final Position position = Position.at(
                                     worldUUID,
                                     chunkX * 16 + x,

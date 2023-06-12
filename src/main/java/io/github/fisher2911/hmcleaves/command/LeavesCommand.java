@@ -120,7 +120,7 @@ public class LeavesCommand implements TabExecutor {
         }
         if (args.length == 2 && sender.hasPermission(ITEM_PERMISSION) && arg.equalsIgnoreCase(GIVE_ARG)) {
             final String itemArg = args[1];
-            for (String items : this.leavesConfig.getItems().keySet()) {
+            for (String items : this.leavesConfig.getPlayerItemIds()) {
                 if (items.startsWith(itemArg)) {
                     tabs.add(items);
                 }
