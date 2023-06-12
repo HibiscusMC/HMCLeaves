@@ -120,7 +120,6 @@ public class InteractionListener implements Listener {
                 return;
             }
             if (blockData instanceof final LogData logData && placedBlock.getBlockData() instanceof final Orientable orientable) {
-                Bukkit.broadcastMessage("Placing log");
                 orientable.setAxis(logData.axis());
                 placedBlock.setBlockData(orientable, true);
             }

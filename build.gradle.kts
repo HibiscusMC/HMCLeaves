@@ -51,6 +51,9 @@ dependencies {
     compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Core")
     compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Bukkit") { isTransitive = false }
     implementation("com.github.retrooper.packetevents:spigot:2.0.0-SNAPSHOT")
+    //
+//    implementation("com.github.retrooper.packetevents:spigot:23e0861192d5803bb72878a491833cbc7c6243a2")
+
 //    compileOnly("com.comphenix.protocol:ProtocolLib:5.0.0")
 }
 

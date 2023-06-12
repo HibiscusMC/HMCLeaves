@@ -349,7 +349,6 @@ public class LeavesConfig {
                     defaultLeafStringId,
                     leafStateById.getGlobalId(),
                     leaf,
-//                    this.defaultLeafMaterial,
                     leafStateById.getDistance(),
                     leafStateById.isPersistent(),
                     false

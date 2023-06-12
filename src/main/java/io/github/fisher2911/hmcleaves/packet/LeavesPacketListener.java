@@ -47,6 +47,7 @@ import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
+import org.bukkit.block.data.type.TechnicalPiston;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
@@ -139,7 +140,7 @@ public class LeavesPacketListener extends PacketListenerAbstract {
             final BlockData blockData = this.blockCache.getBlockData(position);
             if (blockData == BlockData.EMPTY) return;
             final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(packet.getBlockState()).getMaterial();
-            if (blockData.worldBlockType() != worldMaterial && !worldMaterial.isAir()) {
+            if (blockData.worldBlockType() != worldMaterial && !worldMaterial.isAir() && worldMaterial != Material.MOVING_PISTON) {
                 this.blockCache.removeBlockData(position);
                 return;
             }
@@ -168,7 +169,7 @@ public class LeavesPacketListener extends PacketListenerAbstract {
                 final BlockData blockData = this.blockCache.getBlockData(position);
                 if (blockData == BlockData.EMPTY) continue;
                 final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(PacketUtils.getState(block)).getMaterial();
-                if (blockData.worldBlockType() != worldMaterial && !worldMaterial.isAir()) {
+                if (blockData.worldBlockType() != worldMaterial && !worldMaterial.isAir() && worldMaterial != Material.MOVING_PISTON) {
                     this.blockCache.removeBlockData(position);
                     continue;
                 }

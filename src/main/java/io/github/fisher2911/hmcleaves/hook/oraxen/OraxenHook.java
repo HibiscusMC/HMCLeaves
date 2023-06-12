@@ -30,7 +30,6 @@ import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory;
 import org.bukkit.Bukkit;
-import org.bukkit.block.Block;
 import org.bukkit.block.data.type.NoteBlock;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -58,15 +57,11 @@ public class OraxenHook implements ItemHook {
         final Mechanic mechanic = noteBlockMechanicFactory.getMechanic(id);
         if (mechanic == null) return null;
         final NoteBlock noteBlock = noteBlockMechanicFactory.createNoteBlockData(id);
-        Bukkit.broadcastMessage(noteBlock.getInstrument() + " - " + noteBlock.getNote());
         return SpigotConversionUtil.fromBukkitBlockData(noteBlock).getGlobalId();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onNoteblockPlace(OraxenNoteBlockPlaceEvent event) {
-        final Block block = event.getBlock();
-        Bukkit.broadcastMessage("Placed note block");
-        event.setCancelled(true);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
