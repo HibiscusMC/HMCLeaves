@@ -26,7 +26,6 @@ import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.LogData;
 import io.github.fisher2911.hmcleaves.world.Position;
-import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -111,9 +110,7 @@ public class BlockBreakManager {
                 PacketUtils.sendBlockBroken(
                         player,
                         blockBreakData.getPosition(),
-                        SpigotConversionUtil.fromBukkitBlockData(
-                                blockBreakData.getBlockData().realBlockType().createBlockData()
-                        ).getGlobalId()
+                        blockBreakData.getBlockData().sendBlockId()
                 );
                 this.blockCache.removeBlockData(blockBreakData.getPosition());
                 block.setType(Material.AIR);
