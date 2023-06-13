@@ -24,6 +24,8 @@ import dev.lone.itemsadder.api.CustomBlock;
 import dev.lone.itemsadder.api.CustomStack;
 import dev.lone.itemsadder.api.Events.CustomBlockBreakEvent;
 import dev.lone.itemsadder.api.Events.CustomBlockPlaceEvent;
+import io.github.fisher2911.hmcleaves.HMCLeaves;
+import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.hook.ItemHook;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.event.EventHandler;
@@ -32,6 +34,14 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 public class ItemsAdderHook implements ItemHook {
+
+    private final HMCLeaves plugin;
+    private final LeavesConfig config;
+
+    public ItemsAdderHook(HMCLeaves plugin) {
+        this.plugin = plugin;
+        this.config = plugin.getLeavesConfig();
+    }
 
     @Override
     @Nullable
@@ -60,12 +70,20 @@ public class ItemsAdderHook implements ItemHook {
     public void onNoteblockPlace(CustomBlockPlaceEvent event) {
 //        final Block block = event.getBlock();
 //        LeafUpdater.scheduleTick(block.getLocation());
+        final String id = event.getNamespacedID();
+        if (this.config.getItem(id) != null) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onNoteblockRemove(CustomBlockBreakEvent event) {
 //        final Block block = event.getBlock();
 //        LeafUpdater.scheduleTick(block.getLocation());
+        final String id = event.getNamespacedID();
+        if (this.config.getItem(id) != null) {
+            event.setCancelled(true);
+        }
     }
 
 }

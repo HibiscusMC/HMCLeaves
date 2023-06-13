@@ -19,8 +19,6 @@ leaves:
       - "&bLine 2"
     state-id: 1
     sapling:
-      # hook id can also be the item id to use the HMCLeaves item
-#      hook-id: test-sapling
       material: OAK_SAPLING
       amount: 1
       name: "&aTest"
@@ -29,7 +27,6 @@ leaves:
         - "&7This is a test"
         - "&7This is a test"
     leaf-drop-replacement:
-      hook-id: test_leaves"
       material: OAK_LEAVES
       amount: 1
       name: "&aTest"

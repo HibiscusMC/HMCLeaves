@@ -223,13 +223,19 @@ public class LeavesConfig {
     }
 
     public BlockData getBlockData(ItemStack itemStack) {
-        final String itemId = PDCUtil.getItemId(itemStack);
+        String itemId = PDCUtil.getItemId(itemStack);
+        if (itemId == null) {
+            itemId = Hooks.getItemId(itemStack);
+        }
         if (itemId == null) return null;
         return this.blockDataMap.get(itemId);
     }
 
     public BlockData getBlockData(ItemStack itemStack, Axis axis) {
-        final String itemId = PDCUtil.getItemId(itemStack);
+        String itemId = PDCUtil.getItemId(itemStack);
+        if (itemId == null) {
+            itemId = Hooks.getItemId(itemStack);
+        }
         if (itemId == null) return null;
         final BlockData data = this.blockDataMap.get(itemId + "_" + axis.name().toLowerCase());
         if (data != null) return data;
@@ -324,6 +330,7 @@ public class LeavesConfig {
         this.itemSupplierMap.clear();
         this.saplingItemSupplierMap.clear();
         this.leafDropItemSupplierMap.clear();
+        this.playerItemIds.clear();
         this.plugin.reloadConfig();
         this.load();
     }
@@ -332,7 +339,12 @@ public class LeavesConfig {
         final ConfigurationSection leavesSection = config.getConfigurationSection(LEAVES_PATH);
         if (leavesSection == null) return;
         for (var itemId : leavesSection.getKeys(false)) {
-            final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(leavesSection.getConfigurationSection(itemId), itemId);
+            final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(
+                    leavesSection.getConfigurationSection(itemId),
+                    itemId,
+                    itemId
+//                    HOOK_ID_PATH
+            );
             this.itemSupplierMap.put(itemId, itemStackSupplier);
             this.playerItemIds.add(itemId);
             final int stateId = leavesSection.getInt(itemId + "." + STATE_ID_PATH);
@@ -369,14 +381,14 @@ public class LeavesConfig {
     private void loadSapling(ConfigurationSection config, String itemId) {
         final ConfigurationSection saplingSection = config.getConfigurationSection(SAPLING_PATH);
         if (saplingSection == null) return;
-        final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(saplingSection, itemId);
+        final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(saplingSection, itemId, itemId);
         this.saplingItemSupplierMap.put(itemId, itemStackSupplier);
     }
 
     private void loadLeafDropReplacement(ConfigurationSection config, String itemId) {
         final ConfigurationSection leafDropReplacementSection = config.getConfigurationSection(LEAF_DROP_REPLACEMENT_PATH);
         if (leafDropReplacementSection == null) return;
-        final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(leafDropReplacementSection, itemId);
+        final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(leafDropReplacementSection, itemId, itemId);
         this.leafDropItemSupplierMap.put(itemId, itemStackSupplier);
     }
 
@@ -413,11 +425,22 @@ public class LeavesConfig {
             } catch (IllegalArgumentException | NullPointerException e) {
                 this.plugin.getLogger().severe("Invalid instrument or note for log " + itemId + " in config.yml");
             }
-            final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(logsSection.getConfigurationSection(itemId), itemId);
+            final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(
+                    logsSection.getConfigurationSection(itemId),
+                    itemId,
+                    itemId
+            );
+            final Supplier<ItemStack> strippedItemStackSupplier = this.loadItemStack(
+                    logsSection.getConfigurationSection(itemId),
+                    strippedLogId,
+                    strippedLogId
+            );
             this.itemSupplierMap.put(itemId, itemStackSupplier);
+            this.itemSupplierMap.put(strippedLogId, strippedItemStackSupplier);
             this.playerItemIds.add(itemId);
             for (Axis axis : Axis.values()) {
                 final String directionalId = itemId + "_" + axis.name().toLowerCase();
+                final String strippedDirectionalId = strippedLogId + "_" + axis.name().toLowerCase();
                 final BlockData blockData = BlockData.logData(
                         directionalId,
                         strippedLogId,
@@ -430,6 +453,7 @@ public class LeavesConfig {
                 );
                 this.blockDataMap.put(directionalId, blockData);
                 this.itemSupplierMap.put(directionalId, itemStackSupplier);
+                this.itemSupplierMap.put(strippedDirectionalId, strippedItemStackSupplier);
             }
         }
         for (Material logMaterial : LOGS) {
@@ -463,21 +487,12 @@ public class LeavesConfig {
     }
 
     private static final String MATERIAL_PATH = "material";
-    private static final String HOOK_ID_PATH = "hook-id";
     private static final String AMOUNT_PATH = "amount";
     private static final String NAME_PATH = "name";
     private static final String LORE_PATH = "lore";
     private static final String MODEL_DATA_PATH = "model-data";
 
-    private Supplier<ItemStack> loadItemStack(ConfigurationSection section, String itemId) {
-        final String hookId = section.getString(HOOK_ID_PATH, null);
-        if (hookId != null) return () -> {
-            final ItemStack itemStack = Hooks.getItem(hookId);
-            if (itemStack == null) return null;
-            final ItemStack clone = itemStack.clone();
-            PDCUtil.setItemId(clone, itemId);
-            return clone;
-        };
+    private Supplier<ItemStack> loadItemStack(ConfigurationSection section, String itemId, String hookId) {
         final String materialStr = section.getString(MATERIAL_PATH);
         final Material material;
         try {
@@ -500,6 +515,13 @@ public class LeavesConfig {
             itemStack.setItemMeta(itemMeta);
             PDCUtil.setItemId(itemStack, itemId);
         }
+        if (hookId != null && Hooks.hasOtherItemHook()) return () -> {
+            final ItemStack hookItemStack = Hooks.getItem(hookId);
+            if (hookItemStack == null) return itemStack.clone();
+            final ItemStack clone = hookItemStack.clone();
+//            PDCUtil.setItemId(clone, itemId);
+            return clone;
+        };
         return itemStack::clone;
     }
 

@@ -20,6 +20,8 @@
 
 package io.github.fisher2911.hmcleaves.hook.oraxen;
 
+import io.github.fisher2911.hmcleaves.HMCLeaves;
+import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.hook.ItemHook;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import io.th0rgal.oraxen.api.OraxenItems;
@@ -29,7 +31,6 @@ import io.th0rgal.oraxen.mechanics.Mechanic;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory;
-import org.bukkit.Bukkit;
 import org.bukkit.block.data.type.NoteBlock;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -37,6 +38,14 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 public class OraxenHook implements ItemHook {
+
+    private final HMCLeaves plugin;
+    private final LeavesConfig config;
+
+    public OraxenHook(HMCLeaves plugin) {
+        this.plugin = plugin;
+        this.config = plugin.getLeavesConfig();
+    }
 
     @Override
     @Nullable
@@ -60,14 +69,20 @@ public class OraxenHook implements ItemHook {
         return SpigotConversionUtil.fromBukkitBlockData(noteBlock).getGlobalId();
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onNoteblockPlace(OraxenNoteBlockPlaceEvent event) {
+        final String id = event.getMechanic().getItemID();
+        if (this.config.getItem(id) != null) {
+            event.setCancelled(true);
+        }
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onNoteblockRemove(OraxenNoteBlockBreakEvent event) {
-//        final Block block = event.getBlock();
-//        LeafUpdater.scheduleTick(block.getLocation());
+        final String id = event.getMechanic().getItemID();
+        if (this.config.getItem(id) != null) {
+            event.setCancelled(true);
+        }
     }
 
 }

@@ -39,12 +39,12 @@ public class Hooks {
     public static void load(HMCLeaves plugin) {
         if (plugin.getServer().getPluginManager().getPlugin("Oraxen") != null) {
             plugin.getLogger().info("Oraxen found, loading hook");
-            itemHook = new OraxenHook();
+            itemHook = new OraxenHook(plugin);
             plugin.getServer().getPluginManager().registerEvents(itemHook, plugin);
         }
         if (plugin.getServer().getPluginManager().getPlugin("ItemsAdder") != null) {
             plugin.getLogger().info("ItemsAdder found, loading hook");
-            itemHook = new ItemsAdderHook();
+            itemHook = new ItemsAdderHook(plugin);
             plugin.getServer().getPluginManager().registerEvents(itemHook, plugin);
         }
         if (itemHook == null) {
@@ -75,6 +75,10 @@ public class Hooks {
     public static void trySaveSchematic(Player player) {
         if (worldEditHook == null) return;
         worldEditHook.trySaveSchematic(player);
+    }
+
+    public static boolean hasOtherItemHook() {
+        return !(itemHook instanceof HMCLeavesHook);
     }
 
 }

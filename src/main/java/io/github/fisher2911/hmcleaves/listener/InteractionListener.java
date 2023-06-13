@@ -198,7 +198,7 @@ public class InteractionListener implements Listener {
         final BlockData blockData = this.blockCache.getBlockData(Position.fromLocation(clicked.getLocation()));
         if (!(clicked.getBlockData() instanceof final Leaves leaves) || !(blockData instanceof final LeafData leafData)) {
             if (blockData instanceof final LogData logData) {
-                player.sendMessage(logData.id() + " Log type: " + logData.realBlockType() + " : " + clicked.getType());
+                player.sendMessage(logData.id() + " Log type: " + " stripped: " + logData.stripped() + " realBlockType:" + logData.worldBlockType() + " : " + clicked.getType());
                 return true;
             }
             player.sendMessage("Block data is not leaf data or log data: " + blockData.getClass().getSimpleName());
@@ -227,9 +227,13 @@ public class InteractionListener implements Listener {
         if (!AXES.contains(clickedWith.getType())) return false;
         final Position position = Position.fromLocation(block.getLocation());
         final BlockData blockData = this.blockCache.getBlockData(position);
-        if (!(blockData instanceof final LogData logData)) return false;
-        if (logData.stripped()) return false;
-        final BlockData strippedData = logData.strip();
+        if (!(blockData instanceof final LogData logData)) {
+            return false;
+        }
+        if (logData.stripped()) {
+            return false;
+        }
+        final LogData strippedData = logData.strip();
         this.blockCache.addBlockData(position, strippedData);
         block.setType(strippedData.worldBlockType());
         return true;
