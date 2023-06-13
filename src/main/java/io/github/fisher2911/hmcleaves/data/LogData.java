@@ -100,5 +100,10 @@ public record LogData(
         return this.sendBlockId;
     }
 
+    public String getCurrentId() {
+        if (this.stripped) return this.strippedLogId;
+        return this.id;
+    }
+
 
 }

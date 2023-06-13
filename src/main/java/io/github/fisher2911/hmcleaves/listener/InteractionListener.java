@@ -111,7 +111,7 @@ public class InteractionListener implements Listener {
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
             final Block placedBlock = placeLocation.getBlock();
             final BlockState previousState = placedBlock.getState();
-            placedBlock.setType(blockData.realBlockType(), false);
+            placedBlock.setType(blockData.worldBlockType(), false);
             final BlockPlaceEvent blockPlaceEvent = createEvent(placedBlock, previousState, block, clickedWith, player, true, event.getHand());
             Bukkit.getPluginManager().callEvent(blockPlaceEvent);
             if (blockPlaceEvent.isCancelled()) {

@@ -438,10 +438,11 @@ public class LeavesConfig {
             this.itemSupplierMap.put(itemId, itemStackSupplier);
             this.itemSupplierMap.put(strippedLogId, strippedItemStackSupplier);
             this.playerItemIds.add(itemId);
+            this.playerItemIds.add(strippedLogId);
             for (Axis axis : Axis.values()) {
                 final String directionalId = itemId + "_" + axis.name().toLowerCase();
                 final String strippedDirectionalId = strippedLogId + "_" + axis.name().toLowerCase();
-                final BlockData blockData = BlockData.logData(
+                final LogData blockData = BlockData.logData(
                         directionalId,
                         strippedLogId,
                         state.getGlobalId(),
@@ -452,6 +453,7 @@ public class LeavesConfig {
                         axis
                 );
                 this.blockDataMap.put(directionalId, blockData);
+                this.blockDataMap.put(strippedDirectionalId, blockData.strip());
                 this.itemSupplierMap.put(directionalId, itemStackSupplier);
                 this.itemSupplierMap.put(strippedDirectionalId, strippedItemStackSupplier);
             }

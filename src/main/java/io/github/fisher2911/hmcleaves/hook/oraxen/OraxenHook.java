@@ -27,6 +27,7 @@ import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.api.events.OraxenNoteBlockBreakEvent;
 import io.th0rgal.oraxen.api.events.OraxenNoteBlockPlaceEvent;
+import io.th0rgal.oraxen.items.ItemBuilder;
 import io.th0rgal.oraxen.mechanics.Mechanic;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
@@ -55,7 +56,9 @@ public class OraxenHook implements ItemHook {
 
     @Override
     public @Nullable ItemStack getItem(String id) {
-        return OraxenItems.getItemById(id).build();
+        final ItemBuilder builder = OraxenItems.getItemById(id);
+        if (builder == null) return null;
+        return builder.build();
     }
 
     @Override
