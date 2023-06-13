@@ -67,7 +67,7 @@ public class BlockBreakManager {
 
     public void startBlockBreak(Player player, Position position, BlockData blockData) {
         final int blockBreakTime = this.calculateBlockBreakTimeInTicks(player, player.getInventory().getItemInMainHand());
-        final int period = (int) Math.ceil(blockBreakTime / (double) BlockBreakData.MAX_DAMAGE);
+//        final int period = (int) Math.ceil(blockBreakTime / (double) BlockBreakData.MAX_DAMAGE);
         final BlockBreakData blockBreakData = new BlockBreakData(
                 RANDOM.nextInt(10_000, 20_000),
                 blockData,
@@ -78,7 +78,7 @@ public class BlockBreakManager {
                 0,
                 blockBreakTime,
                 0,
-                this.createScheduler(period, player.getUniqueId())
+                this.createScheduler(blockBreakTime, player.getUniqueId())
         );
         this.blockBreakDataMap.put(player.getUniqueId(), blockBreakData);
     }
@@ -88,59 +88,64 @@ public class BlockBreakManager {
         if (blockBreakData == null) {
             return;
         }
+        PacketUtils.sendBlockBreakAnimation(player, blockBreakData.getPosition().toLocation(), blockBreakData.getEntityId(), (byte) -1);
         blockBreakData.getBreakTask().cancel();
         this.blockBreakDataMap.remove(player.getUniqueId());
     }
 
-    private BukkitTask createScheduler(int period, UUID uuid) {
-        return Bukkit.getScheduler().runTaskTimer(this.plugin, () -> {
-            final BlockBreakData blockBreakData = this.blockBreakDataMap.get(uuid);
-            if (blockBreakData == null) {
-                return;
-            }
-            if (blockBreakData.isBroken()) {
-                final Player player = blockBreakData.getBreaker();
-                final Block block = blockBreakData.getPosition().toLocation().getBlock();
-                PacketUtils.sendBlockBreakAnimation(
-                        blockBreakData.getBreaker(),
-                        blockBreakData.getPosition().toLocation(),
-                        blockBreakData.getEntityId(),
-                        (byte) -1
-                );
-                PacketUtils.sendBlockBroken(
-                        player,
-                        blockBreakData.getPosition(),
-                        blockBreakData.getBlockData().sendBlockId()
-                );
-                this.blockCache.removeBlockData(blockBreakData.getPosition());
-                block.setType(Material.AIR);
-                Supplier<ItemStack> itemStackSupplier = null;
-                if (blockBreakData.getBlockData() instanceof final LogData logData) {
-                    if (logData.stripped()) {
-                        itemStackSupplier = this.leavesConfig.getItem(logData.strippedLogId());
-                    } else {
-                        itemStackSupplier = this.leavesConfig.getItem(blockBreakData.getBlockData().id());
-                    }
-                    if (itemStackSupplier == null) {
-                        itemStackSupplier = () -> new ItemStack(logData.worldBlockType());
-                    }
-                }
-                if (itemStackSupplier != null) {
-                    final World world = block.getWorld();
-                    final ItemStack itemStack = itemStackSupplier.get();
-                    if (itemStack != null) {
-                        final Supplier<ItemStack> finalItemStackSupplier = itemStackSupplier;
-                        Bukkit.getScheduler().runTaskLater(this.plugin, () -> world.dropItem(block.getLocation().clone().add(0.5, 0, 0.5), finalItemStackSupplier.get()), 1);
-                    }
-                }
-                blockBreakData.getBreakTask().cancel();
-                PacketUtils.removeMiningFatigue(player);
-                this.blockBreakDataMap.remove(uuid);
-                return;
-            }
-            blockBreakData.addBreakTimeProgress(period);
-            blockBreakData.send(blockBreakData.getPosition());
-        }, period, period);
+    private BukkitTask createScheduler(int blockBreakTime, UUID uuid) {
+        return Bukkit.getScheduler().runTaskTimer(this.plugin,
+                    () -> {
+                        final BlockBreakData blockBreakData = BlockBreakManager.this.blockBreakDataMap.get(uuid);
+                        if (blockBreakData == null) {
+                            return;
+                        }
+                        final Player player = blockBreakData.getBreaker();
+                        if (blockBreakData.isBroken()) {
+                            final Block block = blockBreakData.getPosition().toLocation().getBlock();
+                            PacketUtils.sendBlockBreakAnimation(
+                                    blockBreakData.getBreaker(),
+                                    blockBreakData.getPosition().toLocation(),
+                                    blockBreakData.getEntityId(),
+                                    (byte) -1
+                            );
+                            PacketUtils.sendBlockBroken(
+                                    player,
+                                    blockBreakData.getPosition(),
+                                    blockBreakData.getBlockData().sendBlockId()
+                            );
+                            BlockBreakManager.this.blockCache.removeBlockData(blockBreakData.getPosition());
+                            block.setType(Material.AIR);
+                            Supplier<ItemStack> itemStackSupplier = null;
+                            if (blockBreakData.getBlockData() instanceof final LogData logData) {
+                                if (logData.stripped()) {
+                                    itemStackSupplier = BlockBreakManager.this.leavesConfig.getItem(logData.strippedLogId());
+                                } else {
+                                    itemStackSupplier = BlockBreakManager.this.leavesConfig.getItem(blockBreakData.getBlockData().id());
+                                }
+                                if (itemStackSupplier == null) {
+                                    itemStackSupplier = () -> new ItemStack(logData.worldBlockType());
+                                }
+                            }
+                            if (itemStackSupplier != null) {
+                                final World world = block.getWorld();
+                                final ItemStack itemStack = itemStackSupplier.get();
+                                if (itemStack != null) {
+                                    final Supplier<ItemStack> finalItemStackSupplier = itemStackSupplier;
+                                    Bukkit.getScheduler().runTaskLater(BlockBreakManager.this.plugin, () -> world.dropItem(block.getLocation().clone().add(0.5, 0, 0.5), finalItemStackSupplier.get()), 1);
+                                }
+                            }
+                            blockBreakData.getBreakTask().cancel();
+                            PacketUtils.removeMiningFatigue(player);
+                            BlockBreakManager.this.blockBreakDataMap.remove(uuid);
+                            return;
+                        }
+                        final int updatedBlockBreakTime = BlockBreakManager.this.calculateBlockBreakTimeInTicks(player, player.getInventory().getItemInMainHand());
+                        final double percentageToAdd = (double) blockBreakTime / updatedBlockBreakTime;
+                        blockBreakData.addBreakTimeProgress(percentageToAdd);
+//                        blockBreakData.addBreakTimeProgress(period);
+                        blockBreakData.send(blockBreakData.getPosition());
+                }, 1, 1);
     }
 
     private static final int LOG_HARDNESS = 2;
@@ -202,7 +207,7 @@ public class BlockBreakManager {
         private final long startTime;
         private long lastHitTime;
         private final int totalBreakTime;
-        private int breakTimeProgress;
+        private double breakTimeProgress;
         private final BukkitTask breakTask;
 
         public BlockBreakData(
@@ -265,15 +270,15 @@ public class BlockBreakManager {
             return totalBreakTime;
         }
 
-        public int getBreakTimeProgress() {
+        public double getBreakTimeProgress() {
             return breakTimeProgress;
         }
 
-        public void setBreakTimeProgress(int breakTimeProgress) {
+        public void setBreakTimeProgress(double breakTimeProgress) {
             this.breakTimeProgress = breakTimeProgress;
         }
 
-        public void addBreakTimeProgress(int breakTimeProgress) {
+        public void addBreakTimeProgress(double breakTimeProgress) {
             this.breakTimeProgress = Math.min(this.breakTimeProgress + breakTimeProgress, this.totalBreakTime);
         }
 
