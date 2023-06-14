@@ -444,7 +444,7 @@ public class LeavesConfig {
                 final String strippedDirectionalId = strippedLogId + "_" + axis.name().toLowerCase();
                 final LogData blockData = BlockData.logData(
                         directionalId,
-                        strippedLogId,
+                        strippedDirectionalId,
                         state.getGlobalId(),
                         logMaterial,
                         strippedLogMaterial,

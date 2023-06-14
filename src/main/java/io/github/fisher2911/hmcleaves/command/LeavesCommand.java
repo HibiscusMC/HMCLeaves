@@ -24,6 +24,7 @@ import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -97,6 +98,7 @@ public class LeavesCommand implements TabExecutor {
             return true;
         }
         if (sender.hasPermission(SAVE_SCHEM_PERMISSION) && args[0].equalsIgnoreCase(TRANSFORM_SCHEM_ARG)) {
+            Bukkit.broadcastMessage("Trying to transform schematic.");
             Hooks.trySaveSchematic(player);
             return true;
         }
