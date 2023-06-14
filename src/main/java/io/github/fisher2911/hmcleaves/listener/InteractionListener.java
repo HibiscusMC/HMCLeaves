@@ -170,8 +170,8 @@ public class InteractionListener implements Listener {
     }
 
     /**
-     *     Logs should only drop using the {@link io.github.fisher2911.hmcleaves.packet.BlockBreakManager}
-      */
+     * Logs should only drop using the {@link io.github.fisher2911.hmcleaves.packet.BlockBreakManager}
+     */
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onBlockBreak(BlockBreakEvent event) {
         final Position position = Position.fromLocation(event.getBlock().getLocation());
@@ -197,7 +197,6 @@ public class InteractionListener implements Listener {
             if (Tag.LOGS.isTagged(relative.getType())) {
                 return 1;
             }
-            // exit early if leaf state will update by itself
             if (Tag.LEAVES.isTagged(relative.getType())) {
                 minDistance = Math.min(minDistance, ((Leaves) relative.getBlockData()).getDistance());
             }

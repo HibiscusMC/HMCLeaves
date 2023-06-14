@@ -27,15 +27,20 @@ import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
+import com.github.retrooper.packetevents.protocol.particle.Particle;
+import com.github.retrooper.packetevents.protocol.particle.data.ParticleBlockStateData;
+import com.github.retrooper.packetevents.protocol.particle.type.ParticleTypes;
 import com.github.retrooper.packetevents.protocol.player.DiggingAction;
 import com.github.retrooper.packetevents.protocol.world.chunk.BaseChunk;
 import com.github.retrooper.packetevents.protocol.world.chunk.Column;
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
+import com.github.retrooper.packetevents.util.Vector3d;
 import com.github.retrooper.packetevents.util.Vector3i;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerDigging;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBlockChange;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerChunkData;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMultiBlockChange;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerParticle;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.cache.BlockCache;
 import io.github.fisher2911.hmcleaves.cache.ChunkBlockCache;
@@ -45,9 +50,9 @@ import io.github.fisher2911.hmcleaves.util.ChunkUtil;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
-import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
@@ -82,25 +87,11 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         }
         if (packetType == PacketType.Play.Server.MULTI_BLOCK_CHANGE) {
             this.handleMultiBlockChange(event, player.getWorld().getUID());
+            return;
         }
-//        if (packetType == PacketType.Play.Server.KEEP_ALIVE) return;
-//        if (packetType == PacketType.Play.Server.TIME_UPDATE) return;
-//        if (packetType == PacketType.Play.Server.SYSTEM_CHAT_MESSAGE) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_RELATIVE_MOVE) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_RELATIVE_MOVE_AND_ROTATION) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_VELOCITY) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_HEAD_LOOK) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_TELEPORT) return;
-//        if (packetType == PacketType.Play.Server.UPDATE_LIGHT) return;
-//        if (packetType == PacketType.Play.Server.BUNDLE) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_STATUS) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_ROTATION) return;
-//        if (packetType == PacketType.Play.Server.SPAWN_ENTITY) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_METADATA) return;
-//        if (packetType == PacketType.Play.Server.UPDATE_ATTRIBUTES) return;
-//        if (packetType == PacketType.Play.Server.DESTROY_ENTITIES) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_EQUIPMENT) return;
-//        Bukkit.broadcastMessage(packetType.getName());
+        if (packetType == PacketType.Play.Server.PARTICLE) {
+            this.handleFallParticles(event);
+        }
     }
 
     @Override
@@ -234,6 +225,27 @@ public class LeavesPacketListener extends PacketListenerAbstract {
             this.blockBreakManager.cancelBlockBreak(player);
             PacketUtils.removeMiningFatigue(player);
         }
+    }
+
+    private void handleFallParticles(PacketSendEvent event) {
+        final WrapperPlayServerParticle packet = new WrapperPlayServerParticle(event);
+        final Particle particle = packet.getParticle();
+        if (particle.getType() != ParticleTypes.BLOCK) return;
+        if (!(event.getPlayer() instanceof final Player player)) return;
+        final Vector3d position = packet.getPosition();
+        final Vector3i below = position.subtract(0, 0.1, 0).toVector3i();
+        final World world = player.getWorld();
+        final BlockData blockData = this.blockCache.getBlockData(Position.at(
+                world.getUID(),
+                below.x,
+                below.y,
+                below.z
+        ));
+        if (!(blockData instanceof final LogData logData)) return;
+        final ParticleBlockStateData particleBlockStateData = new ParticleBlockStateData(
+                logData.getNewState()
+        );
+        particle.setData(particleBlockStateData);
     }
 
 }
