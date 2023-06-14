@@ -303,9 +303,13 @@ public class LeavesConfig {
     private static final String SAPLING_PATH = "sapling";
     private static final String LEAF_DROP_REPLACEMENT_PATH = "leaf-drop-replacement";
 
+    private static final String ONLY_FOLLOW_WORLD_PERSISTENCE_IF_CONNECTED_TO_LOG_PATH = "only-follow-world-persistence-if-connected-to-log";
+    private boolean onlyFollowWorldPersistenceIfConnectedToLog;
+
     public void load() {
         this.plugin.saveDefaultConfig();
         final FileConfiguration config = this.plugin.getConfig();
+        this.onlyFollowWorldPersistenceIfConnectedToLog = config.getBoolean(ONLY_FOLLOW_WORLD_PERSISTENCE_IF_CONNECTED_TO_LOG_PATH, false);
         try {
             this.defaultLeafMaterial = Material.valueOf(config.getString(DEFAULT_LEAF_MATERIAL_PATH));
         } catch (IllegalArgumentException ignored) {
@@ -321,6 +325,10 @@ public class LeavesConfig {
         initLeavesAndLogs(this.defaultLeafMaterial, this.defaultLogMaterial, this.defaultStrippedLogMaterial);
         this.loadLeavesSection(config);
         this.loadLogsSection(config);
+    }
+
+    public boolean isOnlyFollowWorldPersistenceIfConnectedToLog() {
+        return this.onlyFollowWorldPersistenceIfConnectedToLog;
     }
 
     public void reload() {

@@ -131,10 +131,13 @@ public class InteractionListener implements Listener {
                 if (!(blockData instanceof final LeafData leafData)) {
                     return;
                 }
-                if (player.getGameMode() != GameMode.CREATIVE || leafData.worldPersistence()) {
+                if (player.getGameMode() != GameMode.CREATIVE || leafData.worldPersistence() || this.leavesConfig.isOnlyFollowWorldPersistenceIfConnectedToLog()) {
                     leaves.setPersistent(true);
                 }
                 leaves.setDistance(this.getDistance(placeLocation));
+                if (leaves.isPersistent() && leaves.getDistance() < 7 && this.leavesConfig.isOnlyFollowWorldPersistenceIfConnectedToLog()) {
+                    leaves.setPersistent(false);
+                }
                 placedBlock.setBlockData(leaves, true);
                 return;
             }

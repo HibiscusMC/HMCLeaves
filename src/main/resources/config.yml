@@ -7,6 +7,10 @@ default-leaf-material: OAK_LEAVES
 default-log-material: OAK_LOG
 default-stripped-log-material: STRIPPED_OAK_LOG
 
+# If a player places a leaf and it has a distance >= 7 and this setting is true,
+# it will still be persistent even if world-persistence is set to false
+only-follow-world-persistence-if-connected-to-log: true
+
 leaves:
   "test_leaves":
     world-persistence: false
