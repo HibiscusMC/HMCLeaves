@@ -174,6 +174,7 @@ public class InteractionListener implements Listener {
      */
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onBlockBreak(BlockBreakEvent event) {
+        if (event.getPlayer().getGameMode() == GameMode.CREATIVE) return;
         final Position position = Position.fromLocation(event.getBlock().getLocation());
         if (!(this.blockCache.getBlockData(position) instanceof LogData)) return;
         event.setCancelled(true);
