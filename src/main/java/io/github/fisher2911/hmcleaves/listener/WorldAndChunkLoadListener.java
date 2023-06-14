@@ -27,6 +27,7 @@ import io.github.fisher2911.hmcleaves.cache.WorldBlockCache;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.LeafDatabase;
+import io.github.fisher2911.hmcleaves.packet.PacketUtils;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
@@ -34,11 +35,13 @@ import org.bukkit.Axis;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Leaves;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
@@ -47,8 +50,10 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class WorldAndChunkLoadListener implements Listener {
 
@@ -148,13 +153,39 @@ public class WorldAndChunkLoadListener implements Listener {
             }
             this.leafDatabase.doDatabaseTaskAsync(() -> {
                 if (!this.plugin.isEnabled()) return;
-                Bukkit.getScheduler().runTask(this.plugin, () -> PDCUtil.setChunkHasLeafData(chunk.getPersistentDataContainer()));
                 final ChunkBlockCache newChunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
+                Bukkit.getScheduler().runTask(this.plugin, () -> {
+                    PDCUtil.setChunkHasLeafData(chunk.getPersistentDataContainer());
+                    this.sendBlocksToPlayersAlreadyInChunk(world, chunkX, chunkZ);
+                });
                 if (newChunkBlockCache == null) return;
                 this.leafDatabase.saveBlocksInChunk(newChunkBlockCache);
                 if (markClean) newChunkBlockCache.markClean();
             });
         });
+    }
+
+    private void sendBlocksToPlayersAlreadyInChunk(World world, int chunkX, int chunkZ) {
+        if (!world.isChunkLoaded(chunkX, chunkZ)) return;
+        final int renderDistance = Bukkit.getViewDistance();
+        final Collection<Player> playersThatCanSee = world.getPlayers()
+                .stream()
+                .filter(player -> {
+                    final Location location = player.getLocation();
+                    final Chunk chunk = location.getChunk();
+                    final int playerChunkX = chunk.getX();
+                    final int playerChunkZ = chunk.getZ();
+                    return Math.abs(playerChunkX - chunkX) <= renderDistance && Math.abs(playerChunkZ - chunkZ) <= renderDistance;
+                })
+                .collect(Collectors.toList());
+        final ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(ChunkPosition.at(world.getUID(), chunkX, chunkZ));
+        if (chunkBlockCache == null) return;
+        PacketUtils.sendMultiBlockChange(
+                chunkBlockCache.getChunkPosition(),
+                chunkBlockCache.getBlockDataMap(),
+                playersThatCanSee
+        );
+//        final Chunk chunk = world.getChunkAt(chunkX, chunkZ);
     }
 
     private void loadChunkFromDatabase(ChunkPosition chunkPosition) {
@@ -164,6 +195,11 @@ public class WorldAndChunkLoadListener implements Listener {
             boolean markClean = chunkBlockCache == null || chunkBlockCache.isClean();
             chunkBlocks.forEach(this.blockCache::addBlockData);
             chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
+            Bukkit.getScheduler().runTask(this.plugin, () -> {
+                final World world = Bukkit.getWorld(chunkPosition.world());
+                if (world == null) return;
+                this.sendBlocksToPlayersAlreadyInChunk(world, chunkPosition.x(), chunkPosition.z());
+            });
             if (chunkBlockCache == null || !markClean) return;
             chunkBlockCache.markClean();
         });

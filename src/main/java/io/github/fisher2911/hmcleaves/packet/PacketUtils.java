@@ -30,7 +30,11 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEn
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityEffect;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMultiBlockChange;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerRemoveEntityEffect;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import io.github.fisher2911.hmcleaves.data.BlockData;
+import io.github.fisher2911.hmcleaves.util.Pair;
+import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Location;
@@ -38,6 +42,9 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 
 public class PacketUtils {
 
@@ -126,6 +133,42 @@ public class PacketUtils {
                             WrapperPlayServerEntityAnimation.EntityAnimationType.SWING_MAIN_ARM
                     )
             );
+        }
+    }
+
+    public static void sendMultiBlockChange(ChunkPosition chunkPosition, Map<Position, BlockData> blocks, Collection<? extends Player> players) {
+        if (players.isEmpty()) return;
+        final Multimap<Integer, Pair<Position, BlockData>> yToBlocksMap = Multimaps.newSetMultimap(new HashMap<>(), HashSet::new);
+        for (var entry : blocks.entrySet()) {
+            final Position position = entry.getKey();
+            final BlockData blockData = entry.getValue();
+            int chunkY = position.y() / 16;
+            if (position.y() < 0 && chunkY == 0) chunkY = -1;
+            yToBlocksMap.put(chunkY, Pair.of(position, blockData));
+        }
+        for (Player player : players) {
+            for (int y : yToBlocksMap.keySet()) {
+                final Collection<Pair<Position, BlockData>> set = yToBlocksMap.get(y);
+                final var encodedBlocks = new WrapperPlayServerMultiBlockChange.EncodedBlock[set.size()];
+                int i = 0;
+                for (var pair : set) {
+                    final Position position = pair.getFirst();
+                    final BlockData blockData = pair.getSecond();
+                    encodedBlocks[i++] = new WrapperPlayServerMultiBlockChange.EncodedBlock(
+                            new Vector3i(position.x(), position.y(), position.z()),
+                            blockData.getNewState().getGlobalId()
+                    );
+                }
+//                Bukkit.broadcastMessage("Sending blocks in chunk: " + encodedBlocks.length);
+                PacketEvents.getAPI().getPlayerManager().sendPacketSilently(
+                        player,
+                        new WrapperPlayServerMultiBlockChange(
+                                new Vector3i(chunkPosition.x(), y, chunkPosition.z()),
+                                true,
+                                encodedBlocks
+                        )
+                );
+            }
         }
     }
 

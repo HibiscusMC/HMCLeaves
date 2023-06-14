@@ -98,7 +98,6 @@ public class LeavesCommand implements TabExecutor {
             return true;
         }
         if (sender.hasPermission(SAVE_SCHEM_PERMISSION) && args[0].equalsIgnoreCase(TRANSFORM_SCHEM_ARG)) {
-            Bukkit.broadcastMessage("Trying to transform schematic.");
             Hooks.trySaveSchematic(player);
             return true;
         }

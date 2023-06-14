@@ -45,11 +45,11 @@ dependencies {
     compileOnly("org.xerial:sqlite-jdbc:3.39.2.0")
     implementation("com.zaxxer:HikariCP:3.3.0")
     implementation("org.bstats:bstats-bukkit:3.0.0")
-    compileOnly("com.sk89q.worldedit:worldedit-core:7.2.12-SNAPSHOT")
-    compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.12-SNAPSHOT")
+    compileOnly("com.sk89q.worldedit:worldedit-core:7.2.14-SNAPSHOT")
+    compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.14-SNAPSHOT")
     implementation(platform("com.intellectualsites.bom:bom-1.18.x:1.19"))
-    compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Core")
-    compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Bukkit") { isTransitive = false }
+//    compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Core")
+//    compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Bukkit") { isTransitive = false }
 //    implementation("com.github.retrooper.packetevents:spigot:2.0.0-SNAPSHOT")
     //
     implementation("com.github.retrooper.packetevents:spigot:23e0861192d5803bb72878a491833cbc7c6243a2")
