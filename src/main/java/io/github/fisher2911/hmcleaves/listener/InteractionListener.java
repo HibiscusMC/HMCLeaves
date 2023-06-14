@@ -239,6 +239,7 @@ public class InteractionListener implements Listener {
         final LogData strippedData = logData.strip();
         this.blockCache.addBlockData(position, strippedData);
         block.setType(strippedData.worldBlockType());
+        player.getWorld().playSound(block.getLocation(), Sound.ITEM_AXE_STRIP, 1, 1);
         return true;
     }
 
