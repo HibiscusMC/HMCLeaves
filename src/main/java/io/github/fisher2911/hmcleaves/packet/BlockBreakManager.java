@@ -32,10 +32,12 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
@@ -73,9 +75,6 @@ public class BlockBreakManager {
                 blockData,
                 player,
                 position,
-                player.getInventory().getItemInMainHand(),
-                0,
-                0,
                 blockBreakTime,
                 0,
                 this.createScheduler(blockBreakTime, player.getUniqueId())
@@ -103,6 +102,12 @@ public class BlockBreakManager {
                         final Player player = blockBreakData.getBreaker();
                         if (blockBreakData.isBroken()) {
                             final Block block = blockBreakData.getPosition().toLocation().getBlock();
+                            final LeavesBlockBreakEvent event = new LeavesBlockBreakEvent(block, player);
+                            Bukkit.getPluginManager().callEvent(event);
+                            if (event.isCancelled()) {
+                                blockBreakData.resetProgress();
+                                return;
+                            }
                             PacketUtils.sendBlockBreakAnimation(
                                     blockBreakData.getBreaker(),
                                     blockBreakData.getPosition().toLocation(),
@@ -203,9 +208,6 @@ public class BlockBreakManager {
         private final BlockData blockData;
         private final Player breaker;
         private final Position position;
-        private final ItemStack itemInHand;
-        private final long startTime;
-        private long lastHitTime;
         private final int totalBreakTime;
         private double breakTimeProgress;
         private final BukkitTask breakTask;
@@ -215,9 +217,6 @@ public class BlockBreakManager {
                 BlockData blockData,
                 Player breaker,
                 Position position,
-                ItemStack itemInHand,
-                long startTime,
-                long lastHitTime,
                 int totalBreakTime,
                 int breakTimeProgress,
                 BukkitTask breakTask
@@ -226,9 +225,6 @@ public class BlockBreakManager {
             this.blockData = blockData;
             this.breaker = breaker;
             this.position = position;
-            this.itemInHand = itemInHand;
-            this.startTime = startTime;
-            this.lastHitTime = lastHitTime;
             this.totalBreakTime = totalBreakTime;
             this.breakTimeProgress = breakTimeProgress;
             this.breakTask = breakTask;
@@ -248,22 +244,6 @@ public class BlockBreakManager {
 
         public Position getPosition() {
             return position;
-        }
-
-        public ItemStack getItemInHand() {
-            return itemInHand;
-        }
-
-        public long getStartTime() {
-            return startTime;
-        }
-
-        public long getLastHitTime() {
-            return lastHitTime;
-        }
-
-        public void setLastHitTime(long lastHitTime) {
-            this.lastHitTime = lastHitTime;
         }
 
         public int getTotalBreakTime() {
@@ -299,6 +279,18 @@ public class BlockBreakManager {
 
         public BukkitTask getBreakTask() {
             return breakTask;
+        }
+
+        public void resetProgress() {
+            this.breakTimeProgress = 0;
+        }
+
+    }
+
+    public static class LeavesBlockBreakEvent extends BlockBreakEvent {
+
+        public LeavesBlockBreakEvent(@NotNull Block theBlock, @NotNull Player player) {
+            super(theBlock, player);
         }
 
     }
