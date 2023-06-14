@@ -48,6 +48,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -166,6 +167,16 @@ public class InteractionListener implements Listener {
             if (blockData == null) return;
             this.blockCache.addBlockData(position, blockData);
         }
+    }
+
+    /**
+     *     Logs should only drop using the {@link io.github.fisher2911.hmcleaves.packet.BlockBreakManager}
+      */
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    public void onBlockBreak(BlockBreakEvent event) {
+        final Position position = Position.fromLocation(event.getBlock().getLocation());
+        if (!(this.blockCache.getBlockData(position) instanceof LogData)) return;
+        event.setCancelled(true);
     }
 
     private static final Set<BlockFace> BLOCK_RELATIVE_FACES = Set.of(
