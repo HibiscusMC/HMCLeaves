@@ -365,7 +365,8 @@ public class LeavesConfig {
                     leafMaterial,
                     state.getDistance(),
                     state.isPersistent(),
-                    worldPersistence
+                    worldPersistence,
+                    false
             );
             this.blockDataMap.put(itemId, blockData);
             this.loadSapling(leavesSection.getConfigurationSection(itemId), itemId);
@@ -381,6 +382,7 @@ public class LeavesConfig {
                     leaf,
                     leafStateById.getDistance(),
                     leafStateById.isPersistent(),
+                    false,
                     false
             ));
         }

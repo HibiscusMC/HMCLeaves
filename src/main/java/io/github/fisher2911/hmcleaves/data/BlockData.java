@@ -86,7 +86,8 @@ public interface BlockData {
             Material realBlockType,
             int displayDistance,
             boolean displayPersistence,
-            boolean worldPersistence
+            boolean worldPersistence,
+            boolean waterlogged
     ) {
         return new LeafData(
                 id,
@@ -94,7 +95,8 @@ public interface BlockData {
                 realBlockType,
                 displayDistance,
                 displayPersistence,
-                worldPersistence
+                worldPersistence,
+                waterlogged
         );
     }
 

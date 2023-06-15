@@ -85,6 +85,10 @@ public class InteractionListener implements Listener {
         } else {
             placeLocation = block.getRelative(event.getBlockFace()).getLocation();
         }
+        final Player player = event.getPlayer();
+        if (this.checkWaterlog(player, block, clickedWith)) {
+            return;
+        }
         final World world = placeLocation.getWorld();
         final Material placeLocationType = placeLocation.getBlock().getType();
 
@@ -102,7 +106,6 @@ public class InteractionListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        final Player player = event.getPlayer();
         if (this.checkStripLog(player, block, clickedWith)) return;
         if (blockData == null) return;
         if (block.getType().isInteractable() && !player.isSneaking()) return;
@@ -226,7 +229,7 @@ public class InteractionListener implements Listener {
             return true;
         }
         player.sendMessage("Display distance: " + leafData.displayDistance() + " Display persistence: " + leafData.displayPersistence() + " " +
-                "server distance: " + leaves.getDistance() + " server persistence: " + leaves.isPersistent());
+                "server distance: " + leaves.getDistance() + " server persistence: " + leaves.isPersistent() + " waterlogged: " + leafData.waterlogged());
         return true;
     }
 
@@ -256,11 +259,28 @@ public class InteractionListener implements Listener {
         return true;
     }
 
+    private boolean checkWaterlog(Player player, Block block, ItemStack clickedWith) {
+        final Position position = Position.fromLocation(block.getLocation());
+        final BlockData blockData = this.blockCache.getBlockData(position);
+        if (!(blockData instanceof final LeafData leafData)) {
+            return false;
+        }
+        if (clickedWith.getType() == Material.WATER_BUCKET) {
+            this.blockCache.addBlockData(position, leafData.waterlog(true));
+            return true;
+        }
+        if (clickedWith.getType() == Material.BUCKET) {
+            this.blockCache.addBlockData(position, leafData.waterlog(false));
+            return true;
+        }
+        return false;
+    }
+
     private Axis axisFromBlockFace(BlockFace face) {
         return switch (face) {
             case UP, DOWN -> Axis.Y;
-            case NORTH, SOUTH -> Axis.Z;
-            case EAST, WEST -> Axis.X;
+            case NORTH, SOUTH -> Axis.X;
+            case EAST, WEST -> Axis.Z;
             default -> throw new IllegalStateException("Unexpected value: " + face);
         };
     }

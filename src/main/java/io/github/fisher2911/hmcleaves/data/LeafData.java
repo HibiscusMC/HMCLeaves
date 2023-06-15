@@ -30,7 +30,8 @@ public record LeafData(
         Material realBlockType,
         int displayDistance,
         boolean displayPersistence,
-        boolean worldPersistence
+        boolean worldPersistence,
+        boolean waterlogged
 ) implements BlockData {
 
     @Override
@@ -43,12 +44,25 @@ public record LeafData(
         final WrappedBlockState newState = WrappedBlockState.getByGlobalId(this.sendBlockId);
         newState.setDistance(this.displayDistance);
         newState.setPersistent(this.displayPersistence);
+        if (this.waterlogged) newState.setWaterlogged(true);
         return newState;
     }
 
     @Override
     public Sound placeSound() {
         return Sound.BLOCK_GRASS_PLACE;
+    }
+
+    public LeafData waterlog(boolean waterLog) {
+        return new LeafData(
+                this.id,
+                this.sendBlockId,
+                this.realBlockType,
+                this.displayDistance,
+                this.displayPersistence,
+                this.worldPersistence,
+                waterLog
+        );
     }
 
 }

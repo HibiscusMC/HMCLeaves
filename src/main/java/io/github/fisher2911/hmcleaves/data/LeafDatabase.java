@@ -86,6 +86,7 @@ public class LeafDatabase {
     private static final String LEAVES_TABLE_BLOCK_Y_COLUMN = "block_y";
     private static final String LEAVES_TABLE_BLOCK_Z_COLUMN = "block_z";
     private static final String LEAVES_TABLE_BLOCK_ID_COLUMN = "block_id";
+    private static final String LEAVES_TABLE_WATERLOGGED_COLUMN = "waterlogged";
     private static final String CREATE_LEAVES_TABLE_STATEMENT =
             "CREATE TABLE IF NOT EXISTS " + LEAVES_TABLE_NAME + " (" +
                     LEAVES_TABLE_WORLD_UUID_COLUMN + " BINARY(16) NOT NULL, " +
@@ -95,6 +96,7 @@ public class LeafDatabase {
                     LEAVES_TABLE_BLOCK_Y_COLUMN + " INTEGER NOT NULL, " +
                     LEAVES_TABLE_BLOCK_Z_COLUMN + " INTEGER NOT NULL, " +
                     LEAVES_TABLE_BLOCK_ID_COLUMN + " TEXT NOT NULL, " +
+                    LEAVES_TABLE_WATERLOGGED_COLUMN + " BOOLEAN NOT NULL, " +
                     "PRIMARY KEY (" + LEAVES_TABLE_WORLD_UUID_COLUMN + ", " + LEAVES_TABLE_BLOCK_X_COLUMN + ", " + LEAVES_TABLE_BLOCK_Y_COLUMN + ", " + LEAVES_TABLE_BLOCK_Z_COLUMN + ")" +
                     ");";
 
@@ -106,18 +108,19 @@ public class LeafDatabase {
                     LEAVES_TABLE_BLOCK_X_COLUMN + ", " +
                     LEAVES_TABLE_BLOCK_Y_COLUMN + ", " +
                     LEAVES_TABLE_BLOCK_Z_COLUMN + ", " +
-                    LEAVES_TABLE_BLOCK_ID_COLUMN +
-                    ") VALUES (?, ?, ?, ?, ?, ?, ?);";
+                    LEAVES_TABLE_BLOCK_ID_COLUMN + ", " +
+                    LEAVES_TABLE_WATERLOGGED_COLUMN +
+                    ") VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
 
     private static final String GET_LEAF_BLOCK_STATEMENT =
-            "SELECT " + LEAVES_TABLE_BLOCK_ID_COLUMN + " FROM " + LEAVES_TABLE_NAME + " WHERE " +
+            "SELECT " + LEAVES_TABLE_BLOCK_ID_COLUMN + ", " + LEAVES_TABLE_WATERLOGGED_COLUMN + " FROM " + LEAVES_TABLE_NAME + " WHERE " +
                     LEAVES_TABLE_WORLD_UUID_COLUMN + " = ? AND " +
                     LEAVES_TABLE_BLOCK_X_COLUMN + " = ? AND " +
                     LEAVES_TABLE_BLOCK_Y_COLUMN + " = ? AND " +
                     LEAVES_TABLE_BLOCK_Z_COLUMN + " = ?;";
 
     private static final String GET_LEAF_BLOCKS_IN_CHUNK_STATEMENT =
-            "SELECT " + LEAVES_TABLE_BLOCK_X_COLUMN + ", " + LEAVES_TABLE_BLOCK_Y_COLUMN + ", " + LEAVES_TABLE_BLOCK_Z_COLUMN + ", " + LEAVES_TABLE_BLOCK_ID_COLUMN + " FROM " + LEAVES_TABLE_NAME + " WHERE " +
+            "SELECT " + LEAVES_TABLE_BLOCK_X_COLUMN + ", " + LEAVES_TABLE_BLOCK_Y_COLUMN + ", " + LEAVES_TABLE_BLOCK_Z_COLUMN + ", " + LEAVES_TABLE_BLOCK_ID_COLUMN + ", " + LEAVES_TABLE_WATERLOGGED_COLUMN + " FROM " + LEAVES_TABLE_NAME + " WHERE " +
                     LEAVES_TABLE_WORLD_UUID_COLUMN + " = ? AND " +
                     LEAVES_TABLE_CHUNK_X_COLUMN + " = ? AND " +
                     LEAVES_TABLE_CHUNK_Z_COLUMN + " = ?;";
@@ -262,7 +265,7 @@ public class LeafDatabase {
                 final int blockY = position.y();
                 final int blockZ = position.z();
                 final BlockData blockData = entry.getValue();
-                if (!(blockData instanceof LeafData)) continue;
+                if (!(blockData instanceof final LeafData leafData)) continue;
                 final String blockID = blockData.id();
                 statement.setBytes(1, worldUUIDBytes);
                 statement.setInt(2, chunkX);
@@ -271,6 +274,7 @@ public class LeafDatabase {
                 statement.setInt(5, blockY);
                 statement.setInt(6, blockZ);
                 statement.setString(7, blockID);
+                statement.setBoolean(8, leafData.waterlogged());
                 statement.addBatch();
             }
             statement.executeBatch();
@@ -349,14 +353,19 @@ public class LeafDatabase {
                     final int blockY = resultSet.getInt(LEAVES_TABLE_BLOCK_Y_COLUMN);
                     final int blockZ = resultSet.getInt(LEAVES_TABLE_BLOCK_Z_COLUMN);
                     final String blockID = resultSet.getString(LEAVES_TABLE_BLOCK_ID_COLUMN);
+                    final boolean waterlogged = resultSet.getBoolean(LEAVES_TABLE_WATERLOGGED_COLUMN);
                     final Position position = new Position(chunkPosition.world(), blockX, blockY, blockZ);
                     final BlockData blockData = config.getBlockData(blockID);
-                    if (blockData == null) {
+                    if (!(blockData instanceof final LeafData leafData)) {
                         this.plugin.getLogger().warning("Could not find block data for block ID " + blockID + " at position " +
                                 blockX + ", " + blockY + ", " + blockZ + "!");
                         continue;
                     }
-                    leafBlocks.put(position, blockData);
+                    if (waterlogged) {
+                        leafBlocks.put(position, leafData.waterlog(true));
+                        continue;
+                    }
+                    leafBlocks.put(position, leafData);
                 }
             }
             return leafBlocks;
