@@ -79,19 +79,37 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         final PacketTypeCommon packetType = event.getPacketType();
         if (packetType == PacketType.Play.Server.CHUNK_DATA) {
             this.handleChunkSend(event, player.getWorld().getUID());
-            return;
+//            return;
         }
         if (packetType == PacketType.Play.Server.BLOCK_CHANGE) {
             this.handleBlockChange(event, player.getWorld().getUID());
-            return;
+//            return;
         }
         if (packetType == PacketType.Play.Server.MULTI_BLOCK_CHANGE) {
             this.handleMultiBlockChange(event, player.getWorld().getUID());
-            return;
+//            return;
         }
         if (packetType == PacketType.Play.Server.PARTICLE) {
             this.handleFallParticles(event);
         }
+//        if (packetType == PacketType.Play.Server.KEEP_ALIVE) return;
+//        if (packetType == PacketType.Play.Server.TIME_UPDATE) return;
+//        if (packetType == PacketType.Play.Server.SYSTEM_CHAT_MESSAGE) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_RELATIVE_MOVE) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_RELATIVE_MOVE_AND_ROTATION) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_VELOCITY) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_HEAD_LOOK) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_TELEPORT) return;
+//        if (packetType == PacketType.Play.Server.UPDATE_LIGHT) return;
+//        if (packetType == PacketType.Play.Server.BUNDLE) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_STATUS) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_ROTATION) return;
+//        if (packetType == PacketType.Play.Server.SPAWN_ENTITY) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_METADATA) return;
+//        if (packetType == PacketType.Play.Server.UPDATE_ATTRIBUTES) return;
+//        if (packetType == PacketType.Play.Server.DESTROY_ENTITIES) return;
+//        if (packetType == PacketType.Play.Server.ENTITY_EQUIPMENT) return;
+//        Bukkit.broadcastMessage(packetType.getName());
     }
 
     @Override

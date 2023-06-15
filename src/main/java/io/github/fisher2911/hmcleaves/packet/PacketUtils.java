@@ -37,6 +37,7 @@ import io.github.fisher2911.hmcleaves.util.Pair;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -155,16 +156,17 @@ public class PacketUtils {
                     final Position position = pair.getFirst();
                     final BlockData blockData = pair.getSecond();
                     encodedBlocks[i++] = new WrapperPlayServerMultiBlockChange.EncodedBlock(
-                            new Vector3i(position.x(), position.y(), position.z()),
-                            blockData.getNewState().getGlobalId()
+                            blockData.getNewState(),
+                            position.x(),
+                            position.y(),
+                            position.z()
                     );
                 }
-//                Bukkit.broadcastMessage("Sending blocks in chunk: " + encodedBlocks.length);
                 PacketEvents.getAPI().getPlayerManager().sendPacketSilently(
                         player,
                         new WrapperPlayServerMultiBlockChange(
                                 new Vector3i(chunkPosition.x(), y, chunkPosition.z()),
-                                true,
+                                false,
                                 encodedBlocks
                         )
                 );

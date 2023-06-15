@@ -166,7 +166,9 @@ public class WorldAndChunkLoadListener implements Listener {
     }
 
     private void sendBlocksToPlayersAlreadyInChunk(World world, int chunkX, int chunkZ) {
-        if (!world.isChunkLoaded(chunkX, chunkZ)) return;
+        if (!world.isChunkLoaded(chunkX, chunkZ)) {
+            return;
+        }
         final int renderDistance = Bukkit.getViewDistance();
         final Collection<Player> playersThatCanSee = world.getPlayers()
                 .stream()
@@ -185,7 +187,6 @@ public class WorldAndChunkLoadListener implements Listener {
                 chunkBlockCache.getBlockDataMap(),
                 playersThatCanSee
         );
-//        final Chunk chunk = world.getChunkAt(chunkX, chunkZ);
     }
 
     private void loadChunkFromDatabase(ChunkPosition chunkPosition) {
