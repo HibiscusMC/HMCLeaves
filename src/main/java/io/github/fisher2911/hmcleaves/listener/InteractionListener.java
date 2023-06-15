@@ -42,6 +42,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.data.Levelled;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.block.data.type.Sapling;
@@ -128,7 +129,13 @@ public class InteractionListener implements Listener {
             if (player.getGameMode() != GameMode.CREATIVE) {
                 clickedWith.setAmount(clickedWith.getAmount() - 1);
             }
-            this.blockCache.addBlockData(Position.fromLocation(placeLocation), blockData);
+            final boolean waterlogged = this.isStateWaterSource(previousState);
+            final Position position = Position.fromLocation(placeLocation);
+            if (waterlogged && blockData instanceof final LeafData leafData) {
+                this.blockCache.addBlockData(position, leafData.waterlog(waterlogged));
+            } else {
+                this.blockCache.addBlockData(position, blockData);
+            }
             PacketUtils.sendArmSwing(player, List.of(player));
             final Sound sound = blockData.placeSound();
             if (sound != null) {
@@ -163,8 +170,11 @@ public class InteractionListener implements Listener {
         final Position position = Position.fromLocation(block.getLocation());
         if (block.getBlockData() instanceof Leaves) {
             final BlockData blockData = this.leavesConfig.getDefaultLeafData(material);
-            if (blockData == null) return;
-            this.blockCache.addBlockData(position, blockData);
+            if (!(blockData instanceof final LeafData leafData)) return;
+            final BlockState replacedState = event.getBlockReplacedState();
+            this.blockCache.addBlockData(position,
+                    leafData.waterlog(this.isStateWaterSource(replacedState))
+            );
             return;
         }
         if (Tag.LOGS.isTagged(material)) {
@@ -224,7 +234,7 @@ public class InteractionListener implements Listener {
         }
         final BlockData blockData = this.blockCache.getBlockData(Position.fromLocation(clicked.getLocation()));
         if (blockData instanceof final SaplingData saplingData && clicked.getBlockData() instanceof final Sapling sapling) {
-            player.sendMessage(saplingData.id() + " displayStage: " + saplingData.getNewState().getStage() + " realStage: " + sapling.getStage()  + " realBlockType: " + saplingData.worldBlockType() + " : " + clicked.getType());
+            player.sendMessage(saplingData.id() + " displayStage: " + saplingData.getNewState().getStage() + " realStage: " + sapling.getStage() + " realBlockType: " + saplingData.worldBlockType() + " : " + clicked.getType());
             return true;
         }
         if (blockData instanceof final LogData logData) {
@@ -294,6 +304,12 @@ public class InteractionListener implements Listener {
             case EAST, WEST -> Axis.Z;
             default -> throw new IllegalStateException("Unexpected value: " + face);
         };
+    }
+
+    private boolean isStateWaterSource(BlockState blockState) {
+        return blockState.getBlockData() instanceof Levelled levelled &&
+                levelled.getLevel() == 0 &&
+                levelled.getMaterial() == Material.WATER;
     }
 
     private static class LogPlaceEvent extends BlockPlaceEvent {

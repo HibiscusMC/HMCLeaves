@@ -54,6 +54,7 @@ public record LeafData(
     }
 
     public LeafData waterlog(boolean waterLog) {
+        if (waterLog == this.waterlogged) return this;
         return new LeafData(
                 this.id,
                 this.sendBlockId,
