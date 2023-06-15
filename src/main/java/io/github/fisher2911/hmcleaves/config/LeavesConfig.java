@@ -373,6 +373,26 @@ public class LeavesConfig {
         return this.isWorldWhitelisted(world.getName());
     }
 
+    public void addWhitelistedWorld(String world) {
+        this.whitelistedWorlds.add(world);
+    }
+
+    public void addWhitelistedWorld(World world) {
+        this.addWhitelistedWorld(world.getName());
+    }
+
+    public void removeWhitelistedWorld(String world) {
+        this.whitelistedWorlds.remove(world);
+    }
+
+    public void removeWhitelistedWorld(World world) {
+        this.removeWhitelistedWorld(world.getName());
+    }
+
+    public boolean isUseWorldWhitelist() {
+        return useWorldWhitelist;
+    }
+
     public void reload() {
         LEAVES.clear();
         LOGS.clear();
