@@ -22,14 +22,7 @@ leaves:
       - "&aLine 1"
       - "&bLine 2"
     state-id: 1
-    sapling:
-      material: OAK_SAPLING
-      amount: 1
-      name: "&aTest"
-      model-data: 1
-      lore:
-        - "&7This is a test"
-        - "&7This is a test"
+    sapling: test_sapling
     leaf-drop-replacement:
       material: OAK_LEAVES
       amount: 1
@@ -52,3 +45,17 @@ logs:
     note: 2
     stripped-instrument: BANJO
     stripped-note: 3
+
+saplings:
+  test_sapling:
+    sapling-material: OAK_SAPLING
+    material: PAPER
+    model-data: 3
+    name: "&6Test Sapling"
+    lore:
+      - "&aLine 1"
+    stage: 1
+    schematic-files:
+      - "test.schem"
+      - "test2.schem"
+    random-paste-rotation: true

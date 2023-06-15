@@ -28,6 +28,8 @@ import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.LeafData;
 import io.github.fisher2911.hmcleaves.data.LogData;
+import io.github.fisher2911.hmcleaves.data.SaplingData;
+import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.packet.PacketUtils;
 import io.github.fisher2911.hmcleaves.util.Pair;
 import io.github.fisher2911.hmcleaves.world.Position;
@@ -202,8 +204,21 @@ public class LeafAndLogEditListener implements Listener {
         return adjacent;
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onTreeGrow(StructureGrowEvent event) {
+        if (event.getBlocks().size() == 1) {
+            return;
+        }
+        final Position sourcePosition = Position.fromLocation(event.getLocation());
+        final BlockData sourceBlockData = this.blockCache.getBlockData(sourcePosition);
+        if (sourceBlockData instanceof final SaplingData saplingData) {
+            if (!saplingData.schematicFiles().isEmpty()) {
+                event.setCancelled(true);
+                Hooks.pasteSaplingSchematic(saplingData, sourcePosition);
+                return;
+            }
+            this.blockCache.removeBlockData(sourcePosition);
+        }
         for (BlockState blockState : event.getBlocks()) {
             final Position position = Position.fromLocation(blockState.getLocation());
             final BlockData blockData;

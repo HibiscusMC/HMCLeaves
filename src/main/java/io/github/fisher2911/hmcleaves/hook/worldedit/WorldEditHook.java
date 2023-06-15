@@ -24,19 +24,28 @@ import com.sk89q.jnbt.ByteTag;
 import com.sk89q.jnbt.CompoundTag;
 import com.sk89q.jnbt.IntTag;
 import com.sk89q.jnbt.StringTag;
+import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.EmptyClipboardException;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.event.extent.EditSessionEvent;
 import com.sk89q.worldedit.extent.AbstractDelegateExtent;
-import com.sk89q.worldedit.extent.Extent;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
+import com.sk89q.worldedit.function.operation.Operation;
+import com.sk89q.worldedit.function.operation.Operations;
 import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.math.transform.AffineTransform;
+import com.sk89q.worldedit.math.transform.Identity;
+import com.sk89q.worldedit.math.transform.Transform;
 import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.registry.state.Property;
 import com.sk89q.worldedit.session.ClipboardHolder;
 import com.sk89q.worldedit.util.eventbus.Subscribe;
+import com.sk89q.worldedit.world.World;
 import com.sk89q.worldedit.world.block.BaseBlock;
 import com.sk89q.worldedit.world.block.BlockState;
 import com.sk89q.worldedit.world.block.BlockStateHolder;
@@ -47,14 +56,23 @@ import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.LeafData;
 import io.github.fisher2911.hmcleaves.data.LogData;
+import io.github.fisher2911.hmcleaves.data.SaplingData;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
+import io.github.fisher2911.hmcleaves.util.RandomUtil;
 import io.github.fisher2911.hmcleaves.world.Position;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.sapling.SaplingListener;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.block.data.type.Leaves;
+import org.bukkit.block.data.type.Sapling;
 import org.bukkit.entity.Player;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 public class WorldEditHook {
@@ -62,11 +80,13 @@ public class WorldEditHook {
     private final HMCLeaves plugin;
     private final BlockCache blockCache;
     private final LeavesConfig config;
+    private final Path schematicsPath;
 
     public WorldEditHook(HMCLeaves plugin) {
         this.plugin = plugin;
         this.blockCache = this.plugin.getBlockCache();
         this.config = this.plugin.getLeavesConfig();
+        this.schematicsPath = this.plugin.getDataFolder().toPath().resolve("schematics");
     }
 
     public void load() {
@@ -76,6 +96,7 @@ public class WorldEditHook {
     private static final String BUKKIT_NBT_TAG = "PublicBukkitValues";
     private static Property<Integer> distanceProperty;
     private static Property<Boolean> persistentProperty;
+    private static Property<Integer> stageProperty;
 
     public void trySaveSchematic(Player player) {
         try {
@@ -135,6 +156,25 @@ public class WorldEditHook {
                                             new ByteTag((byte) (persistent ? 1 : 0))
                                     )
                                     .build();
+                        } else if (blockData instanceof final SaplingData saplingData) {
+                            if (stageProperty == null) {
+                                for (Property<?> p : state.getStates().keySet()) {
+                                    if (p.getName().equalsIgnoreCase("stage")) {
+                                        stageProperty = (Property<Integer>) p;
+                                    }
+                                }
+                            }
+                            final int stage = state.getState(stageProperty);
+                            newBukkitValuesTag = bukkitTag.createBuilder()
+                                    .put(
+                                            PDCUtil.SAPLING_ID_KEY.toString(),
+                                            new StringTag(saplingData.id())
+                                    )
+                                    .put(
+                                            PDCUtil.SAPLING_STAGE_KEY.toString(),
+                                            new IntTag(stage)
+                                    )
+                                    .build();
                         } else {
                             continue;
                         }
@@ -192,9 +232,66 @@ public class WorldEditHook {
                     WorldEditHook.this.blockCache.addBlockData(position, leafData);
                     return getExtent().setBlock(pos, BukkitAdapter.adapt(bukkitLeafData));
                 }
+                if (bukkitTag.containsKey(PDCUtil.SAPLING_ID_KEY.toString())) {
+                    final String saplingId = bukkitTag.getString(PDCUtil.SAPLING_ID_KEY.toString());
+                    final BlockData blockData = WorldEditHook.this.config.getBlockData(saplingId);
+                    if (!(blockData instanceof final SaplingData saplingData)) return super.setBlock(pos, block);
+                    final int stage = bukkitTag.getInt(PDCUtil.SAPLING_STAGE_KEY.toString());
+                    final Sapling bukkitSaplingData = (Sapling) saplingData.realBlockType().createBlockData();
+                    bukkitSaplingData.setStage(stage);
+                    WorldEditHook.this.blockCache.addBlockData(position, saplingData);
+                    return getExtent().setBlock(pos, BukkitAdapter.adapt(bukkitSaplingData));
+                }
                 return super.setBlock(pos, block);
             }
         });
+    }
+
+    private static final List<Transform> TRANSFORMS = List.of(
+            new Identity(),
+            new AffineTransform().rotateY(90),
+            new AffineTransform().rotateY(180),
+            new AffineTransform().rotateY(270)
+    );
+
+    public void pasteSaplingSchematic(SaplingData saplingData, Position position) {
+        if (saplingData.schematicFiles().isEmpty()) return;
+        final String randomSchematic = RandomUtil.randomElement(saplingData.schematicFiles());
+        final File file = this.schematicsPath.resolve(randomSchematic).toFile();
+        if (!file.exists()) {
+            this.plugin.getLogger().warning("Could not find sapling schematic for " + saplingData.id() + ": " + randomSchematic + ", " +
+                    "tree growth was cancelled at " + position);
+            return;
+        }
+        final ClipboardFormat format = ClipboardFormats.findByFile(file);
+        if (format == null) {
+            this.plugin.getLogger().warning("Could not find schematic format for " + randomSchematic);
+            return;
+        }
+        try (final ClipboardReader reader = format.getReader(new FileInputStream(file))) {
+            final Clipboard clipboard = reader.read();
+            final org.bukkit.World bukkitWorld = Bukkit.getWorld(position.world());
+            if (bukkitWorld == null) {
+                this.plugin.getLogger().warning("Could not find world " + position.world() + " for " + randomSchematic);
+                return;
+            }
+            final World world = BukkitAdapter.adapt(bukkitWorld);
+            try (final EditSession editSession = WorldEdit.getInstance().newEditSession(world)) {
+                final ClipboardHolder clipboardHolder = new ClipboardHolder(clipboard);
+                if (saplingData.randomPasteRotation()) {
+                    clipboardHolder.setTransform(clipboardHolder.getTransform().combine(RandomUtil.randomElement(TRANSFORMS)));
+                }
+                final Operation operation = clipboardHolder
+                        .createPaste(editSession)
+                        .to(BlockVector3.at(position.x(), position.y(), position.z()))
+                        .build();
+                Operations.complete(operation);
+            } catch (WorldEditException e) {
+                e.printStackTrace();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }

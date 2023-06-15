@@ -26,6 +26,7 @@ import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.LeafData;
 import io.github.fisher2911.hmcleaves.data.LogData;
+import io.github.fisher2911.hmcleaves.data.SaplingData;
 import io.github.fisher2911.hmcleaves.packet.BlockBreakManager;
 import io.github.fisher2911.hmcleaves.packet.PacketUtils;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
@@ -43,6 +44,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Leaves;
+import org.bukkit.block.data.type.Sapling;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -170,6 +172,12 @@ public class InteractionListener implements Listener {
             final BlockData blockData = this.leavesConfig.getDefaultLogData(material, orientable.getAxis());
             if (blockData == null) return;
             this.blockCache.addBlockData(position, blockData);
+            return;
+        }
+        if (Tag.SAPLINGS.isTagged(material)) {
+            final BlockData blockData = this.leavesConfig.getDefaultSaplingData(material);
+            if (blockData == null) return;
+            this.blockCache.addBlockData(position, blockData);
         }
     }
 
@@ -215,21 +223,24 @@ public class InteractionListener implements Listener {
             return false;
         }
         final BlockData blockData = this.blockCache.getBlockData(Position.fromLocation(clicked.getLocation()));
-        if (!(clicked.getBlockData() instanceof final Leaves leaves) || !(blockData instanceof final LeafData leafData)) {
-            if (blockData instanceof final LogData logData) {
-                player.sendMessage(logData.id() + " Log type: " + " stripped: " + logData.stripped() + " realBlockType:" + logData.worldBlockType() + " : " + clicked.getType());
-                return true;
-            }
-            player.sendMessage("Block data is not leaf data or log data: " + blockData.getClass().getSimpleName());
+        if (blockData instanceof final SaplingData saplingData && clicked.getBlockData() instanceof final Sapling sapling) {
+            player.sendMessage(saplingData.id() + " displayStage: " + saplingData.getNewState().getStage() + " realStage: " + sapling.getStage()  + " realBlockType: " + saplingData.worldBlockType() + " : " + clicked.getType());
+            return true;
+        }
+        if (blockData instanceof final LogData logData) {
+            player.sendMessage(logData.id() + " Log type: " + " stripped: " + logData.stripped() + " realBlockType:" + logData.worldBlockType() + " : " + clicked.getType());
+            return true;
+        }
+        if (blockData instanceof final LeafData leafData && clicked.getBlockData() instanceof final Leaves leaves) {
+            player.sendMessage("Display distance: " + leafData.displayDistance() + " Display persistence: " + leafData.displayPersistence() + " " +
+                    "server distance: " + leaves.getDistance() + " server persistence: " + leaves.isPersistent() + " waterlogged: " + leafData.waterlogged());
             return true;
         }
         if (blockData == BlockData.EMPTY) {
-            player.sendMessage("Server distance: " + leaves.getDistance() + " Server persistence: " + leaves.isPersistent());
-            player.sendMessage("The fake leaf data was not found");
+            player.sendMessage("The fake block data was not found");
             return true;
         }
-        player.sendMessage("Display distance: " + leafData.displayDistance() + " Display persistence: " + leafData.displayPersistence() + " " +
-                "server distance: " + leaves.getDistance() + " server persistence: " + leaves.isPersistent() + " waterlogged: " + leafData.waterlogged());
+        player.sendMessage("The fake block data does not match the real block: " + blockData.getClass().getSimpleName());
         return true;
     }
 
@@ -301,12 +312,23 @@ public class InteractionListener implements Listener {
 
     }
 
+    private static class SaplingPlaceEvent extends BlockPlaceEvent {
+
+        public SaplingPlaceEvent(@NotNull Block placedBlock, @NotNull BlockState replacedBlockState, @NotNull Block placedAgainst, @NotNull ItemStack itemInHand, @NotNull Player thePlayer, boolean canBuild, @NotNull EquipmentSlot hand) {
+            super(placedBlock, replacedBlockState, placedAgainst, itemInHand, thePlayer, canBuild, hand);
+        }
+
+    }
+
     private static BlockPlaceEvent createEvent(@NotNull Block placedBlock, @NotNull BlockState replacedBlockState, @NotNull Block placedAgainst, @NotNull ItemStack itemInHand, @NotNull Player thePlayer, boolean canBuild, @NotNull EquipmentSlot hand) {
         if (Tag.LOGS.isTagged(placedBlock.getType())) {
             return new LogPlaceEvent(placedBlock, replacedBlockState, placedAgainst, itemInHand, thePlayer, canBuild, hand);
         }
         if (Tag.LEAVES.isTagged(placedBlock.getType())) {
             return new LeafPlaceEvent(placedBlock, replacedBlockState, placedAgainst, itemInHand, thePlayer, canBuild, hand);
+        }
+        if (Tag.SAPLINGS.isTagged(placedBlock.getType())) {
+            return new SaplingPlaceEvent(placedBlock, replacedBlockState, placedAgainst, itemInHand, thePlayer, canBuild, hand);
         }
         throw new IllegalArgumentException("Block is not a log or leaf: " + placedBlock.getType());
     }

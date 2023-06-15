@@ -45,6 +45,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -56,11 +57,13 @@ public class LeavesConfig {
     private static final String DEFAULT_LEAF_ID = "default_leaf_id";
     private static final String DEFAULT_LOG_ID = "default_log_id";
     private static final String DEFAULT_STRIPPED_LOG_ID = "default_stripped_log_id";
+    private static final String DEFAULT_SAPLING_ID = "default_sapling_id";
 
     private static final int STATES_PER_LEAF = 7 * 2;
     private static final List<Material> LEAVES = new ArrayList<>();
     private static final List<Material> LOGS = new ArrayList<>();
     private static final List<Material> STRIPPED_LOGS = new ArrayList<>();
+    private static final List<Material> SAPLINGS = new ArrayList<>();
 
     private static WrappedBlockState getLeafById(int id) {
         if (id < 0) {
@@ -110,6 +113,8 @@ public class LeavesConfig {
         LEAVES.add(Material.JUNGLE_LEAVES);
         LEAVES.add(Material.ACACIA_LEAVES);
         LEAVES.add(Material.DARK_OAK_LEAVES);
+        LEAVES.add(Material.AZALEA_LEAVES);
+        LEAVES.add(Material.FLOWERING_AZALEA_LEAVES);
 
         LOGS.add(Material.OAK_LOG);
         LOGS.add(Material.SPRUCE_LOG);
@@ -145,11 +150,15 @@ public class LeavesConfig {
         STRIPPED_LOGS.add(Material.STRIPPED_CRIMSON_HYPHAE);
         STRIPPED_LOGS.add(Material.STRIPPED_WARPED_HYPHAE);
 
+        SAPLINGS.add(Material.OAK_SAPLING);
+        SAPLINGS.add(Material.SPRUCE_SAPLING);
+        SAPLINGS.add(Material.BIRCH_SAPLING);
+        SAPLINGS.add(Material.JUNGLE_SAPLING);
+        SAPLINGS.add(Material.ACACIA_SAPLING);
+        SAPLINGS.add(Material.DARK_OAK_SAPLING);
         // 1.19 leaves / logs
         try {
             LEAVES.add(Material.valueOf("MANGROVE_LEAVES"));
-            LEAVES.add(Material.valueOf("AZALEA_LEAVES"));
-            LEAVES.add(Material.valueOf("FLOWERING_AZALEA_LEAVES"));
 
             LOGS.add(Material.valueOf("MANGROVE_LOG"));
             LOGS.add(Material.valueOf("MANGROVE_WOOD"));
@@ -161,22 +170,19 @@ public class LeavesConfig {
     }
 
     public static int getDefaultLeafId(Material leafMaterial) {
-        return /*LEAVES.size() * STATES_PER_LEAF - 1 -*/ LEAVES.indexOf(leafMaterial) * STATES_PER_LEAF;
+        return LEAVES.indexOf(leafMaterial) * STATES_PER_LEAF;
     }
 
     public static int getDefaultLogId(Material logMaterial) {
         return LOGS.indexOf(logMaterial);
-//        return LOGS.size() - 1 - LOGS.indexOf(logMaterial);
     }
 
     public static int getDefaultStrippedLogId(Material logMaterial, boolean usingStrippedMaterial) {
         if (usingStrippedMaterial) {
             return STRIPPED_LOGS.indexOf(logMaterial);
-//            return STRIPPED_LOGS.size() - 1 - STRIPPED_LOGS.indexOf(strippedLogMaterial);
         }
         final int index = LOGS.indexOf(logMaterial);
         return index + LOGS.size();
-//        return STRIPPED_LOGS.size() - 1 - index;
     }
 
     public static String getDefaultLeafStringId(Material material) {
@@ -189,6 +195,10 @@ public class LeavesConfig {
 
     public static String getDefaultStrippedLogStringId(Material material) {
         return DEFAULT_STRIPPED_LOG_ID + "_" + material.name().toLowerCase();
+    }
+
+    public static String getDefaultSaplingStringId(Material material) {
+        return DEFAULT_SAPLING_ID + "_" + material.name().toLowerCase();
     }
 
     private final HMCLeaves plugin;
@@ -222,6 +232,7 @@ public class LeavesConfig {
         return this.blockDataMap.get(id);
     }
 
+    @Nullable
     public BlockData getBlockData(ItemStack itemStack) {
         String itemId = PDCUtil.getItemId(itemStack);
         if (itemId == null) {
@@ -231,6 +242,7 @@ public class LeavesConfig {
         return this.blockDataMap.get(itemId);
     }
 
+    @Nullable
     public BlockData getBlockData(ItemStack itemStack, Axis axis) {
         String itemId = PDCUtil.getItemId(itemStack);
         if (itemId == null) {
@@ -242,24 +254,34 @@ public class LeavesConfig {
         return this.blockDataMap.get(itemId);
     }
 
+    @Nullable
     public BlockData getDefaultLeafData(Material leafMaterial) {
         return this.blockDataMap.get(getDefaultLeafStringId(leafMaterial));
     }
 
+    @Nullable
     public BlockData getDefaultLogData(Material logMaterial) {
         return this.blockDataMap.get(getDefaultLogStringId(logMaterial));
     }
 
+    @Nullable
     public BlockData getDefaultLogData(Material logMaterial, Axis axis) {
         return this.blockDataMap.get(getDefaultLogStringId(logMaterial) + "_" + axis.name().toLowerCase());
     }
 
+    @Nullable
     public BlockData getDefaultStrippedLogData(Material strippedLogMaterial) {
         return this.blockDataMap.get(getDefaultStrippedLogStringId(strippedLogMaterial));
     }
 
+    @Nullable
     public BlockData getDefaultStrippedLogData(Material strippedLogMaterial, Axis axis) {
         return this.blockDataMap.get(getDefaultStrippedLogStringId(strippedLogMaterial) + "_" + axis.name().toLowerCase());
+    }
+
+    @Nullable
+    public BlockData getDefaultSaplingData(Material material) {
+        return this.blockDataMap.get(getDefaultSaplingStringId(material));
     }
 
     @Nullable
@@ -293,12 +315,14 @@ public class LeavesConfig {
 
     private static final String LEAVES_PATH = "leaves";
     private static final String LOGS_PATH = "logs";
+    private static final String SAPLINGS_PATH = "saplings";
 
     private static final String LEAF_MATERIAL_PATH = "leaf-material";
     private static final String LOG_MATERIAL_PATH = "log-material";
     private static final String WORLD_PERSISTENCE_PATH = "world-persistence";
     private static final String STRIPPED_LOG_MATERIAL_PATH = "stripped-log-material";
     private static final String STATE_ID_PATH = "state-id";
+    private static final String SAPLING_MATERIAL_PATH = "sapling-material";
 
     private static final String SAPLING_PATH = "sapling";
     private static final String LEAF_DROP_REPLACEMENT_PATH = "leaf-drop-replacement";
@@ -325,6 +349,7 @@ public class LeavesConfig {
         initLeavesAndLogs(this.defaultLeafMaterial, this.defaultLogMaterial, this.defaultStrippedLogMaterial);
         this.loadLeavesSection(config);
         this.loadLogsSection(config);
+        this.loadSaplingsSection(config);
     }
 
     public boolean isOnlyFollowWorldPersistenceIfConnectedToLog() {
@@ -389,9 +414,15 @@ public class LeavesConfig {
     }
 
     private void loadSapling(ConfigurationSection config, String itemId) {
-        final ConfigurationSection saplingSection = config.getConfigurationSection(SAPLING_PATH);
-        if (saplingSection == null) return;
-        final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(saplingSection, itemId, itemId);
+//        final ConfigurationSection saplingSection = config.getConfigurationSection(SAPLING_PATH);
+//        if (saplingSection == null) return;
+//        final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(saplingSection, itemId, itemId);
+        final String saplingId = config.getString(SAPLING_PATH);
+        final Supplier<ItemStack> itemStackSupplier = () -> {
+            final Supplier<ItemStack> supplier = this.itemSupplierMap.get(saplingId);
+            if (supplier == null) return null;
+            return supplier.get();
+        };
         this.saplingItemSupplierMap.put(itemId, itemStackSupplier);
     }
 
@@ -412,15 +443,12 @@ public class LeavesConfig {
         final ConfigurationSection logsSection = config.getConfigurationSection(LOGS_PATH);
         if (logsSection == null) return;
         for (final var itemId : logsSection.getKeys(false)) {
-//            final int stateId = logsSection.getInt(itemId + "." + STATE_ID_PATH) - 1;
             String strippedLogId = logsSection.getString(itemId + "." + STRIPPED_LOG_ID_PATH);
             if (strippedLogId == null) {
                 strippedLogId = itemId;
             }
-//            final WrappedBlockState logState = getLogById(stateId);
             final WrappedBlockState state = WrappedBlockState.getDefaultState(StateTypes.NOTE_BLOCK);
             final WrappedBlockState strippedLogState = WrappedBlockState.getDefaultState(StateTypes.NOTE_BLOCK);
-//            final WrappedBlockState strippedLogState = getStrippedLogByLogId(stateId);
             final Material logMaterial = this.loadMaterial(logsSection, itemId + "." + LOG_MATERIAL_PATH, this.defaultLogMaterial);
             final Material strippedLogMaterial = this.loadMaterial(logsSection, itemId + "." + STRIPPED_LOG_MATERIAL_PATH, this.defaultStrippedLogMaterial);
             try {
@@ -487,7 +515,68 @@ public class LeavesConfig {
                 this.blockDataMap.put(defaultStrippedLogStringId, blockData.strip());
             }
         }
+    }
 
+    private static final String STAGE_PATH = "stage";
+    private static final String SCHEMATIC_FILES_PATH = "schematic-files";
+    private static final String RANDOM_PASTE_ROTATION_PATH = "random-paste-rotation";
+
+    private void loadSaplingsSection(FileConfiguration config) {
+        final ConfigurationSection saplingsSection = config.getConfigurationSection(SAPLINGS_PATH);
+        if (saplingsSection == null) return;
+        for (final var itemId : saplingsSection.getKeys(false)) {
+            final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(
+                    saplingsSection.getConfigurationSection(itemId),
+                    itemId,
+                    itemId
+            );
+            this.itemSupplierMap.put(itemId, itemStackSupplier);
+            this.playerItemIds.add(itemId);
+            final Material saplingMaterial;
+            try {
+                saplingMaterial = Material.valueOf(saplingsSection.getString(itemId + "." + SAPLING_MATERIAL_PATH).toUpperCase());
+            } catch (IllegalArgumentException | NullPointerException e) {
+                this.plugin.getLogger().severe("Invalid sapling material for sapling " + itemId + " in config.yml");
+                return;
+            }
+            final int stage = saplingsSection.getInt(itemId + "." + STAGE_PATH);
+            if (stage < 0 || stage > 1) {
+                this.plugin.getLogger().severe("Invalid stage for sapling " + itemId + " in config.yml: " + stage);
+                return;
+            }
+            final List<String> schematicFiles = saplingsSection.getStringList(itemId + "." + SCHEMATIC_FILES_PATH);
+            final boolean randomPasteRotation = saplingsSection.getBoolean(itemId + "." + RANDOM_PASTE_ROTATION_PATH, false);
+            final WrappedBlockState state = WrappedBlockState.getDefaultState(
+                    PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
+                    SpigotConversionUtil.fromBukkitBlockData(saplingMaterial.createBlockData()).getType()
+            );
+            state.setStage(stage);
+            final BlockData saplingData = BlockData.saplingData(
+                    itemId,
+                    state.getGlobalId(),
+                    saplingMaterial,
+                    schematicFiles,
+                    randomPasteRotation
+            );
+            this.blockDataMap.put(itemId, saplingData);
+        }
+        for (Material sapling : SAPLINGS) {
+            final WrappedBlockState state = WrappedBlockState.getDefaultState(
+                    PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
+                    SpigotConversionUtil.fromBukkitBlockData(sapling.createBlockData()).getType()
+            );
+            final String defaultSaplingId = getDefaultSaplingStringId(sapling);
+            this.blockDataMap.put(
+                    defaultSaplingId,
+                    BlockData.saplingData(
+                            defaultSaplingId,
+                            state.getGlobalId(),
+                            sapling,
+                            new ArrayList<>(),
+                            false
+                    )
+            );
+        }
     }
 
     private Material loadMaterial(ConfigurationSection section, String path, Material defaultMaterial) {
@@ -527,13 +616,12 @@ public class LeavesConfig {
             itemStack.setItemMeta(itemMeta);
             PDCUtil.setItemId(itemStack, itemId);
         }
-        if (hookId != null && Hooks.hasOtherItemHook()) return () -> {
-            final ItemStack hookItemStack = Hooks.getItem(hookId);
-            if (hookItemStack == null) return itemStack.clone();
-            final ItemStack clone = hookItemStack.clone();
-//            PDCUtil.setItemId(clone, itemId);
-            return clone;
-        };
+        if (hookId != null && Hooks.hasOtherItemHook()) {
+            return () -> {
+                final ItemStack hookItemStack = Hooks.getItem(hookId);
+                return Objects.requireNonNullElse(hookItemStack, itemStack).clone();
+            };
+        }
         return itemStack::clone;
     }
 

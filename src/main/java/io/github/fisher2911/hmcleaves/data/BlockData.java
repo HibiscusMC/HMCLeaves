@@ -26,6 +26,8 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
+
 public interface BlockData {
 
 
@@ -119,6 +121,22 @@ public interface BlockData {
                 stripped,
                 strippedSendBlockId,
                 axis
+        );
+    }
+
+    static SaplingData saplingData(
+            String id,
+            int sendBlockId,
+            Material realBlockType,
+            List<String> schematicFiles,
+            boolean randomPasteRotation
+    ) {
+        return new SaplingData(
+                id,
+                sendBlockId,
+                realBlockType,
+                schematicFiles,
+                randomPasteRotation
         );
     }
 

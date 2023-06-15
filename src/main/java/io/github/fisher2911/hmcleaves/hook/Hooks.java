@@ -21,10 +21,12 @@
 package io.github.fisher2911.hmcleaves.hook;
 
 import io.github.fisher2911.hmcleaves.HMCLeaves;
+import io.github.fisher2911.hmcleaves.data.SaplingData;
 import io.github.fisher2911.hmcleaves.hook.hmcleaves.HMCLeavesHook;
 import io.github.fisher2911.hmcleaves.hook.itemsadder.ItemsAdderHook;
 import io.github.fisher2911.hmcleaves.hook.oraxen.OraxenHook;
 import io.github.fisher2911.hmcleaves.hook.worldedit.WorldEditHook;
+import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
@@ -75,6 +77,11 @@ public class Hooks {
     public static void trySaveSchematic(Player player) {
         if (worldEditHook == null) return;
         worldEditHook.trySaveSchematic(player);
+    }
+
+    public static void pasteSaplingSchematic(SaplingData saplingData, Position position) {
+        if (worldEditHook == null) return;
+        worldEditHook.pasteSaplingSchematic(saplingData, position);
     }
 
     public static boolean hasOtherItemHook() {

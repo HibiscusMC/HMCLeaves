@@ -39,12 +39,12 @@ public class PDCUtil {
     public static final NamespacedKey HAS_LEAF_DATA_KEY = new NamespacedKey(PLUGIN, "has_leaf_data");
 
     // schematic data
-    public static final NamespacedKey LEAF_DISPLAY_DISTANCE_KEY = new NamespacedKey(PLUGIN, "leaf_display_distance");
-    public static final NamespacedKey LEAF_DISPLAY_PERSISTENCE_KEY = new NamespacedKey(PLUGIN, "leaf_display_persistence");
+    public static final NamespacedKey LEAF_ID_KEY = new NamespacedKey(PLUGIN, "leaf_id");
     public static final NamespacedKey LEAF_WORLD_DISTANCE_KEY = new NamespacedKey(PLUGIN, "leaf_world_distance");
     public static final NamespacedKey LEAF_WORLD_PERSISTENCE_KEY = new NamespacedKey(PLUGIN, "leaf_world_persistence");
     public static final NamespacedKey LOG_ID_KEY = new NamespacedKey(PLUGIN, "log_id");
-    public static final NamespacedKey LEAF_ID_KEY = new NamespacedKey(PLUGIN, "leaf_id");
+    public static final NamespacedKey SAPLING_ID_KEY = new NamespacedKey(PLUGIN, "sapling_id");
+    public static final NamespacedKey SAPLING_STAGE_KEY = new NamespacedKey(PLUGIN, "sapling_stage");
 
     @Nullable
     public static String getItemId(ItemStack itemStack) {
