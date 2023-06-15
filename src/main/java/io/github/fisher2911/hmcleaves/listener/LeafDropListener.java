@@ -50,6 +50,7 @@ public class LeafDropListener implements Listener {
     @EventHandler(priority = EventPriority.LOW)
     public void onItemDrop(BlockDropItemEvent event) {
         final Block block = event.getBlock();
+        if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
         final Position position = Position.fromLocation(block.getLocation());
         final BlockData data = this.plugin.getBlockCache().removeBlockData(position);
         if (data == BlockData.EMPTY) {
@@ -83,6 +84,7 @@ public class LeafDropListener implements Listener {
     @EventHandler(priority = EventPriority.LOW)
     public void onItemDrop(ItemSpawnEvent event) {
         final Block block = event.getLocation().getBlock();
+        if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
         if (!(block.getBlockData() instanceof final Leaves leaves)) return;
         final Position position = Position.fromLocation(block.getLocation());
         final BlockData blockData = this.plugin.getBlockCache().removeBlockData(position);

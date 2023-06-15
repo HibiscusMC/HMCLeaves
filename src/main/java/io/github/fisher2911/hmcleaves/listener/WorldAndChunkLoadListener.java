@@ -71,6 +71,7 @@ public class WorldAndChunkLoadListener implements Listener {
 
     public void loadDefaultWorlds() {
         for (World world : Bukkit.getWorlds()) {
+            if (!this.leavesConfig.isWorldWhitelisted(world)) continue;
             for (Chunk chunk : world.getLoadedChunks()) {
                 final UUID worldUUID = world.getUID();
                 if (!(PDCUtil.chunkHasLeafData(chunk.getPersistentDataContainer()))) {
@@ -84,8 +85,9 @@ public class WorldAndChunkLoadListener implements Listener {
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
+        final World world = event.getWorld();
+        if (!this.leavesConfig.isWorldWhitelisted(world)) return;
         final Chunk chunk = event.getChunk();
-        final World world = chunk.getWorld();
         final UUID worldUUID = world.getUID();
         if (!(PDCUtil.chunkHasLeafData(chunk.getPersistentDataContainer()))) {
             this.loadNewChunkData(chunk);
@@ -165,6 +167,26 @@ public class WorldAndChunkLoadListener implements Listener {
         });
     }
 
+    private void loadChunkFromDatabase(ChunkPosition chunkPosition) {
+        this.leafDatabase.doDatabaseTaskAsync(() -> {
+            final Map<Position, BlockData> chunkBlocks = this.leafDatabase.getBlocksInChunk(chunkPosition, this.leavesConfig);
+            ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
+            boolean markClean = chunkBlockCache == null || chunkBlockCache.isClean();
+            chunkBlocks.forEach(this.blockCache::addBlockData);
+            chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
+            if (!this.plugin.isEnabled()) return;
+            Bukkit.getScheduler().runTask(this.plugin, () -> {
+                final World world = Bukkit.getWorld(chunkPosition.world());
+                if (world == null) return;
+                Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () ->
+                        this.sendBlocksToPlayersAlreadyInChunk(world, chunkPosition.x(), chunkPosition.z())
+                );
+            });
+            if (chunkBlockCache == null || !markClean) return;
+            chunkBlockCache.markClean();
+        });
+    }
+
     private void sendBlocksToPlayersAlreadyInChunk(World world, int chunkX, int chunkZ) {
         if (!world.isChunkLoaded(chunkX, chunkZ)) {
             return;
@@ -189,29 +211,11 @@ public class WorldAndChunkLoadListener implements Listener {
         );
     }
 
-    private void loadChunkFromDatabase(ChunkPosition chunkPosition) {
-        this.leafDatabase.doDatabaseTaskAsync(() -> {
-            final Map<Position, BlockData> chunkBlocks = this.leafDatabase.getBlocksInChunk(chunkPosition, this.leavesConfig);
-            ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
-            boolean markClean = chunkBlockCache == null || chunkBlockCache.isClean();
-            chunkBlocks.forEach(this.blockCache::addBlockData);
-            chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
-            if (!this.plugin.isEnabled()) return;
-            Bukkit.getScheduler().runTask(this.plugin, () -> {
-                final World world = Bukkit.getWorld(chunkPosition.world());
-                if (world == null) return;
-                Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () ->
-                        this.sendBlocksToPlayersAlreadyInChunk(world, chunkPosition.x(), chunkPosition.z())
-                );
-            });
-            if (chunkBlockCache == null || !markClean) return;
-            chunkBlockCache.markClean();
-        });
-    }
-
     @EventHandler
     public void onChunkUnload(ChunkUnloadEvent event) {
-        final UUID worldUUID = event.getWorld().getUID();
+        final World world = event.getWorld();
+        if (!this.leavesConfig.isWorldWhitelisted(world)) return;
+        final UUID worldUUID = world.getUID();
         final Chunk chunk = event.getChunk();
         final ChunkPosition chunkPosition = ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ());
         final ChunkBlockCache chunkBlockCache = this.blockCache.removeChunkBlockCache(chunkPosition);
@@ -223,6 +227,7 @@ public class WorldAndChunkLoadListener implements Listener {
     @EventHandler
     public void onWorldLoad(WorldLoadEvent event) {
         final World world = event.getWorld();
+        if (!this.leavesConfig.isWorldWhitelisted(world)) return;
         final UUID worldUUID = world.getUID();
         for (Chunk chunk : world.getLoadedChunks()) {
             final ChunkPosition chunkPosition = ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ());
@@ -238,7 +243,9 @@ public class WorldAndChunkLoadListener implements Listener {
 
     @EventHandler
     public void onWorldUnload(WorldUnloadEvent event) {
-        final UUID worldUUID = event.getWorld().getUID();
+        final World world = event.getWorld();
+        if (!this.leavesConfig.isWorldWhitelisted(world)) return;
+        final UUID worldUUID = world.getUID();
         final WorldBlockCache worldBlockCache = this.blockCache.getWorldBlockCache(worldUUID);
         if (worldBlockCache == null) return;
         worldBlockCache.clearAll(chunkBlockCache -> {
@@ -250,7 +257,9 @@ public class WorldAndChunkLoadListener implements Listener {
 
     @EventHandler
     public void onWorldSave(WorldSaveEvent event) {
-        final UUID worldUUID = event.getWorld().getUID();
+        final World world = event.getWorld();
+        if (!this.leavesConfig.isWorldWhitelisted(world)) return;
+        final UUID worldUUID = world.getUID();
         final WorldBlockCache worldBlockCache = this.blockCache.getWorldBlockCache(worldUUID);
         if (worldBlockCache == null) return;
         for (var entry : worldBlockCache.getBlockCacheMap().entrySet()) {

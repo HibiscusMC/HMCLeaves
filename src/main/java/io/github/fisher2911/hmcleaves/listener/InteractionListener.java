@@ -78,6 +78,8 @@ public class InteractionListener implements Listener {
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) return;
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        final World world = event.getPlayer().getWorld();
+        if (!this.leavesConfig.isWorldWhitelisted(world)) return;
         final ItemStack clickedWith = event.getItem();
         if (clickedWith == null) return;
         final Block block = event.getClickedBlock();
@@ -92,7 +94,6 @@ public class InteractionListener implements Listener {
         if (this.checkWaterlog(player, block, clickedWith)) {
             return;
         }
-        final World world = placeLocation.getWorld();
         final Material placeLocationType = placeLocation.getBlock().getType();
 
         if (!placeLocationType.isAir() &&
@@ -166,6 +167,7 @@ public class InteractionListener implements Listener {
     public void onBlockPlace(BlockPlaceEvent event) {
         if (event instanceof LeafPlaceEvent || event instanceof LogPlaceEvent) return;
         final Block block = event.getBlock();
+        if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
         final Material material = block.getType();
         final Position position = Position.fromLocation(block.getLocation());
         if (block.getBlockData() instanceof Leaves) {
@@ -198,6 +200,7 @@ public class InteractionListener implements Listener {
     public void onBlockBreak(BlockBreakEvent event) {
         if (event.getPlayer().getGameMode() == GameMode.CREATIVE) return;
         if (event instanceof BlockBreakManager.LeavesBlockBreakEvent) return;
+        if (!this.leavesConfig.isWorldWhitelisted(event.getBlock().getWorld())) return;
         final Position position = Position.fromLocation(event.getBlock().getLocation());
         if (!(this.blockCache.getBlockData(position) instanceof LogData)) return;
         event.setCancelled(true);

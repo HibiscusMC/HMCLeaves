@@ -11,6 +11,10 @@ default-stripped-log-material: STRIPPED_OAK_LOG
 # it will still be persistent even if world-persistence is set to false
 only-follow-world-persistence-if-connected-to-log: true
 
+use-world-whitelist: true
+whitelisted-worlds:
+  - "world"
+
 leaves:
   "test_leaves":
     world-persistence: false

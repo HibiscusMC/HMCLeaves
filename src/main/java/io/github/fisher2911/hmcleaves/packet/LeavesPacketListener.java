@@ -44,6 +44,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPa
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.cache.BlockCache;
 import io.github.fisher2911.hmcleaves.cache.ChunkBlockCache;
+import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.LogData;
 import io.github.fisher2911.hmcleaves.util.ChunkUtil;
@@ -59,16 +60,19 @@ import java.util.UUID;
 
 public class LeavesPacketListener extends PacketListenerAbstract {
 
+    private final LeavesConfig leavesConfig;
     private final BlockCache blockCache;
     private final BlockBreakManager blockBreakManager;
 
     public LeavesPacketListener(PacketListenerPriority priority, HMCLeaves plugin) {
         super(priority);
+        this.leavesConfig = plugin.getLeavesConfig();
         this.blockCache = plugin.getBlockCache();
         this.blockBreakManager = plugin.getBlockBreakManager();
     }
 
     public LeavesPacketListener(HMCLeaves plugin) {
+        this.leavesConfig = plugin.getLeavesConfig();
         this.blockCache = plugin.getBlockCache();
         this.blockBreakManager = plugin.getBlockBreakManager();
     }
@@ -76,45 +80,29 @@ public class LeavesPacketListener extends PacketListenerAbstract {
     @Override
     public void onPacketSend(PacketSendEvent event) {
         if (!(event.getPlayer() instanceof final Player player)) return;
+        if (!this.leavesConfig.isWorldWhitelisted(player.getWorld())) return;
         final PacketTypeCommon packetType = event.getPacketType();
         if (packetType == PacketType.Play.Server.CHUNK_DATA) {
             this.handleChunkSend(event, player.getWorld().getUID());
-//            return;
+            return;
         }
         if (packetType == PacketType.Play.Server.BLOCK_CHANGE) {
             this.handleBlockChange(event, player.getWorld().getUID());
-//            return;
+            return;
         }
         if (packetType == PacketType.Play.Server.MULTI_BLOCK_CHANGE) {
             this.handleMultiBlockChange(event, player.getWorld().getUID());
-//            return;
+            return;
         }
         if (packetType == PacketType.Play.Server.PARTICLE) {
             this.handleFallParticles(event);
         }
-//        if (packetType == PacketType.Play.Server.KEEP_ALIVE) return;
-//        if (packetType == PacketType.Play.Server.TIME_UPDATE) return;
-//        if (packetType == PacketType.Play.Server.SYSTEM_CHAT_MESSAGE) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_RELATIVE_MOVE) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_RELATIVE_MOVE_AND_ROTATION) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_VELOCITY) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_HEAD_LOOK) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_TELEPORT) return;
-//        if (packetType == PacketType.Play.Server.UPDATE_LIGHT) return;
-//        if (packetType == PacketType.Play.Server.BUNDLE) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_STATUS) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_ROTATION) return;
-//        if (packetType == PacketType.Play.Server.SPAWN_ENTITY) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_METADATA) return;
-//        if (packetType == PacketType.Play.Server.UPDATE_ATTRIBUTES) return;
-//        if (packetType == PacketType.Play.Server.DESTROY_ENTITIES) return;
-//        if (packetType == PacketType.Play.Server.ENTITY_EQUIPMENT) return;
-//        Bukkit.broadcastMessage(packetType.getName());
     }
 
     @Override
     public void onPacketReceive(PacketReceiveEvent event) {
         if (!(event.getPlayer() instanceof final Player player)) return;
+        if (!this.leavesConfig.isWorldWhitelisted(player.getWorld())) return;
         final PacketTypeCommon packetType = event.getPacketType();
         if (packetType == PacketType.Play.Client.PLAYER_DIGGING) {
             this.handlePlayerDigging(event, player.getWorld().getUID());

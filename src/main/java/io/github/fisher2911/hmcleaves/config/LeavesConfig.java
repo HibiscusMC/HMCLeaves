@@ -33,6 +33,7 @@ import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Axis;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -212,6 +213,9 @@ public class LeavesConfig {
     private Material defaultLogMaterial = Material.OAK_LOG;
     private Material defaultStrippedLogMaterial = Material.STRIPPED_OAK_LOG;
 
+    private boolean useWorldWhitelist;
+    private Set<String> whitelistedWorlds;
+
     public LeavesConfig(
             HMCLeaves plugin,
             Map<String, BlockData> blockDataMap,
@@ -330,6 +334,9 @@ public class LeavesConfig {
     private static final String ONLY_FOLLOW_WORLD_PERSISTENCE_IF_CONNECTED_TO_LOG_PATH = "only-follow-world-persistence-if-connected-to-log";
     private boolean onlyFollowWorldPersistenceIfConnectedToLog;
 
+    private static final String USE_WORLD_WHITELIST_PATH = "use-world-whitelist";
+    private static final String WHITELISTED_WORLDS_PATH = "whitelisted-worlds";
+
     public void load() {
         this.plugin.saveDefaultConfig();
         final FileConfiguration config = this.plugin.getConfig();
@@ -346,6 +353,8 @@ public class LeavesConfig {
             this.defaultStrippedLogMaterial = Material.valueOf(config.getString(DEFAULT_STRIPPED_LOG_MATERIAL_PATH));
         } catch (IllegalArgumentException ignored) {
         }
+        this.useWorldWhitelist = config.getBoolean(USE_WORLD_WHITELIST_PATH, false);
+        this.whitelistedWorlds = new HashSet<>(config.getStringList(WHITELISTED_WORLDS_PATH));
         initLeavesAndLogs(this.defaultLeafMaterial, this.defaultLogMaterial, this.defaultStrippedLogMaterial);
         this.loadLeavesSection(config);
         this.loadLogsSection(config);
@@ -354,6 +363,14 @@ public class LeavesConfig {
 
     public boolean isOnlyFollowWorldPersistenceIfConnectedToLog() {
         return this.onlyFollowWorldPersistenceIfConnectedToLog;
+    }
+
+    public boolean isWorldWhitelisted(String world) {
+        return !this.useWorldWhitelist || this.whitelistedWorlds.contains(world);
+    }
+
+    public boolean isWorldWhitelisted(World world) {
+        return this.isWorldWhitelisted(world.getName());
     }
 
     public void reload() {

@@ -70,7 +70,9 @@ public class LeafAndLogEditListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onLeafDecay(LeavesDecayEvent event) {
-        final Position position = Position.fromLocation(event.getBlock().getLocation());
+        final Block block = event.getBlock();
+        if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
+        final Position position = Position.fromLocation(block.getLocation());
         // delay so that saplings can be replaced
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
             this.blockCache.removeBlockData(position);
@@ -80,6 +82,7 @@ public class LeafAndLogEditListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onPistonPush(BlockPistonExtendEvent event) {
+        if (!this.leavesConfig.isWorldWhitelisted(event.getBlock().getWorld())) return;
         final BlockFace direction = event.getDirection();
         final List<Block> copyList = new ArrayList<>(event.getBlocks());
         // sort from furthest to closest to piston so that blocks don't get replaced in the cache
@@ -134,6 +137,7 @@ public class LeafAndLogEditListener implements Listener {
     //
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onPistonRetract(BlockPistonRetractEvent event) {
+        if (!this.leavesConfig.isWorldWhitelisted(event.getBlock().getWorld())) return;
         final BlockFace direction = event.getDirection();
         final List<Block> copyList = new ArrayList<>(event.getBlocks());
         // sort from closest to furthest to piston so that blocks don't get replaced in the cache
@@ -206,6 +210,7 @@ public class LeafAndLogEditListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onTreeGrow(StructureGrowEvent event) {
+        if (!this.leavesConfig.isWorldWhitelisted(event.getWorld())) return;
         if (event.getBlocks().size() == 1) {
             return;
         }
@@ -236,7 +241,9 @@ public class LeafAndLogEditListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onBlockBurn(BlockBurnEvent event) {
-        final Position position = Position.fromLocation(event.getBlock().getLocation());
+        final Block block = event.getBlock();
+        if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
+        final Position position = Position.fromLocation(block.getLocation());
         this.blockCache.removeBlockData(position);
     }
 
