@@ -28,6 +28,7 @@ import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.hook.ItemHook;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
+import org.bukkit.Axis;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.inventory.ItemStack;

@@ -47,15 +47,10 @@ public record LogData(
 
     @Override
     public WrappedBlockState getNewState() {
-        if (!this.stripped) {
-            final Integer id = Hooks.getBlockId(this.id);
-            return this.create(Objects.requireNonNullElse(id, this.sendBlockId));
-        }
-        final Integer id = Hooks.getBlockId(this.strippedLogId);
-        if (id == null) {
-            return this.create(this.strippedSendBlockId);
-        }
-        return this.create(id);
+        final int sendId = Objects.requireNonNullElse(
+                Hooks.getBlockId(this.getCurrentId()), this.sendBlockId
+        );
+        return this.create(sendId);
     }
 
     private WrappedBlockState create(int blockId) {
@@ -104,6 +99,5 @@ public record LogData(
         if (this.stripped) return this.strippedLogId;
         return this.id;
     }
-
 
 }

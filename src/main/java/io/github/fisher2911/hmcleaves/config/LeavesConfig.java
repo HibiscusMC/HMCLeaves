@@ -31,7 +31,6 @@ import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Axis;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;

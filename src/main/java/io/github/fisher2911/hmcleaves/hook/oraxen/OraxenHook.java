@@ -28,10 +28,11 @@ import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.api.events.OraxenNoteBlockBreakEvent;
 import io.th0rgal.oraxen.api.events.OraxenNoteBlockPlaceEvent;
 import io.th0rgal.oraxen.items.ItemBuilder;
-import io.th0rgal.oraxen.mechanics.Mechanic;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanic;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory;
+import org.bukkit.Bukkit;
 import org.bukkit.block.data.type.NoteBlock;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -65,9 +66,13 @@ public class OraxenHook implements ItemHook {
     @Nullable
     public Integer getBlockId(String id) {
         final MechanicFactory mechanicFactory = MechanicsManager.getMechanicFactory("noteblock");
-        if (!(mechanicFactory instanceof final NoteBlockMechanicFactory noteBlockMechanicFactory)) return null;
-        final Mechanic mechanic = noteBlockMechanicFactory.getMechanic(id);
-        if (mechanic == null) return null;
+        if (!(mechanicFactory instanceof final NoteBlockMechanicFactory noteBlockMechanicFactory)) {
+            return null;
+        }
+        final NoteBlockMechanic mechanic = (NoteBlockMechanic) noteBlockMechanicFactory.getMechanic(id);
+        if (mechanic == null) {
+            return null;
+        }
         final NoteBlock noteBlock = noteBlockMechanicFactory.createNoteBlockData(id);
         return SpigotConversionUtil.fromBukkitBlockData(noteBlock).getGlobalId();
     }
