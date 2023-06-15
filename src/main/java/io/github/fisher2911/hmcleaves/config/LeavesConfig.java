@@ -31,6 +31,7 @@ import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Axis;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
@@ -421,6 +422,8 @@ public class LeavesConfig {
         final Supplier<ItemStack> itemStackSupplier = () -> {
             final Supplier<ItemStack> supplier = this.itemSupplierMap.get(saplingId);
             if (supplier == null) return null;
+            final ItemStack itemStack = supplier.get();
+            if (itemStack == null) return null;
             return supplier.get();
         };
         this.saplingItemSupplierMap.put(itemId, itemStackSupplier);

@@ -104,17 +104,6 @@ public class LeafDropListener implements Listener {
             if (sapling == null) return;
             this.transferItemData(itemStack, sapling);
         }
-//        if (Tag.LEAVES.isTagged(itemStack.getType())) {
-//            final ItemStack dropReplacement = this.le.getLeafDropReplacement(leafItem.id());
-//            if (dropReplacement == null) return;
-//            this.transferItemData(itemStack, dropReplacement);
-//            return;
-//        }
-//        if (Tag.SAPLINGS.isTagged(itemStack.getType())) {
-//            final ItemStack sapling = this.config.getSapling(leafItem.id());
-//            if (sapling == null) return;
-//            this.transferItemData(itemStack, sapling);
-//        }
     }
 
     private void transferItemData(ItemStack original, ItemStack toTransfer) {

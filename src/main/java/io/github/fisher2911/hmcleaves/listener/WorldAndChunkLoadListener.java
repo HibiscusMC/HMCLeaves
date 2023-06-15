@@ -195,10 +195,13 @@ public class WorldAndChunkLoadListener implements Listener {
             boolean markClean = chunkBlockCache == null || chunkBlockCache.isClean();
             chunkBlocks.forEach(this.blockCache::addBlockData);
             chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
+            if (!this.plugin.isEnabled()) return;
             Bukkit.getScheduler().runTask(this.plugin, () -> {
                 final World world = Bukkit.getWorld(chunkPosition.world());
                 if (world == null) return;
-                this.sendBlocksToPlayersAlreadyInChunk(world, chunkPosition.x(), chunkPosition.z());
+                Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () ->
+                        this.sendBlocksToPlayersAlreadyInChunk(world, chunkPosition.x(), chunkPosition.z())
+                );
             });
             if (chunkBlockCache == null || !markClean) return;
             chunkBlockCache.markClean();
