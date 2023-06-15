@@ -204,11 +204,13 @@ public class WorldAndChunkLoadListener implements Listener {
                 .collect(Collectors.toList());
         final ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(ChunkPosition.at(world.getUID(), chunkX, chunkZ));
         if (chunkBlockCache == null) return;
-        PacketUtils.sendMultiBlockChange(
-                chunkBlockCache.getChunkPosition(),
-                chunkBlockCache.getBlockDataMap(),
-                playersThatCanSee
-        );
+        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
+            PacketUtils.sendMultiBlockChange(
+                    chunkBlockCache.getChunkPosition(),
+                    chunkBlockCache.getBlockDataMap(),
+                    playersThatCanSee
+            );
+        });
     }
 
     @EventHandler

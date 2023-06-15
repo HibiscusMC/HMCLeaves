@@ -48,7 +48,7 @@ public record LogData(
     @Override
     public WrappedBlockState getNewState() {
         final int sendId = Objects.requireNonNullElse(
-                Hooks.getBlockId(this.getCurrentId()), this.sendBlockId
+                Hooks.getBlockId(this.getCurrentId()), this.sendBlockId()
         );
         return this.create(sendId);
     }

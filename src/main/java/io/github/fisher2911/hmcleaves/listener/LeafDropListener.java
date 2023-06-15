@@ -27,6 +27,7 @@ import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.type.Leaves;
+import org.bukkit.block.data.type.Sapling;
 import org.bukkit.entity.Item;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -85,8 +86,18 @@ public class LeafDropListener implements Listener {
     public void onItemDrop(ItemSpawnEvent event) {
         final Block block = event.getLocation().getBlock();
         if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
-        if (!(block.getBlockData() instanceof final Leaves leaves)) return;
         final Position position = Position.fromLocation(block.getLocation());
+        if (block.getBlockData() instanceof Sapling) {
+            final BlockData blockData = this.plugin.getBlockCache().removeBlockData(position);
+            final Item item = event.getEntity();
+            final Supplier<ItemStack> supplier = this.leavesConfig.getItem(blockData.id());
+            if (supplier == null) return;
+            final ItemStack saplingItem = supplier.get();
+            if (saplingItem == null) return;
+            this.transferItemData(item.getItemStack(), saplingItem);
+            return;
+        }
+        if (!(block.getBlockData() instanceof final Leaves leaves)) return;
         final BlockData blockData = this.plugin.getBlockCache().removeBlockData(position);
         final String id = blockData.id();
         final Item item = event.getEntity();

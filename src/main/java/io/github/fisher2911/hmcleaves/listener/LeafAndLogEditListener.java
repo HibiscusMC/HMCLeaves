@@ -45,6 +45,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBurnEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
@@ -245,6 +246,20 @@ public class LeafAndLogEditListener implements Listener {
         if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
         final Position position = Position.fromLocation(block.getLocation());
         this.blockCache.removeBlockData(position);
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onWaterFlow(BlockFromToEvent event) {
+        final Block block = event.getToBlock();
+        if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
+        final Position position = Position.fromLocation(block.getLocation());
+        final BlockData blockData = this.blockCache.getBlockData(position);
+        if (!(blockData instanceof SaplingData)) return;
+        // delay so that saplings can be dropped properly
+        Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
+            this.blockCache.removeBlockData(position);
+//            PacketUtils.sendBlock(Material.AIR, position, Bukkit.getOnlinePlayers());
+        }, 1);
     }
 
 }
