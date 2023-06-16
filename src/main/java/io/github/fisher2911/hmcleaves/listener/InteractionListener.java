@@ -112,12 +112,12 @@ public class InteractionListener implements Listener {
         if (this.checkStripLog(player, block, clickedWith)) return;
         if (blockData == null) return;
         if (block.getType().isInteractable() && !player.isSneaking()) return;
-        if (!(world.getNearbyEntities(placeLocation.clone().add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5, LivingEntity.class::isInstance).isEmpty())) {
+        if (!(blockData instanceof SaplingData) && !(world.getNearbyEntities(placeLocation.clone().add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5, LivingEntity.class::isInstance).isEmpty())) {
             event.setCancelled(true);
             return;
         }
         if (
-                blockData instanceof final SaplingData saplingData &&
+                blockData instanceof SaplingData &&
                         !Tag.DIRT.isTagged(placeLocation.clone().subtract(0, 1, 0).getBlock().getType())
         ) {
             event.setCancelled(true);
