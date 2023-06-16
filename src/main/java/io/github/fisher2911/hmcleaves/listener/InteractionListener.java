@@ -103,7 +103,6 @@ public class InteractionListener implements Listener {
         ) {
             return;
         }
-        if (world == null) return;
         final Axis axis = this.axisFromBlockFace(event.getBlockFace());
         final BlockData blockData = this.leavesConfig.getBlockData(clickedWith, axis);
         if (this.doDebugTool(clickedWith, event.getPlayer(), block)) {
@@ -114,6 +113,13 @@ public class InteractionListener implements Listener {
         if (blockData == null) return;
         if (block.getType().isInteractable() && !player.isSneaking()) return;
         if (!(world.getNearbyEntities(placeLocation.clone().add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5, LivingEntity.class::isInstance).isEmpty())) {
+            event.setCancelled(true);
+            return;
+        }
+        if (
+                blockData instanceof final SaplingData saplingData &&
+                        !Tag.DIRT.isTagged(placeLocation.clone().subtract(0, 1, 0).getBlock().getType())
+        ) {
             event.setCancelled(true);
             return;
         }
