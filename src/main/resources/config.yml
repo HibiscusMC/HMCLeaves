@@ -27,14 +27,7 @@ leaves:
       - "&bLine 2"
     state-id: 1
     sapling: test_sapling
-    leaf-drop-replacement:
-      material: OAK_LEAVES
-      amount: 1
-      name: "&aTest"
-      model-data: 1
-      lore:
-        - "&7This is a test"
-        - "&7This is a test"
+    leaf-drop-replacement: test_leaves
 
 logs:
   test_log:

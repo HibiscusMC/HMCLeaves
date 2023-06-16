@@ -458,25 +458,28 @@ public class LeavesConfig {
     }
 
     private void loadSapling(ConfigurationSection config, String itemId) {
-//        final ConfigurationSection saplingSection = config.getConfigurationSection(SAPLING_PATH);
-//        if (saplingSection == null) return;
-//        final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(saplingSection, itemId, itemId);
-        final String saplingId = config.getString(SAPLING_PATH);
+        this.loadDropReplacement(config, itemId, SAPLING_PATH, this.saplingItemSupplierMap);
+    }
+
+    private void loadLeafDropReplacement(ConfigurationSection config, String itemId) {
+        this.loadDropReplacement(config, itemId, LEAF_DROP_REPLACEMENT_PATH, this.leafDropItemSupplierMap);
+    }
+
+    private void loadDropReplacement(
+            ConfigurationSection config,
+            String itemId,
+            String itemPath,
+            Map<String, Supplier<ItemStack>> supplierMap
+    ) {
+        final String replacementId = config.getString(itemPath);
         final Supplier<ItemStack> itemStackSupplier = () -> {
-            final Supplier<ItemStack> supplier = this.itemSupplierMap.get(saplingId);
+            final Supplier<ItemStack> supplier = this.itemSupplierMap.get(replacementId);
             if (supplier == null) return null;
             final ItemStack itemStack = supplier.get();
             if (itemStack == null) return null;
             return supplier.get();
         };
-        this.saplingItemSupplierMap.put(itemId, itemStackSupplier);
-    }
-
-    private void loadLeafDropReplacement(ConfigurationSection config, String itemId) {
-        final ConfigurationSection leafDropReplacementSection = config.getConfigurationSection(LEAF_DROP_REPLACEMENT_PATH);
-        if (leafDropReplacementSection == null) return;
-        final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(leafDropReplacementSection, itemId, itemId);
-        this.leafDropItemSupplierMap.put(itemId, itemStackSupplier);
+        supplierMap.put(itemId, itemStackSupplier);
     }
 
     private static final String INSTRUMENT_PATH = "instrument";

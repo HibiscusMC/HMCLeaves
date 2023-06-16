@@ -60,7 +60,6 @@ import io.github.fisher2911.hmcleaves.data.SaplingData;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.util.RandomUtil;
 import io.github.fisher2911.hmcleaves.world.Position;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.sapling.SaplingListener;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.block.data.type.Leaves;
