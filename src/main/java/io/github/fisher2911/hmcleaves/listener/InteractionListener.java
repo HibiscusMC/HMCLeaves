@@ -44,6 +44,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.data.Levelled;
 import org.bukkit.block.data.Orientable;
+import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.block.data.type.Sapling;
 import org.bukkit.entity.LivingEntity;
@@ -158,6 +159,9 @@ public class InteractionListener implements Listener {
                 leaves.setDistance(this.getDistance(placeLocation));
                 if (leaves.isPersistent() && leaves.getDistance() < 7 && this.leavesConfig.isOnlyFollowWorldPersistenceIfConnectedToLog()) {
                     leaves.setPersistent(false);
+                }
+                if (waterlogged && leaves instanceof final Waterlogged waterloggedData) {
+                    waterloggedData.setWaterlogged(true);
                 }
                 placedBlock.setBlockData(leaves, true);
                 return;
