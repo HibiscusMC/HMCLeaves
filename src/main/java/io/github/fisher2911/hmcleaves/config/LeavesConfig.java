@@ -673,11 +673,12 @@ public class LeavesConfig {
 
     private Supplier<ItemStack> loadItemStack(ConfigurationSection section, String itemId, String hookId) {
         final String materialStr = section.getString(MATERIAL_PATH);
-        final Material material;
+        Material material;
         try {
-            material = Material.valueOf(materialStr);
-        } catch (Exception e) {
-            throw new IllegalStateException("Material not found for " + materialStr + " item.");
+            material = Material.valueOf(materialStr.toUpperCase());
+        } catch (NullPointerException | IllegalArgumentException e) {
+//            throw new IllegalStateException("Material not found for " + materialStr + " item.");
+            material = Material.AIR;
         }
         final int amount = section.getInt(AMOUNT_PATH, 1);
         final String name = section.getString(NAME_PATH);
