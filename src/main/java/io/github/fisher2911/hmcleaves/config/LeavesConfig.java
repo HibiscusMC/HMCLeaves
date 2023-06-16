@@ -289,8 +289,15 @@ public class LeavesConfig {
     }
 
     @Nullable
-    public Supplier<ItemStack> getItem(String id) {
+    public Supplier<ItemStack> getItemSupplier(String id) {
         return this.itemSupplierMap.get(id);
+    }
+
+    @Nullable
+    public ItemStack getItemStack(String id) {
+        final Supplier<ItemStack> supplier = this.getItemSupplier(id);
+        if (supplier == null) return null;
+        return supplier.get();
     }
 
     @Unmodifiable

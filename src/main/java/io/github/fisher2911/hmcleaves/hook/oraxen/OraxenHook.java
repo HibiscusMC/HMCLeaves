@@ -32,7 +32,6 @@ import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanic;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory;
-import org.bukkit.Bukkit;
 import org.bukkit.block.data.type.NoteBlock;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -80,7 +79,7 @@ public class OraxenHook implements ItemHook {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onNoteblockPlace(OraxenNoteBlockPlaceEvent event) {
         final String id = event.getMechanic().getItemID();
-        if (this.config.getItem(id) != null) {
+        if (this.config.getItemSupplier(id) != null) {
             event.setCancelled(true);
         }
     }
@@ -88,7 +87,7 @@ public class OraxenHook implements ItemHook {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onNoteblockRemove(OraxenNoteBlockBreakEvent event) {
         final String id = event.getMechanic().getItemID();
-        if (this.config.getItem(id) != null) {
+        if (this.config.getItemSupplier(id) != null) {
             event.setCancelled(true);
         }
     }

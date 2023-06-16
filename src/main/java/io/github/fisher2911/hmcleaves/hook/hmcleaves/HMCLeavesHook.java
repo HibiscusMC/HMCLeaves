@@ -26,7 +26,6 @@ import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.hook.ItemHook;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
-import org.bukkit.Axis;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -49,7 +48,7 @@ public class HMCLeavesHook implements ItemHook {
 
     @Override
     public @Nullable ItemStack getItem(String id) {
-        final Supplier<ItemStack> supplier = this.leavesConfig.getItem(id);
+        final Supplier<ItemStack> supplier = this.leavesConfig.getItemSupplier(id);
         if (supplier == null) return null;
         return supplier.get();
     }

@@ -207,8 +207,21 @@ public class InteractionListener implements Listener {
         if (event.getPlayer().getGameMode() == GameMode.CREATIVE) return;
         if (event instanceof BlockBreakManager.LeavesBlockBreakEvent) return;
         if (!this.leavesConfig.isWorldWhitelisted(event.getBlock().getWorld())) return;
-        final Position position = Position.fromLocation(event.getBlock().getLocation());
-        if (!(this.blockCache.getBlockData(position) instanceof LogData)) return;
+        final Location location = event.getBlock().getLocation();
+        final Position position = Position.fromLocation(location);
+        final BlockData blockData = this.blockCache.getBlockData(position);
+        if (blockData instanceof final SaplingData saplingData) {
+            final ItemStack itemStack = this.leavesConfig.getItemStack(saplingData.id());
+            if (itemStack == null) return;
+            event.setDropItems(false);
+            final World world = event.getBlock().getWorld();
+            this.blockCache.removeBlockData(position);
+            Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
+                world.dropItem(location.clone().add(0.5, 0, 0.5), itemStack);
+            }, 1);
+            return;
+        }
+        if (!(blockData instanceof LogData)) return;
         event.setCancelled(true);
     }
 

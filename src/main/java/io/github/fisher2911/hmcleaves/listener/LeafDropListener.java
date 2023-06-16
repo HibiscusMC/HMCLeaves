@@ -90,7 +90,7 @@ public class LeafDropListener implements Listener {
         if (block.getBlockData() instanceof Sapling) {
             final BlockData blockData = this.plugin.getBlockCache().removeBlockData(position);
             final Item item = event.getEntity();
-            final Supplier<ItemStack> supplier = this.leavesConfig.getItem(blockData.id());
+            final Supplier<ItemStack> supplier = this.leavesConfig.getItemSupplier(blockData.id());
             if (supplier == null) return;
             final ItemStack saplingItem = supplier.get();
             if (saplingItem == null) return;

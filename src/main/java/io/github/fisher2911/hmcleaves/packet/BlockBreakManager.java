@@ -124,9 +124,9 @@ public class BlockBreakManager {
                             Supplier<ItemStack> itemStackSupplier = null;
                             if (blockBreakData.getBlockData() instanceof final LogData logData) {
                                 if (logData.stripped()) {
-                                    itemStackSupplier = BlockBreakManager.this.leavesConfig.getItem(logData.strippedLogId());
+                                    itemStackSupplier = BlockBreakManager.this.leavesConfig.getItemSupplier(logData.strippedLogId());
                                 } else {
-                                    itemStackSupplier = BlockBreakManager.this.leavesConfig.getItem(blockBreakData.getBlockData().id());
+                                    itemStackSupplier = BlockBreakManager.this.leavesConfig.getItemSupplier(blockBreakData.getBlockData().id());
                                 }
                                 if (itemStackSupplier == null) {
                                     itemStackSupplier = () -> new ItemStack(logData.worldBlockType());

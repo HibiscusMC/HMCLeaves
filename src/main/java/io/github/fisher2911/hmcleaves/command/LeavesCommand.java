@@ -24,7 +24,6 @@ import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -87,7 +86,7 @@ public class LeavesCommand implements TabExecutor {
             return true;
         }
         if (sender.hasPermission(ITEM_PERMISSION) && args[0].equalsIgnoreCase(GIVE_ARG)) {
-            final Supplier<ItemStack> itemSupplier = this.leavesConfig.getItem(args[1]);
+            final Supplier<ItemStack> itemSupplier = this.leavesConfig.getItemSupplier(args[1]);
             final ItemStack itemStack;
             if (itemSupplier == null || (itemStack = itemSupplier.get()) == null) {
                 sender.sendMessage(ChatColor.RED + "Item not found.");

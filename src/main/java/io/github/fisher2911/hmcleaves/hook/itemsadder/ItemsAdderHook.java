@@ -28,7 +28,6 @@ import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.hook.ItemHook;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
-import org.bukkit.Axis;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.inventory.ItemStack;
@@ -72,7 +71,7 @@ public class ItemsAdderHook implements ItemHook {
 //        final Block block = event.getBlock();
 //        LeafUpdater.scheduleTick(block.getLocation());
         final String id = event.getNamespacedID();
-        if (this.config.getItem(id) != null) {
+        if (this.config.getItemSupplier(id) != null) {
             event.setCancelled(true);
         }
     }
@@ -82,7 +81,7 @@ public class ItemsAdderHook implements ItemHook {
 //        final Block block = event.getBlock();
 //        LeafUpdater.scheduleTick(block.getLocation());
         final String id = event.getNamespacedID();
-        if (this.config.getItem(id) != null) {
+        if (this.config.getItemSupplier(id) != null) {
             event.setCancelled(true);
         }
     }
