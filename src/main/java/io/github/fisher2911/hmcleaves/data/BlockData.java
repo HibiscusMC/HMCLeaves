@@ -66,6 +66,12 @@ public interface BlockData {
         public Sound placeSound() {
             return null;
         }
+
+        @Override
+        @Nullable
+        public String modelPath() {
+            return null;
+        }
     };
 
     String id();
@@ -82,6 +88,9 @@ public interface BlockData {
     @Nullable
     Sound placeSound();
 
+    @Nullable
+    String modelPath();
+
     static LeafData leafData(
             String id,
             int sendBlockData,
@@ -89,7 +98,8 @@ public interface BlockData {
             int displayDistance,
             boolean displayPersistence,
             boolean worldPersistence,
-            boolean waterlogged
+            boolean waterlogged,
+            String modelPath
     ) {
         return new LeafData(
                 id,
@@ -98,7 +108,8 @@ public interface BlockData {
                 displayDistance,
                 displayPersistence,
                 worldPersistence,
-                waterlogged
+                waterlogged,
+                modelPath
         );
     }
 
@@ -129,14 +140,16 @@ public interface BlockData {
             int sendBlockId,
             Material realBlockType,
             List<String> schematicFiles,
-            boolean randomPasteRotation
+            boolean randomPasteRotation,
+            String modelPath
     ) {
         return new SaplingData(
                 id,
                 sendBlockId,
                 realBlockType,
                 schematicFiles,
-                randomPasteRotation
+                randomPasteRotation,
+                modelPath
         );
     }
 

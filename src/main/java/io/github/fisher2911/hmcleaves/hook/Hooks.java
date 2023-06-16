@@ -27,10 +27,11 @@ import io.github.fisher2911.hmcleaves.hook.itemsadder.ItemsAdderHook;
 import io.github.fisher2911.hmcleaves.hook.oraxen.OraxenHook;
 import io.github.fisher2911.hmcleaves.hook.worldedit.WorldEditHook;
 import io.github.fisher2911.hmcleaves.world.Position;
-import org.bukkit.Axis;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.File;
 
 public class Hooks {
 
@@ -87,6 +88,10 @@ public class Hooks {
 
     public static boolean hasOtherItemHook() {
         return !(itemHook instanceof HMCLeavesHook);
+    }
+
+    public static void transferTextures(File file) {
+        if (itemHook != null) itemHook.transferTextures(file);
     }
 
 }

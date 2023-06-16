@@ -31,7 +31,8 @@ public record SaplingData(
         int sendBlockId,
         Material realBlockType,
         List<String> schematicFiles,
-        boolean randomPasteRotation
+        boolean randomPasteRotation,
+        String modelPath
 ) implements BlockData {
 
     @Override

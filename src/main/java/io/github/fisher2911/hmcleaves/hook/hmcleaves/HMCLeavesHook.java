@@ -29,6 +29,7 @@ import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
 import java.util.function.Supplier;
 
 public class HMCLeavesHook implements ItemHook {
@@ -60,6 +61,11 @@ public class HMCLeavesHook implements ItemHook {
         return SpigotConversionUtil.fromBukkitBlockData(
                 blockData.worldBlockType().createBlockData()
         ).getGlobalId();
+    }
+
+    @Override
+    public void transferTextures(File file) {
+        // do nothing, no hook used for texture packs
     }
 
 }

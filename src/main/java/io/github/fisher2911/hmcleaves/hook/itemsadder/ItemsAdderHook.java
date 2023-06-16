@@ -33,6 +33,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
+
 public class ItemsAdderHook implements ItemHook {
 
     private final HMCLeaves plugin;
@@ -68,8 +70,6 @@ public class ItemsAdderHook implements ItemHook {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onNoteblockPlace(CustomBlockPlaceEvent event) {
-//        final Block block = event.getBlock();
-//        LeafUpdater.scheduleTick(block.getLocation());
         final String id = event.getNamespacedID();
         if (this.config.getItemSupplier(id) != null) {
             event.setCancelled(true);
@@ -78,12 +78,15 @@ public class ItemsAdderHook implements ItemHook {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onNoteblockRemove(CustomBlockBreakEvent event) {
-//        final Block block = event.getBlock();
-//        LeafUpdater.scheduleTick(block.getLocation());
         final String id = event.getNamespacedID();
         if (this.config.getItemSupplier(id) != null) {
             event.setCancelled(true);
         }
+    }
+
+    @Override
+    public void transferTextures(File file) {
+        // todo: figure out path
     }
 
 }

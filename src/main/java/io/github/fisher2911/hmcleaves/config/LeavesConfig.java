@@ -203,6 +203,7 @@ public class LeavesConfig {
     }
 
     private final HMCLeaves plugin;
+    private final TextureFileGenerator textureFileGenerator;
     private final Map<String, BlockData> blockDataMap;
     // so that tab complete doesn't show directional ID's
     private final Set<String> playerItemIds;
@@ -224,6 +225,7 @@ public class LeavesConfig {
             Map<String, Supplier<ItemStack>> leafDropItemSupplierMap
     ) {
         this.plugin = plugin;
+        this.textureFileGenerator = new TextureFileGenerator(plugin);
         this.playerItemIds = new HashSet<>();
         this.blockDataMap = blockDataMap;
         this.itemSupplierMap = itemSupplierMap;
@@ -338,6 +340,8 @@ public class LeavesConfig {
     private static final String SAPLING_PATH = "sapling";
     private static final String LEAF_DROP_REPLACEMENT_PATH = "leaf-drop-replacement";
 
+    private static final String MODEL_PATH_PATH = "model-path";
+
     private static final String ONLY_FOLLOW_WORLD_PERSISTENCE_IF_CONNECTED_TO_LOG_PATH = "only-follow-world-persistence-if-connected-to-log";
     private boolean onlyFollowWorldPersistenceIfConnectedToLog;
 
@@ -366,6 +370,24 @@ public class LeavesConfig {
         this.loadLeavesSection(config);
         this.loadLogsSection(config);
         this.loadSaplingsSection(config);
+        for (Material leaf : LEAVES) {
+            this.textureFileGenerator.generateFile(
+                    leaf,
+                    this.blockDataMap.values().stream()
+                            .filter(blockData -> blockData.worldBlockType() == leaf)
+                            .filter(blockData -> blockData.modelPath() != null)
+                            .collect(Collectors.toList())
+            );
+        }
+        for (Material sapling : SAPLINGS) {
+            this.textureFileGenerator.generateFile(
+                    sapling,
+                    this.blockDataMap.values().stream()
+                            .filter(blockData -> blockData.worldBlockType() == sapling)
+                            .filter(blockData -> blockData.modelPath() != null)
+                            .collect(Collectors.toList())
+            );
+        }
     }
 
     public boolean isOnlyFollowWorldPersistenceIfConnectedToLog() {
@@ -404,6 +426,7 @@ public class LeavesConfig {
         LEAVES.clear();
         LOGS.clear();
         STRIPPED_LOGS.clear();
+        SAPLINGS.clear();
         this.itemSupplierMap.clear();
         this.saplingItemSupplierMap.clear();
         this.leafDropItemSupplierMap.clear();
@@ -428,6 +451,7 @@ public class LeavesConfig {
             final WrappedBlockState state = getLeafById(stateId);
             final Material leafMaterial = this.loadMaterial(leavesSection, itemId + "." + LEAF_MATERIAL_PATH, this.defaultLeafMaterial);
             final boolean worldPersistence = leavesSection.getBoolean(itemId + "." + WORLD_PERSISTENCE_PATH, state.isPersistent());
+            final String modelPath = leavesSection.getString(itemId + "." + MODEL_PATH_PATH, null);
             final BlockData blockData = BlockData.leafData(
                     itemId,
                     state.getGlobalId(),
@@ -435,7 +459,8 @@ public class LeavesConfig {
                     state.getDistance(),
                     state.isPersistent(),
                     worldPersistence,
-                    false
+                    false,
+                    modelPath
             );
             this.blockDataMap.put(itemId, blockData);
             this.loadSapling(leavesSection.getConfigurationSection(itemId), itemId);
@@ -452,7 +477,8 @@ public class LeavesConfig {
                     leafStateById.getDistance(),
                     leafStateById.isPersistent(),
                     false,
-                    false
+                    false,
+                    null
             ));
         }
     }
@@ -595,6 +621,7 @@ public class LeavesConfig {
             }
             final List<String> schematicFiles = saplingsSection.getStringList(itemId + "." + SCHEMATIC_FILES_PATH);
             final boolean randomPasteRotation = saplingsSection.getBoolean(itemId + "." + RANDOM_PASTE_ROTATION_PATH, false);
+            final String modelPath = saplingsSection.getString(itemId + "." + MODEL_PATH_PATH);
             final WrappedBlockState state = WrappedBlockState.getDefaultState(
                     PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
                     SpigotConversionUtil.fromBukkitBlockData(saplingMaterial.createBlockData()).getType()
@@ -605,7 +632,8 @@ public class LeavesConfig {
                     state.getGlobalId(),
                     saplingMaterial,
                     schematicFiles,
-                    randomPasteRotation
+                    randomPasteRotation,
+                    modelPath
             );
             this.blockDataMap.put(itemId, saplingData);
         }
@@ -622,7 +650,8 @@ public class LeavesConfig {
                             state.getGlobalId(),
                             sapling,
                             new ArrayList<>(),
-                            false
+                            false,
+                            null
                     )
             );
         }

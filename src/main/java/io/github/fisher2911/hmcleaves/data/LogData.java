@@ -25,6 +25,7 @@ import io.github.fisher2911.hmcleaves.hook.Hooks;
 import org.bukkit.Axis;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 
@@ -98,6 +99,11 @@ public record LogData(
     public String getCurrentId() {
         if (this.stripped) return this.strippedLogId;
         return this.id;
+    }
+
+    @Override
+    public @Nullable String modelPath() {
+        return null;
     }
 
 }

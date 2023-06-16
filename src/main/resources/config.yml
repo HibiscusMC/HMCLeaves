@@ -28,6 +28,7 @@ leaves:
     state-id: 1
     sapling: test_sapling
     leaf-drop-replacement: test_leaves
+    model-path: "blocks/leaves/test_leaves"
 
 logs:
   test_log:
@@ -56,3 +57,4 @@ saplings:
       - "test.schem"
       - "test2.schem"
     random-paste-rotation: true
+    model-path: "blocks/saplings/test_sapling"

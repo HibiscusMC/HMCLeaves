@@ -31,7 +31,8 @@ public record LeafData(
         int displayDistance,
         boolean displayPersistence,
         boolean worldPersistence,
-        boolean waterlogged
+        boolean waterlogged,
+        String modelPath
 ) implements BlockData {
 
     @Override
@@ -62,7 +63,8 @@ public record LeafData(
                 this.displayDistance,
                 this.displayPersistence,
                 this.worldPersistence,
-                waterLog
+                waterLog,
+                this.modelPath
         );
     }
 

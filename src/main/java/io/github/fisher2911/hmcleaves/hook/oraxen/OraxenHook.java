@@ -24,6 +24,7 @@ import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.hook.ItemHook;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
+import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.api.events.OraxenNoteBlockBreakEvent;
 import io.th0rgal.oraxen.api.events.OraxenNoteBlockPlaceEvent;
@@ -38,14 +39,27 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+
 public class OraxenHook implements ItemHook {
 
     private final HMCLeaves plugin;
     private final LeavesConfig config;
+    private final Path texturesPath;
 
     public OraxenHook(HMCLeaves plugin) {
         this.plugin = plugin;
         this.config = plugin.getLeavesConfig();
+        this.texturesPath = OraxenPlugin.get().getDataFolder()
+                .toPath()
+                .resolve("pack")
+                .resolve("assets")
+                .resolve("minecraft")
+                .resolve("blockstates");
     }
 
     @Override
@@ -89,6 +103,24 @@ public class OraxenHook implements ItemHook {
         final String id = event.getMechanic().getItemID();
         if (this.config.getItemSupplier(id) != null) {
             event.setCancelled(true);
+        }
+    }
+
+    @Override
+    public void transferTextures(File file) {
+        final File texturesFolder = this.texturesPath.toFile();
+        if (!texturesFolder.exists()) {
+            this.plugin.getLogger().warning("Oraxen textures folder does not exist, creating it now");
+            if (!texturesFolder.mkdirs()) {
+                this.plugin.getLogger().warning("Failed to create Oraxen textures folder");
+                return;
+            }
+        }
+        try {
+            Files.copy(file.toPath(), this.texturesPath.resolve(file.getName()), StandardCopyOption.REPLACE_EXISTING);
+            this.plugin.getLogger().info("Successfully transferred " + file.getName() + " to Oraxen textures folder");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 

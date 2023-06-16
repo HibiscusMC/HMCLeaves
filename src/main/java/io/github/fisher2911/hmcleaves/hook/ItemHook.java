@@ -20,10 +20,11 @@
 
 package io.github.fisher2911.hmcleaves.hook;
 
-import org.bukkit.Axis;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.File;
 
 public interface ItemHook extends Listener {
 
@@ -35,5 +36,7 @@ public interface ItemHook extends Listener {
 
     @Nullable
     Integer getBlockId(String id);
+
+    void transferTextures(File file);
 
 }

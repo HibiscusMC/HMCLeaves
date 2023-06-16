@@ -134,8 +134,8 @@ public class WorldAndChunkLoadListener implements Listener {
                                         blockData
                                 );
                             } catch (NullPointerException e) {
-                                System.out.println("NPE when trying to add " + material + " " + LeavesConfig.getDefaultLogStringId(material) + " " + blockData);
-                                System.out.println("Position: " + position);
+                                this.plugin.getLogger().severe("NPE when trying to add " + material + " " + LeavesConfig.getDefaultLogStringId(material) + " " + blockData);
+                                this.plugin.getLogger().severe("Position: " + position);
                             }
                             continue;
                         }
