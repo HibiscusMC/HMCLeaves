@@ -283,6 +283,7 @@ public class WorldEditHook {
                 final Operation operation = clipboardHolder
                         .createPaste(editSession)
                         .to(BlockVector3.at(position.x(), position.y(), position.z()))
+                        .ignoreAirBlocks(true)
                         .build();
                 Operations.complete(operation);
             } catch (WorldEditException e) {
