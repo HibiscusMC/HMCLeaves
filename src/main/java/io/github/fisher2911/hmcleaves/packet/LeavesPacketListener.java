@@ -158,13 +158,11 @@ public class LeavesPacketListener extends PacketListenerAbstract {
             );
             final BlockData blockData = this.blockCache.getBlockData(position);
             if (blockData == BlockData.EMPTY) return;
-            Bukkit.broadcastMessage("Block changed: " + packet.getBlockState().getType().getName());
             final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(packet.getBlockState()).getMaterial();
             final WrappedBlockState sendState = blockData.getNewState();
             final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(sendState).getMaterial();
             if (worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial/*&& !worldMaterial.isAir()*/ && worldMaterial != Material.MOVING_PISTON) {
                 Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
-                    Bukkit.broadcastMessage("Removed block data for " + position.toString());
                     this.blockCache.removeBlockData(position);
                 }, 1);
                 return;
@@ -193,14 +191,12 @@ public class LeavesPacketListener extends PacketListenerAbstract {
                 );
                 final BlockData blockData = this.blockCache.getBlockData(position);
                 if (blockData == BlockData.EMPTY) continue;
-                Bukkit.broadcastMessage("Block changed: " + PacketUtils.getState(block).getType().getName());
                 final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(PacketUtils.getState(block)).getMaterial();
                 final WrappedBlockState sendState = blockData.getNewState();
                 final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(sendState).getMaterial();
                 if (worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial/* && !worldMaterial.isAir()*/ && worldMaterial != Material.MOVING_PISTON) {
                     Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
                         this.blockCache.removeBlockData(position);
-                        Bukkit.broadcastMessage("Removed block data for " + position.toString());
                     }, 1);
                     continue;
                 }

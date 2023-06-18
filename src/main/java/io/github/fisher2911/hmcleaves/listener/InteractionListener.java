@@ -27,6 +27,7 @@ import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.LeafData;
 import io.github.fisher2911.hmcleaves.data.LogData;
 import io.github.fisher2911.hmcleaves.data.SaplingData;
+import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.packet.BlockBreakManager;
 import io.github.fisher2911.hmcleaves.packet.PacketUtils;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
@@ -112,7 +113,12 @@ public class InteractionListener implements Listener {
         }
         if (this.checkStripLog(player, block, clickedWith)) return;
         if (blockData == null) return;
-        if (block.getType().isInteractable() && !player.isSneaking()) return;
+        if (
+                (block.getType().isInteractable() && Hooks.getCustomBlockIdAt(placeLocation.clone().subtract(0, 1, 0)) == null)
+                        && !player.isSneaking()
+        ) {
+            return;
+        }
         if (!(blockData instanceof SaplingData) && !(world.getNearbyEntities(placeLocation.clone().add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5, LivingEntity.class::isInstance).isEmpty())) {
             event.setCancelled(true);
             return;
