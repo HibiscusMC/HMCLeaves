@@ -28,6 +28,7 @@ import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.hook.ItemHook;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
+import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.inventory.ItemStack;
@@ -87,6 +88,13 @@ public class ItemsAdderHook implements ItemHook {
     @Override
     public void transferTextures(File file) {
         // todo: figure out path
+    }
+
+    @Override
+    public @Nullable String getCustomBlockIdAt(Location location) {
+        final CustomBlock block = CustomBlock.byAlreadyPlaced(location.getBlock());
+        if (block == null) return null;
+        return block.getId();
     }
 
 }

@@ -119,7 +119,7 @@ public class InteractionListener implements Listener {
         }
         if (
                 blockData instanceof SaplingData &&
-                        !Tag.DIRT.isTagged(placeLocation.clone().subtract(0, 1, 0).getBlock().getType())
+                        !this.leavesConfig.canPlaceSaplingOn(blockData.id(), placeLocation.clone().subtract(0, 1, 0))
         ) {
             event.setCancelled(true);
             return;
@@ -180,8 +180,15 @@ public class InteractionListener implements Listener {
         if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
         final Material material = block.getType();
         final Position position = Position.fromLocation(block.getLocation());
+        final ItemStack itemInHand = event.getItemInHand();
+        final BlockData itemStackBlockData = this.leavesConfig.getBlockData(itemInHand);
         if (block.getBlockData() instanceof Leaves) {
-            final BlockData blockData = this.leavesConfig.getDefaultLeafData(material);
+            final BlockData blockData;
+            if (itemStackBlockData != null) {
+                blockData = itemStackBlockData;
+            } else {
+                blockData = this.leavesConfig.getDefaultLeafData(material);
+            }
             if (!(blockData instanceof final LeafData leafData)) return;
             final BlockState replacedState = event.getBlockReplacedState();
             this.blockCache.addBlockData(position,
@@ -191,14 +198,27 @@ public class InteractionListener implements Listener {
         }
         if (Tag.LOGS.isTagged(material)) {
             final Orientable orientable = (Orientable) block.getBlockData();
-            final BlockData blockData = this.leavesConfig.getDefaultLogData(material, orientable.getAxis());
+            final Axis axis = orientable.getAxis();
+            BlockData blockData = this.leavesConfig.getBlockData(itemInHand, axis);
+            if (blockData == null) {
+                blockData = this.leavesConfig.getDefaultLogData(material, axis);
+            }
             if (blockData == null) return;
             this.blockCache.addBlockData(position, blockData);
             return;
         }
         if (Tag.SAPLINGS.isTagged(material)) {
-            final BlockData blockData = this.leavesConfig.getDefaultSaplingData(material);
+            final BlockData blockData;
+            if (itemStackBlockData != null) {
+                blockData = itemStackBlockData;
+            } else {
+                blockData = this.leavesConfig.getDefaultSaplingData(material);
+            }
             if (blockData == null) return;
+            if (!this.leavesConfig.canPlaceSaplingOn(blockData.id(), block.getLocation().clone().subtract(0, 1, 0))) {
+                event.setCancelled(true);
+                return;
+            }
             this.blockCache.addBlockData(position, blockData);
         }
     }

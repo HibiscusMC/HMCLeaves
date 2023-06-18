@@ -26,6 +26,7 @@ import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.hook.ItemHook;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
+import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -66,6 +67,11 @@ public class HMCLeavesHook implements ItemHook {
     @Override
     public void transferTextures(File file) {
         // do nothing, no hook used for texture packs
+    }
+
+    @Override
+    public @Nullable String getCustomBlockIdAt(Location location) {
+        return null;
     }
 
 }

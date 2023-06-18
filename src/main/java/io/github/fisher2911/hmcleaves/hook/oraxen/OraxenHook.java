@@ -25,14 +25,17 @@ import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.hook.ItemHook;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import io.th0rgal.oraxen.OraxenPlugin;
+import io.th0rgal.oraxen.api.OraxenBlocks;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.api.events.OraxenNoteBlockBreakEvent;
 import io.th0rgal.oraxen.api.events.OraxenNoteBlockPlaceEvent;
 import io.th0rgal.oraxen.items.ItemBuilder;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.block.BlockMechanic;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanic;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory;
+import org.bukkit.Location;
 import org.bukkit.block.data.type.NoteBlock;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -122,6 +125,15 @@ public class OraxenHook implements ItemHook {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public @Nullable String getCustomBlockIdAt(Location location) {
+        final BlockMechanic blockMechanic = OraxenBlocks.getBlockMechanic(location.getBlock());
+        if (blockMechanic != null) return blockMechanic.getItemID();
+        final NoteBlockMechanic noteBlockMechanic = OraxenBlocks.getNoteBlockMechanic(location.getBlock());
+        if (noteBlockMechanic != null) return noteBlockMechanic.getItemID();
+        return null;
     }
 
 }

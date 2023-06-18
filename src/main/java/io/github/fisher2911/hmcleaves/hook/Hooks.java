@@ -27,6 +27,7 @@ import io.github.fisher2911.hmcleaves.hook.itemsadder.ItemsAdderHook;
 import io.github.fisher2911.hmcleaves.hook.oraxen.OraxenHook;
 import io.github.fisher2911.hmcleaves.hook.worldedit.WorldEditHook;
 import io.github.fisher2911.hmcleaves.world.Position;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
@@ -92,6 +93,10 @@ public class Hooks {
 
     public static void transferTextures(File file) {
         if (itemHook != null) itemHook.transferTextures(file);
+    }
+
+    public static String getCustomBlockIdAt(Location location) {
+        return itemHook == null ? null : itemHook.getCustomBlockIdAt(location);
     }
 
 }

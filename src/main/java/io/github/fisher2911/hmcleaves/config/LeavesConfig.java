@@ -31,8 +31,12 @@ import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Axis;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -48,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -103,11 +108,7 @@ public class LeavesConfig {
         return getLogById(id + LOGS.size());
     }
 
-    private static void initLeavesAndLogs(
-            Material defaultLeafMaterial,
-            Material defaultLogMaterial,
-            Material defaultStrippedLogMaterial
-    ) {
+    private static void initLeavesAndLogs() {
         LEAVES.add(Material.OAK_LEAVES);
         LEAVES.add(Material.SPRUCE_LEAVES);
         LEAVES.add(Material.BIRCH_LEAVES);
@@ -210,6 +211,8 @@ public class LeavesConfig {
     private final Map<String, Supplier<ItemStack>> itemSupplierMap;
     private final Map<String, Supplier<ItemStack>> saplingItemSupplierMap;
     private final Map<String, Supplier<ItemStack>> leafDropItemSupplierMap;
+    // what blocks a sapling can be placed on
+    private final Map<String, Predicate<Location>> saplingSoilPredicateMap;
     private Material defaultLeafMaterial = Material.OAK_LEAVES;
     private Material defaultLogMaterial = Material.OAK_LOG;
     private Material defaultStrippedLogMaterial = Material.STRIPPED_OAK_LOG;
@@ -222,7 +225,8 @@ public class LeavesConfig {
             Map<String, BlockData> blockDataMap,
             Map<String, Supplier<ItemStack>> itemSupplierMap,
             Map<String, Supplier<ItemStack>> saplingItemSupplierMap,
-            Map<String, Supplier<ItemStack>> leafDropItemSupplierMap
+            Map<String, Supplier<ItemStack>> leafDropItemSupplierMap,
+            Map<String, Predicate<Location>> saplingSoilPredicateMap
     ) {
         this.plugin = plugin;
         this.textureFileGenerator = new TextureFileGenerator(plugin);
@@ -231,6 +235,7 @@ public class LeavesConfig {
         this.itemSupplierMap = itemSupplierMap;
         this.saplingItemSupplierMap = saplingItemSupplierMap;
         this.leafDropItemSupplierMap = leafDropItemSupplierMap;
+        this.saplingSoilPredicateMap = saplingSoilPredicateMap;
     }
 
     @Nullable
@@ -366,7 +371,7 @@ public class LeavesConfig {
         }
         this.useWorldWhitelist = config.getBoolean(USE_WORLD_WHITELIST_PATH, false);
         this.whitelistedWorlds = new HashSet<>(config.getStringList(WHITELISTED_WORLDS_PATH));
-        initLeavesAndLogs(this.defaultLeafMaterial, this.defaultLogMaterial, this.defaultStrippedLogMaterial);
+        initLeavesAndLogs();
         this.loadLeavesSection(config);
         this.loadLogsSection(config);
         this.loadSaplingsSection(config);
@@ -420,6 +425,11 @@ public class LeavesConfig {
 
     public boolean isUseWorldWhitelist() {
         return useWorldWhitelist;
+    }
+
+    public boolean canPlaceSaplingOn(String saplingId, Location location) {
+        final Predicate<Location> soilPredicate = this.saplingSoilPredicateMap.get(saplingId);
+        return soilPredicate != null && soilPredicate.test(location);
     }
 
     public void reload() {
@@ -595,6 +605,9 @@ public class LeavesConfig {
     private static final String STAGE_PATH = "stage";
     private static final String SCHEMATIC_FILES_PATH = "schematic-files";
     private static final String RANDOM_PASTE_ROTATION_PATH = "random-paste-rotation";
+    private static final String ALLOWED_SOIL_BLOCKS_PATH = "allowed-soil-blocks";
+
+    private static final Predicate<Location> DEFAULT_SAPLING_PREDICATE = location -> Tag.DIRT.isTagged(location.getBlock().getType());
 
     private void loadSaplingsSection(FileConfiguration config) {
         final ConfigurationSection saplingsSection = config.getConfigurationSection(SAPLINGS_PATH);
@@ -622,6 +635,13 @@ public class LeavesConfig {
             final List<String> schematicFiles = saplingsSection.getStringList(itemId + "." + SCHEMATIC_FILES_PATH);
             final boolean randomPasteRotation = saplingsSection.getBoolean(itemId + "." + RANDOM_PASTE_ROTATION_PATH, false);
             final String modelPath = saplingsSection.getString(itemId + "." + MODEL_PATH_PATH);
+            final ConfigurationSection predicateSection = saplingsSection.getConfigurationSection(itemId + "." + ALLOWED_SOIL_BLOCKS_PATH);
+            final Predicate<Location> predicate;
+            if (predicateSection == null) {
+                predicate = DEFAULT_SAPLING_PREDICATE;
+            } else {
+                predicate = this.loadSaplingSoilPredicate(predicateSection);
+            }
             final WrappedBlockState state = WrappedBlockState.getDefaultState(
                     PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
                     SpigotConversionUtil.fromBukkitBlockData(saplingMaterial.createBlockData()).getType()
@@ -636,6 +656,7 @@ public class LeavesConfig {
                     modelPath
             );
             this.blockDataMap.put(itemId, saplingData);
+            this.saplingSoilPredicateMap.put(itemId, predicate);
         }
         for (Material sapling : SAPLINGS) {
             final WrappedBlockState state = WrappedBlockState.getDefaultState(
@@ -654,7 +675,40 @@ public class LeavesConfig {
                             null
                     )
             );
+            this.saplingSoilPredicateMap.put(defaultSaplingId, DEFAULT_SAPLING_PREDICATE);
         }
+    }
+
+    private static final String TAGS_PATH = "tags";
+    private static final String HOOK_BLOCK_IDS_PATH = "hook-block-ids";
+    private static final String MATERIALS_PATH = "materials";
+
+    private Predicate<Location> loadSaplingSoilPredicate(ConfigurationSection predicateSection) {
+        final Set<Tag<Material>> tags = predicateSection.getStringList(TAGS_PATH).
+                stream()
+                .map(s -> Bukkit.getTag(Tag.REGISTRY_BLOCKS, NamespacedKey.minecraft(s), Material.class))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        final Set<String> hookBlockIds = new HashSet<>(predicateSection.getStringList(HOOK_BLOCK_IDS_PATH));
+        final Set<Material> materialStrings = predicateSection.getStringList(MATERIALS_PATH)
+                .stream()
+                .map(s -> {
+                    try {
+                        return Material.valueOf(s.toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        return location -> {
+            final Material material = location.getBlock().getType();
+            if (materialStrings.contains(material)) return true;
+            for (Tag<Material> tag : tags) {
+                if (tag.isTagged(material)) return true;
+            }
+            return hookBlockIds.contains(Hooks.getCustomBlockIdAt(location));
+        };
     }
 
     private Material loadMaterial(ConfigurationSection section, String path, Material defaultMaterial) {

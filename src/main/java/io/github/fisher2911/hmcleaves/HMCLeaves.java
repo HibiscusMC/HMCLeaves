@@ -66,6 +66,7 @@ public class HMCLeaves extends JavaPlugin {
                 new HashMap<>(),
                 new HashMap<>(),
                 new HashMap<>(),
+                new HashMap<>(),
                 new HashMap<>()
         );
         this.blockCache = new BlockCache(new ConcurrentHashMap<>());
