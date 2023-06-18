@@ -62,7 +62,7 @@ public class LeafDropListener implements Listener {
             final ItemStack itemStack = item.getItemStack();
             if (Tag.LEAVES.isTagged(itemStack.getType())) {
                 final Supplier<ItemStack> dropReplacementSupplier = this.leavesConfig.getLeafDropReplacement(id);
-                if (dropReplacementSupplier == null){
+                if (dropReplacementSupplier == null) {
                     continue;
                 }
                 final ItemStack dropReplacement = dropReplacementSupplier.get();
@@ -87,9 +87,9 @@ public class LeafDropListener implements Listener {
         final Block block = event.getLocation().getBlock();
         if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
         final Position position = Position.fromLocation(block.getLocation());
+        final Item item = event.getEntity();
         if (block.getBlockData() instanceof Sapling) {
             final BlockData blockData = this.plugin.getBlockCache().removeBlockData(position);
-            final Item item = event.getEntity();
             final Supplier<ItemStack> supplier = this.leavesConfig.getItemSupplier(blockData.id());
             if (supplier == null) return;
             final ItemStack saplingItem = supplier.get();
@@ -97,10 +97,15 @@ public class LeafDropListener implements Listener {
             this.transferItemData(item.getItemStack(), saplingItem);
             return;
         }
-        if (!(block.getBlockData() instanceof final Leaves leaves)) return;
         final BlockData blockData = this.plugin.getBlockCache().removeBlockData(position);
+        if (blockData == BlockData.EMPTY) return;
         final String id = blockData.id();
-        final Item item = event.getEntity();
+        if (!(block.getBlockData() instanceof final Leaves leaves)) {
+            final ItemStack itemStack = this.leavesConfig.getItemStack(id);
+            if (itemStack == null) return;
+            this.transferItemData(item.getItemStack(), itemStack);
+            return;
+        }
         final ItemStack itemStack = item.getItemStack();
         if (Tag.LEAVES.isTagged(itemStack.getType())) {
             final Supplier<ItemStack> dropReplacementSupplier = this.leavesConfig.getLeafDropReplacement(id);

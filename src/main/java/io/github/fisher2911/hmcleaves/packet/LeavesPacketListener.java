@@ -51,6 +51,7 @@ import io.github.fisher2911.hmcleaves.util.ChunkUtil;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -63,18 +64,21 @@ public class LeavesPacketListener extends PacketListenerAbstract {
     private final LeavesConfig leavesConfig;
     private final BlockCache blockCache;
     private final BlockBreakManager blockBreakManager;
+    private final HMCLeaves plugin;
 
     public LeavesPacketListener(PacketListenerPriority priority, HMCLeaves plugin) {
         super(priority);
-        this.leavesConfig = plugin.getLeavesConfig();
-        this.blockCache = plugin.getBlockCache();
-        this.blockBreakManager = plugin.getBlockBreakManager();
+        this.plugin = plugin;
+        this.leavesConfig = this.plugin.getLeavesConfig();
+        this.blockCache = this.plugin.getBlockCache();
+        this.blockBreakManager = this.plugin.getBlockBreakManager();
     }
 
     public LeavesPacketListener(HMCLeaves plugin) {
-        this.leavesConfig = plugin.getLeavesConfig();
-        this.blockCache = plugin.getBlockCache();
-        this.blockBreakManager = plugin.getBlockBreakManager();
+        this.plugin = plugin;
+        this.leavesConfig = this.plugin.getLeavesConfig();
+        this.blockCache = this.plugin.getBlockCache();
+        this.blockBreakManager = this.plugin.getBlockBreakManager();
     }
 
     @Override
@@ -157,8 +161,10 @@ public class LeavesPacketListener extends PacketListenerAbstract {
             final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(packet.getBlockState()).getMaterial();
             final WrappedBlockState sendState = blockData.getNewState();
             final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(sendState).getMaterial();
-            if (worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial && !worldMaterial.isAir() && worldMaterial != Material.MOVING_PISTON) {
-//                this.blockCache.removeBlockData(position);
+            if (worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial/*&& !worldMaterial.isAir()*/ && worldMaterial != Material.MOVING_PISTON) {
+                Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
+                    this.blockCache.removeBlockData(position);
+                }, 1);
                 return;
             }
             final WrapperPlayServerBlockChange newPacket = new WrapperPlayServerBlockChange(
@@ -188,8 +194,10 @@ public class LeavesPacketListener extends PacketListenerAbstract {
                 final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(PacketUtils.getState(block)).getMaterial();
                 final WrappedBlockState sendState = blockData.getNewState();
                 final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(sendState).getMaterial();
-                if (worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial && !worldMaterial.isAir() && worldMaterial != Material.MOVING_PISTON) {
-//                    this.blockCache.removeBlockData(position);
+                if (worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial/* && !worldMaterial.isAir()*/ && worldMaterial != Material.MOVING_PISTON) {
+                    Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
+                        this.blockCache.removeBlockData(position);
+                    }, 1);
                     continue;
                 }
                 block.setBlockState(sendState);
