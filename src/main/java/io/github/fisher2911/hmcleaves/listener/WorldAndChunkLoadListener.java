@@ -40,6 +40,7 @@ import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.data.Orientable;
+import org.bukkit.block.data.type.CaveVinesPlant;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -113,6 +114,12 @@ public class WorldAndChunkLoadListener implements Listener {
                     for (int z = 0; z < 16; z++) {
                         final org.bukkit.block.data.BlockData bukkitBlockData = snapshot.getBlockData(x, y, z);
                         final Material material = bukkitBlockData.getMaterial();
+                        final Position position = Position.at(
+                                worldUUID,
+                                chunkX * 16 + x,
+                                y,
+                                chunkZ * 16 + z
+                        );
                         if (Tag.LOGS.isTagged(material)) {
                             final Orientable orientable = (Orientable) bukkitBlockData;
                             final Axis axis = orientable.getAxis();
@@ -122,12 +129,6 @@ public class WorldAndChunkLoadListener implements Listener {
                             } else {
                                 blockData = this.leavesConfig.getDefaultLogData(material, axis);
                             }
-                            final Position position = Position.at(
-                                    worldUUID,
-                                    chunkX * 16 + x,
-                                    y,
-                                    chunkZ * 16 + z
-                            );
                             try {
                                 this.blockCache.addBlockData(
                                         position,
@@ -139,13 +140,15 @@ public class WorldAndChunkLoadListener implements Listener {
                             }
                             continue;
                         }
+                        if (Tag.CAVE_VINES.isTagged(material)) {
+                            if (!(bukkitBlockData instanceof final CaveVinesPlant caveVines)) continue;
+                            this.blockCache.addBlockData(
+                                    position,
+                                    this.leavesConfig.getDefaultCaveVinesData(caveVines.isBerries())
+                            );
+                             continue;
+                        }
                         if (!(bukkitBlockData instanceof Leaves)) continue;
-                        final Position position = Position.at(
-                                worldUUID,
-                                chunkX * 16 + x,
-                                y,
-                                chunkZ * 16 + z
-                        );
                         this.blockCache.addBlockData(
                                 position,
                                 this.leavesConfig.getDefaultLeafData(material)

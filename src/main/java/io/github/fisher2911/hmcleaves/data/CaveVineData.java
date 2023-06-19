@@ -21,40 +21,58 @@
 package io.github.fisher2911.hmcleaves.data;
 
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
-import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.Tag;
 
-import java.util.List;
-
-public record SaplingData(
+public record CaveVineData(
         String id,
+        String withGlowBerryId,
         int sendBlockId,
-        Material realBlockType,
-        List<String> schematicFiles,
-        boolean randomPasteRotation,
+        boolean glowBerry,
         String modelPath
 ) implements BlockData {
 
     @Override
     public WrappedBlockState getNewState() {
-        return WrappedBlockState.getByGlobalId(this.sendBlockId);
+        final WrappedBlockState state = WrappedBlockState.getByGlobalId(this.sendBlockId);
+        if (this.glowBerry) state.setBerries(true);
+        return state;
+    }
+
+    @Override
+    public Material realBlockType() {
+        return this.worldBlockType();
     }
 
     @Override
     public Material worldBlockType() {
-        return this.realBlockType;
+        return Material.CAVE_VINES;
     }
 
     @Override
     public Sound placeSound() {
-        return Sound.BLOCK_GRASS_PLACE;
+        return Sound.BLOCK_CAVE_VINES_PLACE;
     }
 
     @Override
-    public boolean isWorldTypeSame(Material worldMaterial) {
-        final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(this.getNewState()).getMaterial();
-        return worldMaterial == sendMaterial || this.worldBlockType() == worldMaterial;
+    public String withGlowBerryId() {
+        return withGlowBerryId;
+    }
+
+    public String getCurrentId() {
+        if (this.glowBerry) return this.withGlowBerryId;
+        return this.id;
+    }
+
+    public CaveVineData withGlowBerry(boolean glowBerry) {
+        if (glowBerry == this.glowBerry) return this;
+        return new CaveVineData(this.id, this.withGlowBerryId, this.sendBlockId, glowBerry, this.modelPath);
+    }
+
+    @Override
+    public boolean isWorldTypeSame(Material material) {
+        return Tag.CAVE_VINES.isTagged(material);
     }
 
 }

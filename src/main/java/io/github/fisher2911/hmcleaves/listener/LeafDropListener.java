@@ -26,6 +26,7 @@ import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.type.CaveVinesPlant;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.block.data.type.Sapling;
 import org.bukkit.entity.Item;
@@ -96,6 +97,9 @@ public class LeafDropListener implements Listener {
             final ItemStack saplingItem = supplier.get();
             if (saplingItem == null) return;
             this.transferItemData(item.getItemStack(), saplingItem);
+            return;
+        }
+        if (block.getBlockData() instanceof CaveVinesPlant && !Tag.CAVE_VINES.isTagged(item.getItemStack().getType())) {
             return;
         }
         final BlockData blockData = this.plugin.getBlockCache().removeBlockData(position);

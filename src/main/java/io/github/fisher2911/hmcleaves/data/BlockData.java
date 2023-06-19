@@ -72,6 +72,11 @@ public interface BlockData {
         public String modelPath() {
             return null;
         }
+
+        @Override
+        public boolean isWorldTypeSame(Material worldMaterial) {
+            return false;
+        }
     };
 
     String id();
@@ -90,6 +95,8 @@ public interface BlockData {
 
     @Nullable
     String modelPath();
+
+    boolean isWorldTypeSame(Material worldMaterial);
 
     static LeafData leafData(
             String id,
@@ -149,6 +156,22 @@ public interface BlockData {
                 realBlockType,
                 schematicFiles,
                 randomPasteRotation,
+                modelPath
+        );
+    }
+
+    static CaveVineData caveVineData(
+            String id,
+            String withGlowBerryId,
+            int sendBlockId,
+            boolean glowBerry,
+            String modelPath
+    ) {
+        return new CaveVineData(
+                id,
+                withGlowBerryId,
+                sendBlockId,
+                glowBerry,
                 modelPath
         );
     }

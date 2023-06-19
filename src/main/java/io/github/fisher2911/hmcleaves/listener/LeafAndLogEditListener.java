@@ -26,11 +26,13 @@ import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.cache.BlockCache;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
+import io.github.fisher2911.hmcleaves.data.CaveVineData;
 import io.github.fisher2911.hmcleaves.data.LeafData;
 import io.github.fisher2911.hmcleaves.data.LogData;
 import io.github.fisher2911.hmcleaves.data.SaplingData;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.packet.PacketUtils;
+import io.github.fisher2911.hmcleaves.util.ChainedBlockDestroyUtil;
 import io.github.fisher2911.hmcleaves.util.Pair;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Bukkit;
@@ -41,14 +43,19 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.data.Orientable;
+import org.bukkit.block.data.type.CaveVinesPlant;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBurnEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockFertilizeEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
+import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 
 import java.util.ArrayList;
@@ -74,6 +81,7 @@ public class LeafAndLogEditListener implements Listener {
         final Block block = event.getBlock();
         if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
         final Position position = Position.fromLocation(block.getLocation());
+        ChainedBlockDestroyUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
         // delay so that saplings can be replaced
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
             this.blockCache.removeBlockData(position);
@@ -103,6 +111,7 @@ public class LeafAndLogEditListener implements Listener {
         final var adjacent = this.getAdjacentBlockData(checkBlocks);
         final List<Runnable> runnables = new ArrayList<>();
         for (Block block : copyList) {
+            ChainedBlockDestroyUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
             final Position originalPosition = Position.fromLocation(block.getLocation());
             final Position newPosition = Position.fromLocation(block.getRelative(direction).getLocation());
             final BlockData blockData = this.blockCache.getBlockData(originalPosition);
@@ -154,6 +163,7 @@ public class LeafAndLogEditListener implements Listener {
         checkBlocks.add(event.getBlock().getRelative(direction.getOppositeFace()));
         final var adjacent = this.getAdjacentBlockData(checkBlocks);
         for (Block block : copyList) {
+            ChainedBlockDestroyUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
             final Position originalPosition = Position.fromLocation(block.getLocation());
             final Position newPosition = Position.fromLocation(block.getRelative(direction).getLocation());
             final BlockData blockData = this.blockCache.getBlockData(originalPosition);
@@ -246,6 +256,7 @@ public class LeafAndLogEditListener implements Listener {
         if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
         final Position position = Position.fromLocation(block.getLocation());
         this.blockCache.removeBlockData(position);
+        ChainedBlockDestroyUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
@@ -254,13 +265,53 @@ public class LeafAndLogEditListener implements Listener {
         if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
         final Position position = Position.fromLocation(block.getLocation());
         final BlockData blockData = this.blockCache.getBlockData(position);
+        ChainedBlockDestroyUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
         if (!(blockData instanceof SaplingData)) return;
         // delay so that saplings can be dropped properly
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
             this.blockCache.removeBlockData(position);
-//            PacketUtils.sendBlock(Material.AIR, position, Bukkit.getOnlinePlayers());
         }, 1);
     }
 
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onCaveVinesGrow(BlockSpreadEvent event) {
+        final Block block = event.getSource();
+        if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
+        if (!(block.getBlockData() instanceof final CaveVinesPlant caveVines)) return;
+        final Position oldPosition = Position.fromLocation(block.getLocation());
+        final BlockData oldBlockData = this.blockCache.getBlockData(oldPosition);
+        final BlockState newState = event.getNewState();
+        final Position position = Position.fromLocation(newState.getLocation());
+        final CaveVineData blockData;
+        if (oldBlockData instanceof final CaveVineData caveVineData) {
+            blockData = caveVineData;
+        } else {
+            blockData = (CaveVineData) this.leavesConfig.getDefaultCaveVinesData(caveVines.isBerries());
+        }
+        this.blockCache.addBlockData(position, blockData.withGlowBerry(caveVines.isBerries()));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onExplode(BlockExplodeEvent event) {
+        if (!this.leavesConfig.isWorldWhitelisted(event.getBlock().getWorld())) return;
+        event.blockList().forEach(b -> ChainedBlockDestroyUtil.handleBlockBreak(b, this.blockCache, this.leavesConfig));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onExplode(EntityExplodeEvent event) {
+        if (!this.leavesConfig.isWorldWhitelisted(event.getEntity().getWorld())) return;
+        event.blockList().forEach(b -> ChainedBlockDestroyUtil.handleBlockBreak(b, this.blockCache, this.leavesConfig));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onBlockFertilize(BlockFertilizeEvent event) {
+        final Block block = event.getBlock();
+        if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
+        if (!(block.getBlockData() instanceof CaveVinesPlant)) return;
+        final Position position = Position.fromLocation(block.getLocation());
+        final BlockData blockData = this.blockCache.getBlockData(position);
+        if (!(blockData instanceof final CaveVineData data)) return;
+        this.blockCache.addBlockData(position, data.withGlowBerry(true));
+    }
 
 }

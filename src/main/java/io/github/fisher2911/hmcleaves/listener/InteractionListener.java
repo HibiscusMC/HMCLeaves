@@ -24,12 +24,14 @@ import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.cache.BlockCache;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
+import io.github.fisher2911.hmcleaves.data.CaveVineData;
 import io.github.fisher2911.hmcleaves.data.LeafData;
 import io.github.fisher2911.hmcleaves.data.LogData;
 import io.github.fisher2911.hmcleaves.data.SaplingData;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.packet.BlockBreakManager;
 import io.github.fisher2911.hmcleaves.packet.PacketUtils;
+import io.github.fisher2911.hmcleaves.util.ChainedBlockDestroyUtil;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Axis;
@@ -46,6 +48,8 @@ import org.bukkit.block.BlockState;
 import org.bukkit.block.data.Levelled;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.Waterlogged;
+import org.bukkit.block.data.type.CaveVines;
+import org.bukkit.block.data.type.CaveVinesPlant;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.block.data.type.Sapling;
 import org.bukkit.entity.LivingEntity;
@@ -76,23 +80,35 @@ public class InteractionListener implements Listener {
         this.blockCache = plugin.getBlockCache();
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) return;
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         final World world = event.getPlayer().getWorld();
         if (!this.leavesConfig.isWorldWhitelisted(world)) return;
-        final ItemStack clickedWith = event.getItem();
-        if (clickedWith == null) return;
         final Block block = event.getClickedBlock();
         if (block == null) return;
+        final Position clickedPosition = Position.fromLocation(block.getLocation());
+        final BlockData clickedBlockData = this.blockCache.getBlockData(clickedPosition);
+        final ItemStack clickedWith = event.getItem();
+        if (clickedWith != null && this.doDebugTool(clickedWith, event.getPlayer(), block)) {
+            event.setCancelled(true);
+            return;
+        }
+        final Player player = event.getPlayer();
+        if (clickedBlockData instanceof final CaveVineData caveVineData && caveVineData.glowBerry() && !player.isSneaking()) {
+            if (!(block.getBlockData() instanceof final CaveVinesPlant caveVines)) return;
+            this.blockCache.addBlockData(clickedPosition, caveVineData.withGlowBerry(!caveVines.isBerries()));
+            return;
+        }
+        if (clickedWith == null) return;
         final Location placeLocation;
+        final BlockFace blockFace = event.getBlockFace();
         if (block.getType() == Material.GRASS) {
             placeLocation = block.getLocation();
         } else {
-            placeLocation = block.getRelative(event.getBlockFace()).getLocation();
+            placeLocation = block.getRelative(blockFace).getLocation();
         }
-        final Player player = event.getPlayer();
         if (this.checkWaterlog(player, block, clickedWith)) {
             return;
         }
@@ -105,20 +121,18 @@ public class InteractionListener implements Listener {
         ) {
             return;
         }
-        final Axis axis = this.axisFromBlockFace(event.getBlockFace());
+        final Axis axis = this.axisFromBlockFace(blockFace);
         final BlockData blockData = this.leavesConfig.getBlockData(clickedWith, axis);
-        if (this.doDebugTool(clickedWith, event.getPlayer(), block)) {
-            event.setCancelled(true);
-            return;
-        }
         if (this.checkStripLog(player, block, clickedWith)) return;
-        if (blockData == null) return;
         if (
                 (block.getType().isInteractable() && Hooks.getCustomBlockIdAt(placeLocation.clone().subtract(0, 1, 0)) == null)
                         && !player.isSneaking()
         ) {
-            return;
+            if (!Tag.CAVE_VINES.isTagged(block.getType())) {
+                return;
+            }
         }
+        if (blockData == null) return;
         if (!(blockData instanceof SaplingData) && !(world.getNearbyEntities(placeLocation.clone().add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5, LivingEntity.class::isInstance).isEmpty())) {
             event.setCancelled(true);
             return;
@@ -130,11 +144,26 @@ public class InteractionListener implements Listener {
             event.setCancelled(true);
             return;
         }
+        final Material aboveMaterial = placeLocation.getBlock().getRelative(BlockFace.UP).getType();
+        if (blockData instanceof CaveVineData && !aboveMaterial.isSolid() && !Tag.CAVE_VINES.isTagged(aboveMaterial)) {
+            event.setCancelled(true);
+            return;
+        }
+
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
             final Block placedBlock = placeLocation.getBlock();
             final BlockState previousState = placedBlock.getState();
             placedBlock.setType(blockData.worldBlockType());
-            final BlockPlaceEvent blockPlaceEvent = createEvent(placedBlock, previousState, block, clickedWith, player, true, event.getHand());
+            final BlockPlaceEvent blockPlaceEvent = new HMCLeavesBlockDataPlaceEvent(
+                    placedBlock,
+                    previousState,
+                    block,
+                    clickedWith,
+                    player,
+                    true,
+                    event.getHand(),
+                    blockData
+            );
             Bukkit.getPluginManager().callEvent(blockPlaceEvent);
             if (blockPlaceEvent.isCancelled()) {
                 previousState.update(true, false);
@@ -175,13 +204,19 @@ public class InteractionListener implements Listener {
             if (blockData instanceof final LogData logData && placedBlock.getBlockData() instanceof final Orientable orientable) {
                 orientable.setAxis(logData.axis());
                 placedBlock.setBlockData(orientable, true);
+                return;
+            }
+            if (blockData instanceof final CaveVineData caveVineData && placedBlock.getBlockData() instanceof final CaveVinesPlant caveVinesPlant) {
+                caveVinesPlant.setBerries(caveVineData.glowBerry());
+                placedBlock.setBlockData(caveVinesPlant, true);
+                return;
             }
         }, 1);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onBlockPlace(BlockPlaceEvent event) {
-        if (event instanceof LeafPlaceEvent || event instanceof LogPlaceEvent) return;
+        if (event instanceof HMCLeavesBlockDataPlaceEvent) return;
         final Block block = event.getBlock();
         if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
         final Material material = block.getType();
@@ -227,6 +262,16 @@ public class InteractionListener implements Listener {
             }
             this.blockCache.addBlockData(position, blockData);
         }
+        if (Tag.CAVE_VINES.isTagged(material)) {
+            final BlockData blockData;
+            if (itemStackBlockData != null) {
+                blockData = itemStackBlockData;
+            } else {
+                blockData = this.leavesConfig.getDefaultCaveVinesData(false);
+            }
+            if (blockData == null) return;
+            this.blockCache.addBlockData(position, blockData);
+        }
     }
 
     /**
@@ -234,9 +279,10 @@ public class InteractionListener implements Listener {
      */
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onBlockBreak(BlockBreakEvent event) {
-        if (event.getPlayer().getGameMode() == GameMode.CREATIVE) return;
         if (event instanceof BlockBreakManager.LeavesBlockBreakEvent) return;
         if (!this.leavesConfig.isWorldWhitelisted(event.getBlock().getWorld())) return;
+        ChainedBlockDestroyUtil.handleBlockBreak(event.getBlock(), this.blockCache, this.leavesConfig);
+        if (event.getPlayer().getGameMode() == GameMode.CREATIVE) return;
         final Location location = event.getBlock().getLocation();
         final Position position = Position.fromLocation(location);
         final BlockData blockData = this.blockCache.getBlockData(position);
@@ -298,8 +344,14 @@ public class InteractionListener implements Listener {
                     "server distance: " + leaves.getDistance() + " server persistence: " + leaves.isPersistent() + " waterlogged: " + leafData.waterlogged());
             return true;
         }
+        if (blockData instanceof final CaveVineData caveVineData && clicked.getBlockData() instanceof final CaveVinesPlant caveVinesPlant) {
+            player.sendMessage("Display berries: " + caveVineData.glowBerry() + " server berries: " + caveVinesPlant.isBerries() + " "
+                    + "display age: " + caveVineData.getNewState().getAge() + " server age: " +
+                    ((caveVinesPlant instanceof final CaveVines caveVines) ? caveVines.getAge() : "no age"));
+            return true;
+        }
         if (blockData == BlockData.EMPTY) {
-            player.sendMessage("The fake block data was not found");
+            player.sendMessage("The fake block data was not found: " + clicked.getType());
             return true;
         }
         player.sendMessage("The fake block data does not match the real block: " + blockData.getClass().getSimpleName());
@@ -364,41 +416,24 @@ public class InteractionListener implements Listener {
                 levelled.getMaterial() == Material.WATER;
     }
 
-    private static class LogPlaceEvent extends BlockPlaceEvent {
+    private static class HMCLeavesBlockDataPlaceEvent extends BlockPlaceEvent {
 
-        public LogPlaceEvent(@NotNull Block placedBlock, @NotNull BlockState replacedBlockState, @NotNull Block placedAgainst, @NotNull ItemStack itemInHand, @NotNull Player thePlayer, boolean canBuild, @NotNull EquipmentSlot hand) {
+        private final BlockData blockData;
+
+        public HMCLeavesBlockDataPlaceEvent(
+                @NotNull Block placedBlock,
+                @NotNull BlockState replacedBlockState,
+                @NotNull Block placedAgainst,
+                @NotNull ItemStack itemInHand,
+                @NotNull Player thePlayer,
+                boolean canBuild,
+                @NotNull EquipmentSlot hand,
+                BlockData blockData
+        ) {
             super(placedBlock, replacedBlockState, placedAgainst, itemInHand, thePlayer, canBuild, hand);
+            this.blockData = blockData;
         }
 
-    }
-
-    private static class LeafPlaceEvent extends BlockPlaceEvent {
-
-        public LeafPlaceEvent(@NotNull Block placedBlock, @NotNull BlockState replacedBlockState, @NotNull Block placedAgainst, @NotNull ItemStack itemInHand, @NotNull Player thePlayer, boolean canBuild, @NotNull EquipmentSlot hand) {
-            super(placedBlock, replacedBlockState, placedAgainst, itemInHand, thePlayer, canBuild, hand);
-        }
-
-    }
-
-    private static class SaplingPlaceEvent extends BlockPlaceEvent {
-
-        public SaplingPlaceEvent(@NotNull Block placedBlock, @NotNull BlockState replacedBlockState, @NotNull Block placedAgainst, @NotNull ItemStack itemInHand, @NotNull Player thePlayer, boolean canBuild, @NotNull EquipmentSlot hand) {
-            super(placedBlock, replacedBlockState, placedAgainst, itemInHand, thePlayer, canBuild, hand);
-        }
-
-    }
-
-    private static BlockPlaceEvent createEvent(@NotNull Block placedBlock, @NotNull BlockState replacedBlockState, @NotNull Block placedAgainst, @NotNull ItemStack itemInHand, @NotNull Player thePlayer, boolean canBuild, @NotNull EquipmentSlot hand) {
-        if (Tag.LOGS.isTagged(placedBlock.getType())) {
-            return new LogPlaceEvent(placedBlock, replacedBlockState, placedAgainst, itemInHand, thePlayer, canBuild, hand);
-        }
-        if (Tag.LEAVES.isTagged(placedBlock.getType())) {
-            return new LeafPlaceEvent(placedBlock, replacedBlockState, placedAgainst, itemInHand, thePlayer, canBuild, hand);
-        }
-        if (Tag.SAPLINGS.isTagged(placedBlock.getType())) {
-            return new SaplingPlaceEvent(placedBlock, replacedBlockState, placedAgainst, itemInHand, thePlayer, canBuild, hand);
-        }
-        throw new IllegalArgumentException("Block is not a log or leaf: " + placedBlock.getType());
     }
 
 }

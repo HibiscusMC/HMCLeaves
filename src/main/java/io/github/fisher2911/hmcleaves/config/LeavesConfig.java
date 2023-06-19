@@ -26,6 +26,7 @@ import com.github.retrooper.packetevents.protocol.world.states.enums.Instrument;
 import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.data.BlockData;
+import io.github.fisher2911.hmcleaves.data.CaveVineData;
 import io.github.fisher2911.hmcleaves.data.LogData;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
@@ -64,6 +65,7 @@ public class LeavesConfig {
     private static final String DEFAULT_LOG_ID = "default_log_id";
     private static final String DEFAULT_STRIPPED_LOG_ID = "default_stripped_log_id";
     private static final String DEFAULT_SAPLING_ID = "default_sapling_id";
+    private static final String DEFAULT_CAVE_VINES_ID = "default_cave_vines_id";
 
     private static final int STATES_PER_LEAF = 7 * 2;
     private static final List<Material> LEAVES = new ArrayList<>();
@@ -102,6 +104,15 @@ public class LeavesConfig {
                 PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
                 SpigotConversionUtil.fromBukkitBlockData(log.createBlockData()).getType()
         ).clone();
+    }
+
+    private static WrappedBlockState getCaveVinesById(int id) {
+        final boolean berries = id > 25;
+        final int age = (id - 1) % 25 + 1;
+        final WrappedBlockState state = StateTypes.CAVE_VINES.createBlockState();
+        state.setBerries(berries);
+        state.setAge(age);
+        return state;
     }
 
     private static WrappedBlockState getStrippedLogByLogId(int id) {
@@ -203,6 +214,10 @@ public class LeavesConfig {
         return DEFAULT_SAPLING_ID + "_" + material.name().toLowerCase();
     }
 
+    public static String getDefaultCaveVinesStringId(boolean glowBerries) {
+        return DEFAULT_CAVE_VINES_ID + "_" + (glowBerries ? "glow" : "normal");
+    }
+
     private final HMCLeaves plugin;
     private final TextureFileGenerator textureFileGenerator;
     private final Map<String, BlockData> blockDataMap;
@@ -296,6 +311,11 @@ public class LeavesConfig {
     }
 
     @Nullable
+    public BlockData getDefaultCaveVinesData(boolean glowBerries) {
+        return this.blockDataMap.get(getDefaultCaveVinesStringId(glowBerries));
+    }
+
+    @Nullable
     public Supplier<ItemStack> getItemSupplier(String id) {
         return this.itemSupplierMap.get(id);
     }
@@ -334,6 +354,7 @@ public class LeavesConfig {
     private static final String LEAVES_PATH = "leaves";
     private static final String LOGS_PATH = "logs";
     private static final String SAPLINGS_PATH = "saplings";
+    private static final String CAVE_VINES_PATH = "cave-vines";
 
     private static final String LEAF_MATERIAL_PATH = "leaf-material";
     private static final String LOG_MATERIAL_PATH = "log-material";
@@ -375,6 +396,7 @@ public class LeavesConfig {
         this.loadLeavesSection(config);
         this.loadLogsSection(config);
         this.loadSaplingsSection(config);
+        this.loadCaveVinesSection(config);
         for (Material leaf : LEAVES) {
             this.textureFileGenerator.generateFile(
                     leaf,
@@ -677,6 +699,62 @@ public class LeavesConfig {
             );
             this.saplingSoilPredicateMap.put(defaultSaplingId, DEFAULT_SAPLING_PREDICATE);
         }
+    }
+
+    private static final String WITH_GLOW_BERRY_ID_PATH = "with-glow-berry-id";
+
+    private void loadCaveVinesSection(ConfigurationSection config) {
+        final ConfigurationSection caveVinesSection = config.getConfigurationSection(CAVE_VINES_PATH);
+        if (caveVinesSection == null) return;
+        for (final var itemId : caveVinesSection.getKeys(false)) {
+            final String withGlowBerryId = caveVinesSection.getString(itemId + "." + WITH_GLOW_BERRY_ID_PATH);
+            if (withGlowBerryId == null) {
+                this.plugin.getLogger().severe("Missing with-glow-berry-id for cave vines " + itemId + " in config.yml");
+                continue;
+            }
+            final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(
+                    caveVinesSection.getConfigurationSection(itemId),
+                    itemId,
+                    itemId
+            );
+            final Supplier<ItemStack> withGlowBerryItemStackSupplier = this.loadItemStack(
+                    caveVinesSection.getConfigurationSection(itemId),
+                    withGlowBerryId,
+                    withGlowBerryId
+            );
+            this.itemSupplierMap.put(itemId, itemStackSupplier);
+            this.itemSupplierMap.put(withGlowBerryId, withGlowBerryItemStackSupplier);
+            this.playerItemIds.add(itemId);
+            this.playerItemIds.add(withGlowBerryId);
+            final String modelPath = caveVinesSection.getString(itemId + "." + MODEL_PATH_PATH);
+            final int stateId = caveVinesSection.getInt(itemId + "." + STATE_ID_PATH);
+            final CaveVineData blockData = BlockData.caveVineData(
+                    itemId,
+                    withGlowBerryId,
+                    getCaveVinesById(stateId).getGlobalId(),
+                    false,
+                    modelPath
+            );
+            this.blockDataMap.put(itemId, blockData);
+            this.blockDataMap.put(withGlowBerryId, blockData.withGlowBerry(true));
+        }
+        final String defaultCaveVinesStringId = getDefaultCaveVinesStringId(false);
+        final String defaultCaveVinesStringIdWithBerries = getDefaultCaveVinesStringId(true);
+        final CaveVineData defaultCaveVineData = BlockData.caveVineData(
+                defaultCaveVinesStringId,
+                defaultCaveVinesStringIdWithBerries,
+                getCaveVinesById(1).getGlobalId(),
+                false,
+                null
+        );
+        this.blockDataMap.put(
+                defaultCaveVinesStringId,
+                defaultCaveVineData
+        );
+        this.blockDataMap.put(
+                defaultCaveVinesStringIdWithBerries,
+                defaultCaveVineData.withGlowBerry(true)
+        );
     }
 
     private static final String TAGS_PATH = "tags";

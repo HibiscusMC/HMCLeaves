@@ -160,8 +160,8 @@ public class LeavesPacketListener extends PacketListenerAbstract {
             if (blockData == BlockData.EMPTY) return;
             final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(packet.getBlockState()).getMaterial();
             final WrappedBlockState sendState = blockData.getNewState();
-            final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(sendState).getMaterial();
-            if (worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial/*&& !worldMaterial.isAir()*/ && worldMaterial != Material.MOVING_PISTON) {
+//            final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(sendState).getMaterial();
+            if (!blockData.isWorldTypeSame(worldMaterial) /*worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial*//*&& !worldMaterial.isAir()*/ && worldMaterial != Material.MOVING_PISTON) {
                 Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
                     this.blockCache.removeBlockData(position);
                 }, 1);
@@ -193,8 +193,8 @@ public class LeavesPacketListener extends PacketListenerAbstract {
                 if (blockData == BlockData.EMPTY) continue;
                 final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(PacketUtils.getState(block)).getMaterial();
                 final WrappedBlockState sendState = blockData.getNewState();
-                final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(sendState).getMaterial();
-                if (worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial/* && !worldMaterial.isAir()*/ && worldMaterial != Material.MOVING_PISTON) {
+//                final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(sendState).getMaterial();
+                if (!blockData.isWorldTypeSame(worldMaterial) /*worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial*//* && !worldMaterial.isAir()*/ && worldMaterial != Material.MOVING_PISTON) {
                     Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
                         this.blockCache.removeBlockData(position);
                     }, 1);

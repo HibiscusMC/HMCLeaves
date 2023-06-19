@@ -22,6 +22,7 @@ package io.github.fisher2911.hmcleaves.data;
 
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Axis;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -104,6 +105,12 @@ public record LogData(
     @Override
     public @Nullable String modelPath() {
         return null;
+    }
+
+    @Override
+    public boolean isWorldTypeSame(Material worldMaterial) {
+        final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(this.getNewState()).getMaterial();
+        return worldMaterial == sendMaterial || this.worldBlockType() == worldMaterial;
     }
 
 }

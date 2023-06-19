@@ -66,3 +66,12 @@ saplings:
       hook-block-ids:
         - amethyst_block
 
+cave-vines:
+  test_cave_vine:
+    material: paper
+    with-glow-berry-id: test_cave_vine_berries
+    model-data: 5
+    name: "&6Test Cave Vine"
+    lore:
+      - "&aLine 1"
+    state-id: 2
