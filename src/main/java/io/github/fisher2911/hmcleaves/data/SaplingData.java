@@ -24,6 +24,7 @@ import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -37,7 +38,7 @@ public record SaplingData(
 ) implements BlockData {
 
     @Override
-    public WrappedBlockState getNewState() {
+    public WrappedBlockState getNewState(@Nullable Material worldMaterial) {
         return WrappedBlockState.getByGlobalId(this.sendBlockId);
     }
 
@@ -53,8 +54,13 @@ public record SaplingData(
 
     @Override
     public boolean isWorldTypeSame(Material worldMaterial) {
-        final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(this.getNewState()).getMaterial();
+        final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(this.getNewState(null)).getMaterial();
         return worldMaterial == sendMaterial || this.worldBlockType() == worldMaterial;
+    }
+
+    @Override
+    public Material breakReplacement() {
+        return Material.AIR;
     }
 
 }

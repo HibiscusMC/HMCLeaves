@@ -81,13 +81,17 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         this.blockBreakManager = this.plugin.getBlockBreakManager();
     }
 
+    private static final int HEIGHT_BELOW_ZERO = 64;
+
     @Override
     public void onPacketSend(PacketSendEvent event) {
         if (!(event.getPlayer() instanceof final Player player)) return;
         if (!this.leavesConfig.isWorldWhitelisted(player.getWorld())) return;
         final PacketTypeCommon packetType = event.getPacketType();
         if (packetType == PacketType.Play.Server.CHUNK_DATA) {
-            this.handleChunkSend(event, player.getWorld().getUID());
+            final World world = player.getWorld();
+            final int heightAdjustment = world.getMinHeight();
+            this.handleChunkSend(event, world.getUID(), heightAdjustment < 0 ? HEIGHT_BELOW_ZERO : 0);
             return;
         }
         if (packetType == PacketType.Play.Server.BLOCK_CHANGE) {
@@ -113,9 +117,7 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         }
     }
 
-    private static final int HEIGHT_BELOW_ZERO = 64;
-
-    private void handleChunkSend(PacketSendEvent event, UUID world) {
+    private void handleChunkSend(PacketSendEvent event, UUID world, int heightAdjustment) {
         final WrapperPlayServerChunkData packet = new WrapperPlayServerChunkData(event);
         final Column column = packet.getColumn();
         final int chunkX = column.getX();
@@ -123,7 +125,7 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         final BaseChunk[] chunks = column.getChunks();
         for (int i = 0; i < chunks.length; i++) {
             final BaseChunk chunk = chunks[i];
-            final int worldY = i * 16 - HEIGHT_BELOW_ZERO;
+            final int worldY = i * 16 - heightAdjustment;
             final ChunkPosition chunkPos = ChunkPosition.at(world, chunkX, chunkZ);
             final ChunkBlockCache chunkCache = this.blockCache.getChunkBlockCache(chunkPos);
             if (chunkCache == null) continue;
@@ -135,12 +137,14 @@ public class LeavesPacketListener extends PacketListenerAbstract {
                 final int actualX = ChunkUtil.getCoordInChunk(position.x());
                 final int actualY = Math.abs(ChunkUtil.getCoordInChunk(position.y()));
                 final int actualZ = ChunkUtil.getCoordInChunk(position.z());
+                final var actualState = chunk.get(actualX, actualY, actualZ);
+                final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(actualState).getMaterial();
                 chunk.set(
                         PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
                         actualX,
                         actualY,
                         actualZ,
-                        blockData.getNewState().getGlobalId()
+                        blockData.getNewState(worldMaterial).getGlobalId()
                 );
             }
         }
@@ -159,7 +163,7 @@ public class LeavesPacketListener extends PacketListenerAbstract {
             final BlockData blockData = this.blockCache.getBlockData(position);
             if (blockData == BlockData.EMPTY) return;
             final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(packet.getBlockState()).getMaterial();
-            final WrappedBlockState sendState = blockData.getNewState();
+            final WrappedBlockState sendState = blockData.getNewState(worldMaterial);
 //            final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(sendState).getMaterial();
             if (!blockData.isWorldTypeSame(worldMaterial) /*worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial*//*&& !worldMaterial.isAir()*/ && worldMaterial != Material.MOVING_PISTON) {
                 Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
@@ -192,7 +196,7 @@ public class LeavesPacketListener extends PacketListenerAbstract {
                 final BlockData blockData = this.blockCache.getBlockData(position);
                 if (blockData == BlockData.EMPTY) continue;
                 final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(PacketUtils.getState(block)).getMaterial();
-                final WrappedBlockState sendState = blockData.getNewState();
+                final WrappedBlockState sendState = blockData.getNewState(worldMaterial);
 //                final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(sendState).getMaterial();
                 if (!blockData.isWorldTypeSame(worldMaterial) /*worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial*//* && !worldMaterial.isAir()*/ && worldMaterial != Material.MOVING_PISTON) {
                     Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
@@ -257,7 +261,7 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         ));
         if (!(blockData instanceof final LogData logData)) return;
         final ParticleBlockStateData particleBlockStateData = new ParticleBlockStateData(
-                logData.getNewState()
+                logData.getNewState(null)
         );
         particle.setData(particleBlockStateData);
     }

@@ -52,8 +52,8 @@ public class PacketUtils {
         return block.getBlockState(PacketEvents.getAPI().getServerManager().getVersion().toClientVersion());
     }
 
-    public static void sendBlockData(BlockData blockData, Position position, Collection<? extends Player> players) {
-        final WrappedBlockState state = blockData.getNewState();
+    public static void sendBlockData(BlockData blockData, Position position, Material worldMaterial, Collection<? extends Player> players) {
+        final WrappedBlockState state = blockData.getNewState(worldMaterial);
         for (Player player : players) {
             final WrapperPlayServerBlockChange packet = new WrapperPlayServerBlockChange(
                     new Vector3i(position.x(), position.y(), position.z()),
@@ -136,7 +136,12 @@ public class PacketUtils {
         }
     }
 
-    public static void sendMultiBlockChange(ChunkPosition chunkPosition, Map<Position, BlockData> blocks, Collection<? extends Player> players) {
+    public static void sendMultiBlockChange(
+            ChunkPosition chunkPosition,
+            Map<Position, BlockData> blocks,
+            Map<Position, Material> worldMaterials,
+            Collection<? extends Player> players
+    ) {
         if (players.isEmpty()) return;
         final Multimap<Integer, Pair<Position, BlockData>> yToBlocksMap = Multimaps.newSetMultimap(new HashMap<>(), HashSet::new);
         for (var entry : blocks.entrySet()) {
@@ -155,7 +160,7 @@ public class PacketUtils {
                     final Position position = pair.getFirst();
                     final BlockData blockData = pair.getSecond();
                     encodedBlocks[i++] = new WrapperPlayServerMultiBlockChange.EncodedBlock(
-                            blockData.getNewState(),
+                            blockData.getNewState(worldMaterials.get(position)),
                             position.x(),
                             position.y(),
                             position.z()

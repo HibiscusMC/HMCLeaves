@@ -48,7 +48,7 @@ public record LogData(
     }
 
     @Override
-    public WrappedBlockState getNewState() {
+    public WrappedBlockState getNewState(@Nullable Material worldMaterial) {
         final int sendId = Objects.requireNonNullElse(
                 Hooks.getBlockId(this.getCurrentId()), this.sendBlockId()
         );
@@ -109,8 +109,13 @@ public record LogData(
 
     @Override
     public boolean isWorldTypeSame(Material worldMaterial) {
-        final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(this.getNewState()).getMaterial();
+        final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(this.getNewState(null)).getMaterial();
         return worldMaterial == sendMaterial || this.worldBlockType() == worldMaterial;
+    }
+
+    @Override
+    public Material breakReplacement() {
+        return Material.AIR;
     }
 
 }

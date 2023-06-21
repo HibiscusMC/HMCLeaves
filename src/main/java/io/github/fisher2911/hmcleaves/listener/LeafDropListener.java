@@ -79,6 +79,13 @@ public class LeafDropListener implements Listener {
                 final ItemStack sapling = saplingSupplier.get();
                 if (sapling == null) continue;
                 this.transferItemData(itemStack, sapling);
+                continue;
+            }
+            if (itemStack.getType() == data.worldBlockType()) {
+                final ItemStack replacementItem = this.leavesConfig.getItemStack(id);
+                if (replacementItem == null) return;
+                this.transferItemData(item.getItemStack(), replacementItem);
+                continue;
             }
         }
     }

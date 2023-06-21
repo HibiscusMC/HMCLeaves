@@ -25,6 +25,7 @@ import com.google.common.collect.Multimaps;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.cache.BlockCache;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
+import io.github.fisher2911.hmcleaves.data.AgeableData;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.CaveVineData;
 import io.github.fisher2911.hmcleaves.data.LeafData;
@@ -32,8 +33,7 @@ import io.github.fisher2911.hmcleaves.data.LogData;
 import io.github.fisher2911.hmcleaves.data.SaplingData;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.packet.PacketUtils;
-import io.github.fisher2911.hmcleaves.util.ChainedBlockDestroyUtil;
-import io.github.fisher2911.hmcleaves.util.Pair;
+import io.github.fisher2911.hmcleaves.util.ChainedBlockUtil;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -51,6 +51,7 @@ import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFertilizeEvent;
 import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockGrowEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
@@ -81,7 +82,7 @@ public class LeafAndLogEditListener implements Listener {
         final Block block = event.getBlock();
         if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
         final Position position = Position.fromLocation(block.getLocation());
-        ChainedBlockDestroyUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
+        ChainedBlockUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
         // delay so that saplings can be replaced
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
             this.blockCache.removeBlockData(position);
@@ -111,7 +112,7 @@ public class LeafAndLogEditListener implements Listener {
         final var adjacent = this.getAdjacentBlockData(checkBlocks);
         final List<Runnable> runnables = new ArrayList<>();
         for (Block block : copyList) {
-            ChainedBlockDestroyUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
+            ChainedBlockUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
             final Position originalPosition = Position.fromLocation(block.getLocation());
             final Position newPosition = Position.fromLocation(block.getRelative(direction).getLocation());
             final BlockData blockData = this.blockCache.getBlockData(originalPosition);
@@ -136,10 +137,15 @@ public class LeafAndLogEditListener implements Listener {
         if (adjacent.isEmpty()) {
             return;
         }
-        Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
+        Bukkit.getScheduler().runTaskLaterAsynchronously(this.plugin, () -> {
             for (var entry : adjacent.entries()) {
-                final Pair<Position, BlockData> pair = entry.getValue();
-                PacketUtils.sendBlockData(pair.getSecond(), pair.getFirst(), Bukkit.getOnlinePlayers());
+                final AdjacentInfo adjacentInfo = entry.getValue();
+                PacketUtils.sendBlockData(
+                        adjacentInfo.blockData(),
+                        adjacentInfo.relativePosition(),
+                        adjacentInfo.realWorldMaterial(),
+                        Bukkit.getOnlinePlayers()
+                );
             }
         }, 1);
     }
@@ -163,7 +169,7 @@ public class LeafAndLogEditListener implements Listener {
         checkBlocks.add(event.getBlock().getRelative(direction.getOppositeFace()));
         final var adjacent = this.getAdjacentBlockData(checkBlocks);
         for (Block block : copyList) {
-            ChainedBlockDestroyUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
+            ChainedBlockUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
             final Position originalPosition = Position.fromLocation(block.getLocation());
             final Position newPosition = Position.fromLocation(block.getRelative(direction).getLocation());
             final BlockData blockData = this.blockCache.getBlockData(originalPosition);
@@ -187,10 +193,15 @@ public class LeafAndLogEditListener implements Listener {
         if (adjacent.isEmpty()) {
             return;
         }
-        Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
+        Bukkit.getScheduler().runTaskLaterAsynchronously(this.plugin, () -> {
             for (var entry : adjacent.entries()) {
-                final Pair<Position, BlockData> pair = entry.getValue();
-                PacketUtils.sendBlockData(pair.getSecond(), pair.getFirst(), Bukkit.getOnlinePlayers());
+                final AdjacentInfo adjacentInfo = entry.getValue();
+                PacketUtils.sendBlockData(
+                        adjacentInfo.blockData(),
+                        adjacentInfo.relativePosition(),
+                        adjacentInfo.realWorldMaterial(),
+                        Bukkit.getOnlinePlayers()
+                );
             }
         }, 1);
     }
@@ -204,8 +215,8 @@ public class LeafAndLogEditListener implements Listener {
             BlockFace.WEST
     );
 
-    private Multimap<Position, Pair<Position, BlockData>> getAdjacentBlockData(List<Block> blocks) {
-        final Multimap<Position, Pair<Position, BlockData>> adjacent = Multimaps.newSetMultimap(new HashMap<>(), HashSet::new);
+    private Multimap<Position, AdjacentInfo> getAdjacentBlockData(List<Block> blocks) {
+        final Multimap<Position, AdjacentInfo> adjacent = Multimaps.newSetMultimap(new HashMap<>(), HashSet::new);
         for (Block block : blocks) {
             final Position position = Position.fromLocation(block.getLocation());
             for (BlockFace face : ADJACENT_FACES) {
@@ -213,10 +224,15 @@ public class LeafAndLogEditListener implements Listener {
                 if (blocks.contains(relativePosition.toLocation().getBlock())) continue;
                 final BlockData blockData = this.blockCache.getBlockData(relativePosition);
                 if (blockData == BlockData.EMPTY) continue;
-                adjacent.put(position, Pair.of(relativePosition, blockData));
+                adjacent.put(position, new AdjacentInfo(relativePosition, blockData, block.getRelative(face).getType()));
+//                adjacent.put(position, Pair.of(relativePosition, blockData));
             }
         }
         return adjacent;
+    }
+
+    private static record AdjacentInfo(Position relativePosition, BlockData blockData, Material realWorldMaterial) {
+
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
@@ -256,7 +272,7 @@ public class LeafAndLogEditListener implements Listener {
         if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
         final Position position = Position.fromLocation(block.getLocation());
         this.blockCache.removeBlockData(position);
-        ChainedBlockDestroyUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
+        ChainedBlockUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
@@ -265,7 +281,7 @@ public class LeafAndLogEditListener implements Listener {
         if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
         final Position position = Position.fromLocation(block.getLocation());
         final BlockData blockData = this.blockCache.getBlockData(position);
-        ChainedBlockDestroyUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
+        ChainedBlockUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
         if (!(blockData instanceof SaplingData)) return;
         // delay so that saplings can be dropped properly
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
@@ -274,33 +290,66 @@ public class LeafAndLogEditListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onCaveVinesGrow(BlockSpreadEvent event) {
+    public void onBlockGrow(BlockSpreadEvent event) {
         final Block block = event.getSource();
         if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
-        if (!(block.getBlockData() instanceof final CaveVinesPlant caveVines)) return;
         final Position oldPosition = Position.fromLocation(block.getLocation());
         final BlockData oldBlockData = this.blockCache.getBlockData(oldPosition);
         final BlockState newState = event.getNewState();
         final Position position = Position.fromLocation(newState.getLocation());
-        final CaveVineData blockData;
-        if (oldBlockData instanceof final CaveVineData caveVineData) {
-            blockData = caveVineData;
-        } else {
-            blockData = (CaveVineData) this.leavesConfig.getDefaultCaveVinesData(caveVines.isBerries());
+        if (block.getBlockData() instanceof final CaveVinesPlant caveVines) {
+            final CaveVineData blockData;
+            if (oldBlockData instanceof final CaveVineData caveVineData) {
+                blockData = caveVineData;
+            } else {
+                blockData = (CaveVineData) this.leavesConfig.getDefaultCaveVinesData(caveVines.isBerries());
+            }
+            this.blockCache.addBlockData(position, blockData.withGlowBerry(caveVines.isBerries()));
+            return;
         }
-        this.blockCache.addBlockData(position, blockData.withGlowBerry(caveVines.isBerries()));
+        if (LeavesConfig.AGEABLE_MATERIALS.contains(block.getType())) {
+            final AgeableData blockData;
+            if (oldBlockData instanceof final AgeableData ageableData) {
+                blockData = ageableData;
+            } else {
+                blockData = (AgeableData) this.leavesConfig.getDefaultAgeableData(block.getType());
+            }
+            this.blockCache.addBlockData(position, blockData);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onBlockGrow(BlockGrowEvent event) {
+        final Block block = event.getBlock();
+        if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
+        final BlockState newState = event.getNewState();
+        final Position position = Position.fromLocation(newState.getLocation());
+        final Material material = newState.getType();
+        if (!LeavesConfig.AGEABLE_MATERIALS.contains(material)) {
+            return;
+        }
+        final BlockData blockData;
+        if (material != Material.SUGAR_CANE) return;
+        final Position below = position.subtract(0, 1, 0);
+        final BlockData belowBlockData = this.blockCache.getBlockData(below);
+        if (belowBlockData instanceof final AgeableData ageableData && ageableData.realBlockType() == Material.SUGAR_CANE) {
+            blockData = ageableData;
+        } else {
+            blockData = this.leavesConfig.getDefaultAgeableData(material);
+        }
+        this.blockCache.addBlockData(position, blockData);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onExplode(BlockExplodeEvent event) {
         if (!this.leavesConfig.isWorldWhitelisted(event.getBlock().getWorld())) return;
-        event.blockList().forEach(b -> ChainedBlockDestroyUtil.handleBlockBreak(b, this.blockCache, this.leavesConfig));
+        event.blockList().forEach(b -> ChainedBlockUtil.handleBlockBreak(b, this.blockCache, this.leavesConfig));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onExplode(EntityExplodeEvent event) {
         if (!this.leavesConfig.isWorldWhitelisted(event.getEntity().getWorld())) return;
-        event.blockList().forEach(b -> ChainedBlockDestroyUtil.handleBlockBreak(b, this.blockCache, this.leavesConfig));
+        event.blockList().forEach(b -> ChainedBlockUtil.handleBlockBreak(b, this.blockCache, this.leavesConfig));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)

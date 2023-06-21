@@ -23,15 +23,17 @@ package io.github.fisher2911.hmcleaves.listener;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.cache.BlockCache;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
+import io.github.fisher2911.hmcleaves.data.AgeableData;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.CaveVineData;
 import io.github.fisher2911.hmcleaves.data.LeafData;
+import io.github.fisher2911.hmcleaves.data.LimitedStacking;
 import io.github.fisher2911.hmcleaves.data.LogData;
 import io.github.fisher2911.hmcleaves.data.SaplingData;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.packet.BlockBreakManager;
 import io.github.fisher2911.hmcleaves.packet.PacketUtils;
-import io.github.fisher2911.hmcleaves.util.ChainedBlockDestroyUtil;
+import io.github.fisher2911.hmcleaves.util.ChainedBlockUtil;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Axis;
@@ -45,6 +47,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.Levelled;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.Waterlogged;
@@ -145,9 +148,38 @@ public class InteractionListener implements Listener {
             return;
         }
         final Material aboveMaterial = placeLocation.getBlock().getRelative(BlockFace.UP).getType();
-        if (blockData instanceof CaveVineData && !aboveMaterial.isSolid() && !Tag.CAVE_VINES.isTagged(aboveMaterial)) {
-            event.setCancelled(true);
-            return;
+        if (blockData instanceof final CaveVineData caveVineData) {
+            if (!aboveMaterial.isSolid() && !Tag.CAVE_VINES.isTagged(aboveMaterial)) {
+                event.setCancelled(true);
+                return;
+            }
+            final int stack = ChainedBlockUtil.countStack(
+                    Position.fromLocation(placeLocation),
+                    blockData,
+                    this.blockCache
+            );
+            if (stack >= caveVineData.stackLimit()) {
+                event.setCancelled(true);
+                return;
+            }
+        }
+        if (blockData instanceof final AgeableData ageableData) {
+            for (BlockFace supportable : ageableData.supportableFaces()) {
+                final Block relative = placeLocation.getBlock().getRelative(supportable);
+                if (!ageableData.canBePlacedAgainst(relative)) {
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+            final int stack = ChainedBlockUtil.countStack(
+                    Position.fromLocation(placeLocation),
+                    blockData,
+                    this.blockCache
+            );
+            if (stack >= ageableData.stackLimit()) {
+                event.setCancelled(true);
+                return;
+            }
         }
 
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
@@ -270,6 +302,34 @@ public class InteractionListener implements Listener {
                 blockData = this.leavesConfig.getDefaultCaveVinesData(false);
             }
             if (blockData == null) return;
+            final int stack = ChainedBlockUtil.countStack(
+                    position,
+                    blockData,
+                    this.blockCache
+            );
+            if (blockData instanceof final LimitedStacking limitedStacking && stack >= limitedStacking.stackLimit()) {
+                event.setCancelled(true);
+                return;
+            }
+            this.blockCache.addBlockData(position, blockData);
+        }
+        if (LeavesConfig.AGEABLE_MATERIALS.contains(material)) {
+            final BlockData blockData;
+            if (itemStackBlockData != null) {
+                blockData = itemStackBlockData;
+            } else {
+                blockData = this.leavesConfig.getDefaultAgeableData(material);
+            }
+            if (blockData == null) return;
+            final int stack = ChainedBlockUtil.countStack(
+                    position,
+                    blockData,
+                    this.blockCache
+            );
+            if (blockData instanceof final LimitedStacking limitedStacking && stack >= limitedStacking.stackLimit()) {
+                event.setCancelled(true);
+                return;
+            }
             this.blockCache.addBlockData(position, blockData);
         }
     }
@@ -281,7 +341,7 @@ public class InteractionListener implements Listener {
     public void onBlockBreak(BlockBreakEvent event) {
         if (event instanceof BlockBreakManager.LeavesBlockBreakEvent) return;
         if (!this.leavesConfig.isWorldWhitelisted(event.getBlock().getWorld())) return;
-        ChainedBlockDestroyUtil.handleBlockBreak(event.getBlock(), this.blockCache, this.leavesConfig);
+        ChainedBlockUtil.handleBlockBreak(event.getBlock(), this.blockCache, this.leavesConfig);
         if (event.getPlayer().getGameMode() == GameMode.CREATIVE) return;
         final Location location = event.getBlock().getLocation();
         final Position position = Position.fromLocation(location);
@@ -332,7 +392,7 @@ public class InteractionListener implements Listener {
         }
         final BlockData blockData = this.blockCache.getBlockData(Position.fromLocation(clicked.getLocation()));
         if (blockData instanceof final SaplingData saplingData && clicked.getBlockData() instanceof final Sapling sapling) {
-            player.sendMessage(saplingData.id() + " displayStage: " + saplingData.getNewState().getStage() + " realStage: " + sapling.getStage() + " realBlockType: " + saplingData.worldBlockType() + " : " + clicked.getType());
+            player.sendMessage(saplingData.id() + " displayStage: " + saplingData.getNewState(null).getStage() + " realStage: " + sapling.getStage() + " realBlockType: " + saplingData.worldBlockType() + " : " + clicked.getType());
             return true;
         }
         if (blockData instanceof final LogData logData) {
@@ -346,8 +406,13 @@ public class InteractionListener implements Listener {
         }
         if (blockData instanceof final CaveVineData caveVineData && clicked.getBlockData() instanceof final CaveVinesPlant caveVinesPlant) {
             player.sendMessage("Display berries: " + caveVineData.glowBerry() + " server berries: " + caveVinesPlant.isBerries() + " "
-                    + "display age: " + caveVineData.getNewState().getAge() + " server age: " +
+                    + "display age: " + caveVineData.getNewState(null).getAge() + " server age: " +
                     ((caveVinesPlant instanceof final CaveVines caveVines) ? caveVines.getAge() : "no age"));
+            return true;
+        }
+        if (blockData instanceof final AgeableData ageableData) {
+            player.sendMessage("Display age: " + ageableData.getAge() + " server age: " +
+                    ((clicked.getBlockData()) instanceof final Ageable ageable ? ageable.getAge() : "no age"));
             return true;
         }
         if (blockData == BlockData.EMPTY) {

@@ -24,6 +24,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public record ChunkPosition(UUID world, int x, int z) {
@@ -65,6 +66,19 @@ public record ChunkPosition(UUID world, int x, int z) {
                 ", x=" + x +
                 ", z=" + z +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final ChunkPosition that = (ChunkPosition) o;
+        return x == that.x && z == that.z && Objects.equals(world, that.world);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(world, x, z);
     }
 
 }

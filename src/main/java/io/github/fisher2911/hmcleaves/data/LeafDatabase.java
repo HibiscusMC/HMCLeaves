@@ -39,20 +39,22 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class LeafDatabase {
 
     private final HMCLeaves plugin;
     private final Path databaseFilePath;
-    private final Executor executor;
+    private final ExecutorService writeExecutor;
+    private final ExecutorService readExecutor;
     private Connection connection;
 
     public LeafDatabase(HMCLeaves plugin) {
         this.plugin = plugin;
         this.databaseFilePath = this.plugin.getDataFolder().toPath().resolve("database").resolve("leaves.db");
-        this.executor = Executors.newSingleThreadExecutor();
+        this.writeExecutor = Executors.newSingleThreadExecutor();
+        this.readExecutor = Executors.newFixedThreadPool(4);
     }
 
     @Nullable
@@ -74,8 +76,23 @@ public class LeafDatabase {
         this.createTables();
     }
 
-    public void doDatabaseTaskAsync(Runnable runnable) {
-        this.executor.execute(runnable);
+    public void doDatabaseWriteAsync(Runnable runnable) {
+        this.writeExecutor.execute(() -> {
+            try {
+                runnable.run();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });    }
+
+    public void doDatabaseReadAsync(Runnable runnable) {
+        this.readExecutor.execute(() -> {
+            try {
+                runnable.run();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     private static final String LEAVES_TABLE_NAME = "leaves";
@@ -264,6 +281,51 @@ public class LeafDatabase {
                     CAVE_VINES_TABLE_BLOCK_Y_COLUMN + " = ? AND " +
                     CAVE_VINES_TABLE_BLOCK_Z_COLUMN + " = ?;";
 
+    private static final String AGEABLE_TABLE_NAME = "ageable";
+    private static final String AGEABLE_TABLE_WORLD_UUID_COLUMN = "world_uuid";
+    private static final String AGEABLE_TABLE_CHUNK_X_COLUMN = "chunk_x";
+    private static final String AGEABLE_TABLE_CHUNK_Z_COLUMN = "chunk_z";
+    private static final String AGEABLE_TABLE_BLOCK_X_COLUMN = "block_x";
+    private static final String AGEABLE_TABLE_BLOCK_Y_COLUMN = "block_y";
+    private static final String AGEABLE_TABLE_BLOCK_Z_COLUMN = "block_z";
+    private static final String AGEABLE_TABLE_BLOCK_ID_COLUMN = "block_id";
+    private static final String CREATE_AGEABLE_TABLE_STATEMENT =
+            "CREATE TABLE IF NOT EXISTS " + AGEABLE_TABLE_NAME + " (" +
+                    AGEABLE_TABLE_WORLD_UUID_COLUMN + " BINARY(16) NOT NULL, " +
+                    AGEABLE_TABLE_CHUNK_X_COLUMN + " INTEGER NOT NULL, " +
+                    AGEABLE_TABLE_CHUNK_Z_COLUMN + " INTEGER NOT NULL, " +
+                    AGEABLE_TABLE_BLOCK_X_COLUMN + " INTEGER NOT NULL, " +
+                    AGEABLE_TABLE_BLOCK_Y_COLUMN + " INTEGER NOT NULL, " +
+                    AGEABLE_TABLE_BLOCK_Z_COLUMN + " INTEGER NOT NULL, " +
+                    AGEABLE_TABLE_BLOCK_ID_COLUMN + " TEXT NOT NULL, " +
+                    "PRIMARY KEY (" + AGEABLE_TABLE_WORLD_UUID_COLUMN + ", " + AGEABLE_TABLE_BLOCK_X_COLUMN + ", " + AGEABLE_TABLE_BLOCK_Y_COLUMN + ", " + AGEABLE_TABLE_BLOCK_Z_COLUMN + ")" +
+                    ");";
+
+    private static final String SET_AGEABLE_BLOCK_STATEMENT =
+            "INSERT OR REPLACE INTO " + AGEABLE_TABLE_NAME + " (" +
+                    AGEABLE_TABLE_WORLD_UUID_COLUMN + ", " +
+                    AGEABLE_TABLE_CHUNK_X_COLUMN + ", " +
+                    AGEABLE_TABLE_CHUNK_Z_COLUMN + ", " +
+                    AGEABLE_TABLE_BLOCK_X_COLUMN + ", " +
+                    AGEABLE_TABLE_BLOCK_Y_COLUMN + ", " +
+                    AGEABLE_TABLE_BLOCK_Z_COLUMN + ", " +
+                    AGEABLE_TABLE_BLOCK_ID_COLUMN +
+                    ") VALUES (?, ?, ?, ?, ?, ?, ?);";
+
+    private static final String GET_AGEABLE_BLOCKS_IN_CHUNK_STATEMENT =
+            "SELECT " + AGEABLE_TABLE_BLOCK_X_COLUMN + ", " + AGEABLE_TABLE_BLOCK_Y_COLUMN + ", " + AGEABLE_TABLE_BLOCK_Z_COLUMN + ", " + AGEABLE_TABLE_BLOCK_ID_COLUMN + " FROM " + AGEABLE_TABLE_NAME + " WHERE " +
+                    AGEABLE_TABLE_WORLD_UUID_COLUMN + " = ? AND " +
+                    AGEABLE_TABLE_CHUNK_X_COLUMN + " = ? AND " +
+                    AGEABLE_TABLE_CHUNK_Z_COLUMN + " = ?;";
+
+    private static final String DELETE_AGEABLE_BLOCK_STATEMENT =
+            "DELETE FROM " + AGEABLE_TABLE_NAME + " WHERE " +
+                    AGEABLE_TABLE_WORLD_UUID_COLUMN + " = ? AND " +
+                    AGEABLE_TABLE_BLOCK_X_COLUMN + " = ? AND " +
+                    AGEABLE_TABLE_BLOCK_Y_COLUMN + " = ? AND " +
+                    AGEABLE_TABLE_BLOCK_Z_COLUMN + " = ?;";
+
+
     private void createTables() {
         final Connection connection = this.getConnection();
         if (connection == null) throw new IllegalStateException("Could not connect to database!");
@@ -287,6 +349,11 @@ public class LeafDatabase {
         } catch (SQLException e) {
             throw new IllegalStateException("Could not create tables!", e);
         }
+        try (final PreparedStatement statement = connection.prepareStatement(CREATE_AGEABLE_TABLE_STATEMENT)) {
+            statement.execute();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Could not create tables!", e);
+        }
     }
 
     public void close() {
@@ -303,6 +370,7 @@ public class LeafDatabase {
         this.saveLogBlocksInChunk(chunk);
         this.saveSaplingBlocksInChunk(chunk);
         this.saveCaveVineBlocksInChunk(chunk);
+        this.saveAgeableBlocksInChunk(chunk);
         chunk.setSaving(false);
         chunk.markClean();
         chunk.setSafeToMarkClean(true);
@@ -314,6 +382,7 @@ public class LeafDatabase {
         blocks.putAll(this.getLogBlocksInChunk(chunkPosition, config));
         blocks.putAll(this.getSaplingBlocksInChunk(chunkPosition, config));
         blocks.putAll(this.getCaveVineBlocksInChunk(chunkPosition, config));
+        blocks.putAll(this.getAgeableBlocksInChunk(chunkPosition, config));
         return blocks;
     }
 
@@ -718,6 +787,104 @@ public class LeafDatabase {
             return caveVineBlocks;
         } catch (SQLException e) {
             throw new IllegalStateException("Could not get cave vine blocks in chunk " + chunkX + ", " + chunkZ + "!", e);
+        }
+    }
+
+    private void saveAgeableBlocksInChunk(ChunkBlockCache chunk) {
+        this.deleteRemovedAgeableBlocksInChunk(chunk);
+        if (chunk.getBlockDataMap().isEmpty()) return;
+        final Connection connection = this.getConnection();
+        if (connection == null) throw new IllegalStateException("Could not connect to database!");
+        final ChunkPosition chunkPosition = chunk.getChunkPosition();
+        final int chunkX = chunkPosition.x();
+        final int chunkZ = chunkPosition.z();
+        final byte[] worldUUIDBytes = this.uuidToBytes(chunkPosition.world());
+        try (final PreparedStatement statement = connection.prepareStatement(SET_AGEABLE_BLOCK_STATEMENT)) {
+            for (var entry : chunk.getBlockDataMap().entrySet()) {
+                final Position position = entry.getKey();
+                final int blockX = position.x();
+                final int blockY = position.y();
+                final int blockZ = position.z();
+                final BlockData blockData = entry.getValue();
+                if (!(blockData instanceof AgeableData)) continue;
+                final String blockID = blockData.id();
+                statement.setBytes(1, worldUUIDBytes);
+                statement.setInt(2, chunkX);
+                statement.setInt(3, chunkZ);
+                statement.setInt(4, blockX);
+                statement.setInt(5, blockY);
+                statement.setInt(6, blockZ);
+                statement.setString(7, blockID);
+                statement.addBatch();
+            }
+            statement.executeBatch();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Could not save ageable blocks in chunk " + chunkX + ", " + chunkZ + "!", e);
+        }
+    }
+
+    private void deleteRemovedAgeableBlocksInChunk(ChunkBlockCache chunkBlockCache) {
+        final Connection connection = this.getConnection();
+        if (connection == null) throw new IllegalStateException("Could not connect to database!");
+        final ChunkPosition chunkPosition = chunkBlockCache.getChunkPosition();
+        final int chunkX = chunkPosition.x();
+        final int chunkZ = chunkPosition.z();
+        final byte[] worldUUIDBytes = this.uuidToBytes(chunkPosition.world());
+        try (final PreparedStatement statement = connection.prepareStatement(DELETE_AGEABLE_BLOCK_STATEMENT)) {
+            chunkBlockCache.clearRemovedPositions(entry -> {
+                try {
+                    final Position position = entry.getKey();
+                    final BlockData blockData = entry.getValue();
+                    if (!(blockData instanceof AgeableData)) return false;
+                    final int blockX = position.x();
+                    final int blockY = position.y();
+                    final int blockZ = position.z();
+                    statement.setBytes(1, worldUUIDBytes);
+                    statement.setInt(2, blockX);
+                    statement.setInt(3, blockY);
+                    statement.setInt(4, blockZ);
+                    statement.addBatch();
+                    return true;
+                } catch (SQLException e) {
+                    throw new IllegalStateException("Could not delete removed ageable blocks in chunk " + chunkX + ", " + chunkZ + "!", e);
+                }
+            });
+            statement.executeBatch();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Could not delete removed ageable blocks in chunk " + chunkX + ", " + chunkZ + "!", e);
+        }
+    }
+
+    private Map<Position, BlockData> getAgeableBlocksInChunk(ChunkPosition chunkPosition, LeavesConfig config) {
+        final Connection connection = this.getConnection();
+        if (connection == null) throw new IllegalStateException("Could not connect to database!");
+        final byte[] worldUUIDBytes = this.uuidToBytes(chunkPosition.world());
+        final int chunkX = chunkPosition.x();
+        final int chunkZ = chunkPosition.z();
+        final Map<Position, BlockData> ageableBlocks = new HashMap<>();
+        try (final PreparedStatement statement = connection.prepareStatement(GET_AGEABLE_BLOCKS_IN_CHUNK_STATEMENT)) {
+            statement.setBytes(1, worldUUIDBytes);
+            statement.setInt(2, chunkX);
+            statement.setInt(3, chunkZ);
+            try (final ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    final int blockX = resultSet.getInt(AGEABLE_TABLE_BLOCK_X_COLUMN);
+                    final int blockY = resultSet.getInt(AGEABLE_TABLE_BLOCK_Y_COLUMN);
+                    final int blockZ = resultSet.getInt(AGEABLE_TABLE_BLOCK_Z_COLUMN);
+                    final String blockID = resultSet.getString(AGEABLE_TABLE_BLOCK_ID_COLUMN);
+                    final Position position = new Position(chunkPosition.world(), blockX, blockY, blockZ);
+                    final BlockData blockData = config.getBlockData(blockID);
+                    if (!(blockData instanceof AgeableData ageableData)) {
+                        this.plugin.getLogger().warning("Could not find block data for block ID " + blockID + " at position " +
+                                blockX + ", " + blockY + ", " + blockZ + "!");
+                        continue;
+                    }
+                    ageableBlocks.put(position, ageableData);
+                }
+            }
+            return ageableBlocks;
+        } catch (SQLException e) {
+            throw new IllegalStateException("Could not get ageable blocks in chunk " + chunkX + ", " + chunkZ + "!", e);
         }
     }
 

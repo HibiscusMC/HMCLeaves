@@ -42,7 +42,7 @@ public record LeafData(
     }
 
     @Override
-    public WrappedBlockState getNewState() {
+    public WrappedBlockState getNewState(Material worldMaterial) {
         final WrappedBlockState newState = WrappedBlockState.getByGlobalId(this.sendBlockId);
         newState.setDistance(this.displayDistance);
         newState.setPersistent(this.displayPersistence);
@@ -71,8 +71,13 @@ public record LeafData(
 
     @Override
     public boolean isWorldTypeSame(Material worldMaterial) {
-        final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(this.getNewState()).getMaterial();
+        final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(this.getNewState(null)).getMaterial();
         return worldMaterial == sendMaterial || this.worldBlockType() == worldMaterial;
+    }
+
+    @Override
+    public Material breakReplacement() {
+        return this.waterlogged ? Material.WATER : Material.AIR;
     }
 
 }

@@ -24,9 +24,13 @@ import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState
 import org.bukkit.Axis;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
 
 public interface BlockData {
 
@@ -57,7 +61,7 @@ public interface BlockData {
 
         @Override
         @Nullable
-        public WrappedBlockState getNewState() {
+        public WrappedBlockState getNewState(@Nullable Material worldMaterial) {
             return null;
         }
 
@@ -77,6 +81,11 @@ public interface BlockData {
         public boolean isWorldTypeSame(Material worldMaterial) {
             return false;
         }
+
+        @Override
+        public Material breakReplacement() {
+            return Material.AIR;
+        }
     };
 
     String id();
@@ -84,7 +93,7 @@ public interface BlockData {
     int sendBlockId();
 
     @Nullable
-    WrappedBlockState getNewState();
+    WrappedBlockState getNewState(@Nullable Material worldMaterial);
 
     Material realBlockType();
 
@@ -97,6 +106,8 @@ public interface BlockData {
     String modelPath();
 
     boolean isWorldTypeSame(Material worldMaterial);
+
+    Material breakReplacement();
 
     static LeafData leafData(
             String id,
@@ -165,14 +176,44 @@ public interface BlockData {
             String withGlowBerryId,
             int sendBlockId,
             boolean glowBerry,
-            String modelPath
+            String modelPath,
+            int stackLimit
     ) {
         return new CaveVineData(
                 id,
                 withGlowBerryId,
                 sendBlockId,
                 glowBerry,
-                modelPath
+                modelPath,
+                stackLimit
+        );
+    }
+
+    static AgeableData ageableData(
+            String id,
+            Material realBlockType,
+            int sendBlockId,
+            String modelPath,
+            Sound placeSound,
+            Set<BlockFace> supportableFaces,
+            Predicate<Material> worldTypeSamePredicate,
+            Predicate<Block> canBePlacedAgainstPredicate,
+            Material defaultLowerMaterial,
+            int stackLimit,
+            Material breakReplacement
+    ) {
+        return new AgeableData(
+                id,
+                realBlockType,
+                sendBlockId,
+                modelPath,
+                placeSound,
+                supportableFaces,
+                worldTypeSamePredicate,
+                canBePlacedAgainstPredicate,
+                defaultLowerMaterial,
+                stackLimit,
+                breakReplacement
         );
     }
 

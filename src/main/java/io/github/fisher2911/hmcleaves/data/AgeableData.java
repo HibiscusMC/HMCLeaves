@@ -21,72 +21,60 @@
 package io.github.fisher2911.hmcleaves.data;
 
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
-import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Material;
 import org.bukkit.Sound;
-import org.bukkit.Tag;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.jetbrains.annotations.Nullable;
 
-public record CaveVineData(
+import java.util.Set;
+import java.util.function.Predicate;
+
+public record AgeableData(
         String id,
-        String withGlowBerryId,
+        Material realBlockType,
         int sendBlockId,
-        boolean glowBerry,
         String modelPath,
-        int stackLimit
+        Sound placeSound,
+        // faces that can support this block
+        Set<BlockFace> supportableFaces,
+        Predicate<Material> worldTypeSamePredicate,
+        Predicate<Block> placeAgainstPredicate,
+        Material defaultLowerMaterial,
+        int stackLimit,
+        Material breakReplacement
 ) implements BlockData, LimitedStacking {
 
     @Override
     public WrappedBlockState getNewState(@Nullable Material worldMaterial) {
         final WrappedBlockState state;
-        if (worldMaterial == Material.CAVE_VINES_PLANT && LeavesConfig.getDefaultCaveVinesStringId(this.glowBerry).equals(this.id)) {
-            state = StateTypes.CAVE_VINES_PLANT.createBlockState();
+        if (worldMaterial == this.defaultLowerMaterial && LeavesConfig.getDefaultAgeableStringId(this.realBlockType).equals(this.id)) {
+            state = SpigotConversionUtil.fromBukkitBlockData(this.defaultLowerMaterial.createBlockData());
         } else {
             state = WrappedBlockState.getByGlobalId(this.sendBlockId);
         }
-        if (this.glowBerry) state.setBerries(true);
         return state;
+//        return WrappedBlockState.getByGlobalId(this.sendBlockId);
     }
 
-    @Override
-    public Material realBlockType() {
-        return this.worldBlockType();
+    public int getAge() {
+        return WrappedBlockState.getByGlobalId(this.sendBlockId).getAge();
     }
 
     @Override
     public Material worldBlockType() {
-        return Material.CAVE_VINES;
+        return this.realBlockType;
     }
 
     @Override
-    public Sound placeSound() {
-        return Sound.BLOCK_CAVE_VINES_PLACE;
+    public boolean isWorldTypeSame(Material worldMaterial) {
+        return this.worldTypeSamePredicate.test(worldMaterial);
     }
 
-    @Override
-    public String withGlowBerryId() {
-        return withGlowBerryId;
-    }
-
-    public String getCurrentId() {
-        if (this.glowBerry) return this.withGlowBerryId;
-        return this.id;
-    }
-
-    public CaveVineData withGlowBerry(boolean glowBerry) {
-        if (glowBerry == this.glowBerry) return this;
-        return new CaveVineData(this.id, this.withGlowBerryId, this.sendBlockId, glowBerry, this.modelPath, this.stackLimit);
-    }
-
-    @Override
-    public boolean isWorldTypeSame(Material material) {
-        return Tag.CAVE_VINES.isTagged(material);
-    }
-
-    @Override
-    public Material breakReplacement() {
-        return Material.AIR;
+    public boolean canBePlacedAgainst(Block block) {
+        return this.placeAgainstPredicate.test(block);
     }
 
 }

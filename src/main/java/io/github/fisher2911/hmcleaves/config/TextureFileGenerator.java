@@ -114,7 +114,7 @@ public class TextureFileGenerator {
             return DISTANCE_KEY + "=" + leafData.displayDistance() + "," + PERSISTENT_KEY + "=" + leafData.displayPersistence();
         }
         if (blockData instanceof final SaplingData saplingData) {
-            return STAGE + "=" + saplingData.getNewState().getStage();
+            return STAGE + "=" + saplingData.getNewState(null).getStage();
         }
         throw new IllegalArgumentException(blockData.getClass().getSimpleName() + " cannot be converted to a string for texture file!");
     }

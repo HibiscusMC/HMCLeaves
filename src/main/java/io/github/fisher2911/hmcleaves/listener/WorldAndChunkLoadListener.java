@@ -52,6 +52,7 @@ import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -71,17 +72,17 @@ public class WorldAndChunkLoadListener implements Listener {
     }
 
     public void loadDefaultWorlds() {
-        for (World world : Bukkit.getWorlds()) {
-            if (!this.leavesConfig.isWorldWhitelisted(world)) continue;
-            for (Chunk chunk : world.getLoadedChunks()) {
-                final UUID worldUUID = world.getUID();
-                if (!(PDCUtil.chunkHasLeafData(chunk.getPersistentDataContainer()))) {
-                    this.loadNewChunkData(chunk);
-                    continue;
-                }
-                this.loadChunkFromDatabase(ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ()));
-            }
-        }
+//        for (World world : Bukkit.getWorlds()) {
+//            if (!this.leavesConfig.isWorldWhitelisted(world)) continue;
+//            for (Chunk chunk : world.getLoadedChunks()) {
+//                final UUID worldUUID = world.getUID();
+//                if (!(PDCUtil.chunkHasLeafData(chunk.getPersistentDataContainer()))) {
+//                    this.loadNewChunkData(chunk);
+//                    continue;
+//                }
+//                this.loadChunkFromDatabase(ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ()));
+//            }
+//        }
     }
 
     @EventHandler
@@ -107,6 +108,7 @@ public class WorldAndChunkLoadListener implements Listener {
         final ChunkSnapshot snapshot = chunk.getChunkSnapshot();
         final ChunkPosition chunkPosition = ChunkPosition.at(worldUUID, chunkX, chunkZ);
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
+            final Map<Position, Material> worldMaterials = new HashMap<>();
             ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
             boolean markClean = chunkBlockCache == null || chunkBlockCache.isClean();
             for (int x = 0; x < 16; x++) {
@@ -121,6 +123,7 @@ public class WorldAndChunkLoadListener implements Listener {
                                 chunkZ * 16 + z
                         );
                         if (Tag.LOGS.isTagged(material)) {
+                            worldMaterials.put(position, material);
                             final Orientable orientable = (Orientable) bukkitBlockData;
                             final Axis axis = orientable.getAxis();
                             final BlockData blockData;
@@ -142,13 +145,23 @@ public class WorldAndChunkLoadListener implements Listener {
                         }
                         if (Tag.CAVE_VINES.isTagged(material)) {
                             if (!(bukkitBlockData instanceof final CaveVinesPlant caveVines)) continue;
+                            worldMaterials.put(position, material);
                             this.blockCache.addBlockData(
                                     position,
                                     this.leavesConfig.getDefaultCaveVinesData(caveVines.isBerries())
                             );
-                             continue;
+                            continue;
+                        }
+                        if (LeavesConfig.AGEABLE_MATERIALS.contains(material)) {
+                            worldMaterials.put(position, material);
+                            this.blockCache.addBlockData(
+                                    position,
+                                    this.leavesConfig.getDefaultAgeableData(material)
+                            );
+                            continue;
                         }
                         if (!(bukkitBlockData instanceof Leaves)) continue;
+                        worldMaterials.put(position, material);
                         this.blockCache.addBlockData(
                                 position,
                                 this.leavesConfig.getDefaultLeafData(material)
@@ -156,12 +169,14 @@ public class WorldAndChunkLoadListener implements Listener {
                     }
                 }
             }
-            this.leafDatabase.doDatabaseTaskAsync(() -> {
+            this.leafDatabase.doDatabaseWriteAsync(() -> {
                 if (!this.plugin.isEnabled()) return;
                 final ChunkBlockCache newChunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
                 Bukkit.getScheduler().runTask(this.plugin, () -> {
                     PDCUtil.setChunkHasLeafData(chunk.getPersistentDataContainer());
-                    this.sendBlocksToPlayersAlreadyInChunk(world, chunkX, chunkZ);
+                    Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () ->
+                            this.sendBlocksToPlayersAlreadyInChunk(world, chunkX, chunkZ, worldMaterials)
+                    );
                 });
                 if (newChunkBlockCache == null) return;
                 this.leafDatabase.saveBlocksInChunk(newChunkBlockCache);
@@ -171,18 +186,28 @@ public class WorldAndChunkLoadListener implements Listener {
     }
 
     private void loadChunkFromDatabase(ChunkPosition chunkPosition) {
-        this.leafDatabase.doDatabaseTaskAsync(() -> {
+        this.leafDatabase.doDatabaseReadAsync(() -> {
             final Map<Position, BlockData> chunkBlocks = this.leafDatabase.getBlocksInChunk(chunkPosition, this.leavesConfig);
             ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
             boolean markClean = chunkBlockCache == null || chunkBlockCache.isClean();
             chunkBlocks.forEach(this.blockCache::addBlockData);
             chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
             if (!this.plugin.isEnabled()) return;
+            final ChunkBlockCache finalChunkBlockCache = chunkBlockCache;
             Bukkit.getScheduler().runTask(this.plugin, () -> {
                 final World world = Bukkit.getWorld(chunkPosition.world());
                 if (world == null) return;
-                Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () ->
-                        this.sendBlocksToPlayersAlreadyInChunk(world, chunkPosition.x(), chunkPosition.z())
+                final Map<Position, Material> worldMaterials = new HashMap<>();
+                if (finalChunkBlockCache == null) return;
+                for (var entry : finalChunkBlockCache.getBlockDataMap().entrySet()) {
+                    final Position position = entry.getKey();
+                    final Location location = position.toLocation();
+                    final Material material = world.getType(location);
+                    worldMaterials.put(position, material);
+                }
+                Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
+                            this.sendBlocksToPlayersAlreadyInChunk(world, chunkPosition.x(), chunkPosition.z(), worldMaterials);
+                        }
                 );
             });
             if (chunkBlockCache == null || !markClean) return;
@@ -190,7 +215,7 @@ public class WorldAndChunkLoadListener implements Listener {
         });
     }
 
-    private void sendBlocksToPlayersAlreadyInChunk(World world, int chunkX, int chunkZ) {
+    private void sendBlocksToPlayersAlreadyInChunk(World world, int chunkX, int chunkZ, Map<Position, Material> worldMaterials) {
         if (!world.isChunkLoaded(chunkX, chunkZ)) {
             return;
         }
@@ -211,6 +236,7 @@ public class WorldAndChunkLoadListener implements Listener {
             PacketUtils.sendMultiBlockChange(
                     chunkBlockCache.getChunkPosition(),
                     chunkBlockCache.getBlockDataMap(),
+                    worldMaterials,
                     playersThatCanSee
             );
         });
@@ -226,7 +252,7 @@ public class WorldAndChunkLoadListener implements Listener {
         final ChunkBlockCache chunkBlockCache = this.blockCache.removeChunkBlockCache(chunkPosition);
         if (chunkBlockCache == null) return;
         if (chunkBlockCache.isClean()) return;
-        this.leafDatabase.doDatabaseTaskAsync(() -> this.leafDatabase.saveBlocksInChunk(chunkBlockCache));
+        this.leafDatabase.doDatabaseWriteAsync(() -> this.leafDatabase.saveBlocksInChunk(chunkBlockCache));
     }
 
     @EventHandler
@@ -236,7 +262,7 @@ public class WorldAndChunkLoadListener implements Listener {
         final UUID worldUUID = world.getUID();
         for (Chunk chunk : world.getLoadedChunks()) {
             final ChunkPosition chunkPosition = ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ());
-            this.leafDatabase.doDatabaseTaskAsync(() -> {
+            this.leafDatabase.doDatabaseReadAsync(() -> {
                 final Map<Position, BlockData> chunkBlocks = this.leafDatabase.getBlocksInChunk(chunkPosition, this.leavesConfig);
                 chunkBlocks.forEach(this.blockCache::addBlockData);
                 final ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
@@ -255,7 +281,7 @@ public class WorldAndChunkLoadListener implements Listener {
         if (worldBlockCache == null) return;
         worldBlockCache.clearAll(chunkBlockCache -> {
                     if (chunkBlockCache.isClean()) return;
-                    this.leafDatabase.doDatabaseTaskAsync(() -> this.leafDatabase.saveBlocksInChunk(chunkBlockCache));
+                    this.leafDatabase.doDatabaseWriteAsync(() -> this.leafDatabase.saveBlocksInChunk(chunkBlockCache));
                 }
         );
     }
@@ -270,7 +296,7 @@ public class WorldAndChunkLoadListener implements Listener {
         for (var entry : worldBlockCache.getBlockCacheMap().entrySet()) {
             final ChunkBlockCache chunkBlockCache = entry.getValue();
             if (chunkBlockCache.isClean()) continue;
-            this.leafDatabase.doDatabaseTaskAsync(() -> this.leafDatabase.saveBlocksInChunk(chunkBlockCache));
+            this.leafDatabase.doDatabaseWriteAsync(() -> this.leafDatabase.saveBlocksInChunk(chunkBlockCache));
         }
     }
 
