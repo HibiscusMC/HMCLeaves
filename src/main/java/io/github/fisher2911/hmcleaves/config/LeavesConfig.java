@@ -1003,7 +1003,7 @@ public class LeavesConfig {
             itemStack.setItemMeta(itemMeta);
             PDCUtil.setItemId(itemStack, itemId);
         }
-        if (hookId != null && Hooks.hasOtherItemHook()) {
+        if (hookId != null) {
             return () -> {
                 final ItemStack hookItemStack = Hooks.getItem(hookId);
                 return Objects.requireNonNullElse(hookItemStack, itemStack).clone();

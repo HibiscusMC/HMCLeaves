@@ -22,7 +22,6 @@ package io.github.fisher2911.hmcleaves.hook;
 
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.data.SaplingData;
-import io.github.fisher2911.hmcleaves.hook.hmcleaves.HMCLeavesHook;
 import io.github.fisher2911.hmcleaves.hook.itemsadder.ItemsAdderHook;
 import io.github.fisher2911.hmcleaves.hook.oraxen.OraxenHook;
 import io.github.fisher2911.hmcleaves.hook.worldedit.WorldEditHook;
@@ -51,9 +50,6 @@ public class Hooks {
             plugin.getLogger().info("ItemsAdder found, loading hook");
             itemHook = new ItemsAdderHook(plugin);
             plugin.getServer().getPluginManager().registerEvents(itemHook, plugin);
-        }
-        if (itemHook == null) {
-            itemHook = new HMCLeavesHook(plugin);
         }
         if (plugin.getServer().getPluginManager().getPlugin("WorldEdit") != null) {
             plugin.getLogger().info("WorldEdit found, loading hook");
@@ -87,9 +83,9 @@ public class Hooks {
         worldEditHook.pasteSaplingSchematic(saplingData, position);
     }
 
-    public static boolean hasOtherItemHook() {
-        return !(itemHook instanceof HMCLeavesHook);
-    }
+//    public static boolean hasOtherItemHook() {
+//        return !(itemHook instanceof HMCLeavesHook);
+//    }
 
     public static void transferTextures(File file) {
         if (itemHook != null) itemHook.transferTextures(file);
