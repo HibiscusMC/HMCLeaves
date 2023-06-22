@@ -396,7 +396,7 @@ public class InteractionListener implements Listener {
             return true;
         }
         if (blockData instanceof final LogData logData) {
-            player.sendMessage(logData.id() + " Log type: " + " stripped: " + logData.stripped() + " realBlockType:" + logData.worldBlockType() + " : " + clicked.getType());
+            player.sendMessage(logData.id() + " Log type: " + " stripped: " + logData.stripped() + " realBlockType: " + logData.worldBlockType() + " : " + logData.getNewState(null).getType().getName());
             return true;
         }
         if (blockData instanceof final LeafData leafData && clicked.getBlockData() instanceof final Leaves leaves) {

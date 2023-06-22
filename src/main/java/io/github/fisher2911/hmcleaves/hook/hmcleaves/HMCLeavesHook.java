@@ -22,16 +22,13 @@ package io.github.fisher2911.hmcleaves.hook.hmcleaves;
 
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
-import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.hook.ItemHook;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
-import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.util.function.Supplier;
 
 public class HMCLeavesHook implements ItemHook {
 
@@ -50,18 +47,20 @@ public class HMCLeavesHook implements ItemHook {
 
     @Override
     public @Nullable ItemStack getItem(String id) {
-        final Supplier<ItemStack> supplier = this.leavesConfig.getItemSupplier(id);
-        if (supplier == null) return null;
-        return supplier.get();
+//        final Supplier<ItemStack> supplier = this.leavesConfig.getItemSupplier(id);
+//        if (supplier == null) return null;
+//        return supplier.get();
+        return null;
     }
 
     @Override
     public @Nullable Integer getBlockId(String id) {
-        final BlockData blockData = this.leavesConfig.getBlockData(id);
-        if (blockData == null) return null;
-        return SpigotConversionUtil.fromBukkitBlockData(
-                blockData.worldBlockType().createBlockData()
-        ).getGlobalId();
+//        final BlockData blockData = this.leavesConfig.getBlockData(id);
+//        if (blockData == null) return null;
+//        return SpigotConversionUtil.fromBukkitBlockData(
+//                blockData.worldBlockType().createBlockData()
+//        ).getGlobalId();
+        return null;
     }
 
     @Override

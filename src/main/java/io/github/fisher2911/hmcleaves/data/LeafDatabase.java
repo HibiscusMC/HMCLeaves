@@ -83,7 +83,8 @@ public class LeafDatabase {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        });    }
+        });
+    }
 
     public void doDatabaseReadAsync(Runnable runnable) {
         this.readExecutor.execute(() -> {
@@ -365,15 +366,19 @@ public class LeafDatabase {
     }
 
     public void saveBlocksInChunk(ChunkBlockCache chunk) {
-        chunk.setSaving(true);
-        this.saveLeafBlocksInChunk(chunk);
-        this.saveLogBlocksInChunk(chunk);
-        this.saveSaplingBlocksInChunk(chunk);
-        this.saveCaveVineBlocksInChunk(chunk);
-        this.saveAgeableBlocksInChunk(chunk);
-        chunk.setSaving(false);
-        chunk.markClean();
-        chunk.setSafeToMarkClean(true);
+        try {
+            chunk.setSaving(true);
+            this.saveLeafBlocksInChunk(chunk);
+            this.saveLogBlocksInChunk(chunk);
+            this.saveSaplingBlocksInChunk(chunk);
+            this.saveCaveVineBlocksInChunk(chunk);
+            this.saveAgeableBlocksInChunk(chunk);
+            chunk.setSaving(false);
+            chunk.markClean();
+            chunk.setSafeToMarkClean(true);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public Map<Position, BlockData> getBlocksInChunk(ChunkPosition chunkPosition, LeavesConfig config) {
@@ -386,7 +391,7 @@ public class LeafDatabase {
         return blocks;
     }
 
-    private void saveLeafBlocksInChunk(ChunkBlockCache chunk) {
+    private void saveLeafBlocksInChunk(ChunkBlockCache chunk) throws SQLException {
         this.deleteRemovedLeafBlocksInChunk(chunk);
         if (chunk.getBlockDataMap().isEmpty()) return;
         final Connection connection = this.getConnection();
@@ -395,6 +400,7 @@ public class LeafDatabase {
         final int chunkX = chunkPosition.x();
         final int chunkZ = chunkPosition.z();
         final byte[] worldUUIDBytes = this.uuidToBytes(chunkPosition.world());
+        this.connection.setAutoCommit(false);
         try (final PreparedStatement statement = connection.prepareStatement(SET_LEAF_BLOCK_STATEMENT)) {
             for (var entry : chunk.getBlockDataMap().entrySet()) {
                 final Position position = entry.getKey();
@@ -418,6 +424,7 @@ public class LeafDatabase {
         } catch (SQLException e) {
             throw new IllegalStateException("Could not save leaf blocks in chunk " + chunkX + ", " + chunkZ + "!", e);
         }
+        this.connection.commit();
     }
 
     private void deleteRemovedLeafBlocksInChunk(ChunkBlockCache chunkBlockCache) {
@@ -490,7 +497,7 @@ public class LeafDatabase {
         }
     }
 
-    private void saveLogBlocksInChunk(ChunkBlockCache chunkBlockCache) {
+    private void saveLogBlocksInChunk(ChunkBlockCache chunkBlockCache) throws SQLException {
         this.deleteRemovedLogBlocksInChunk(chunkBlockCache);
         if (chunkBlockCache.getBlockDataMap().isEmpty()) return;
         final Connection connection = this.getConnection();
@@ -499,6 +506,7 @@ public class LeafDatabase {
         final int chunkX = chunkPosition.x();
         final int chunkZ = chunkPosition.z();
         final byte[] worldUUIDBytes = this.uuidToBytes(chunkPosition.world());
+        this.connection.setAutoCommit(false);
         try (final PreparedStatement statement = connection.prepareStatement(SET_LOG_BLOCK_STATEMENT)) {
             for (var entry : chunkBlockCache.getBlockDataMap().entrySet()) {
                 final Position position = entry.getKey();
@@ -521,6 +529,7 @@ public class LeafDatabase {
         } catch (SQLException e) {
             throw new IllegalStateException("Could not save log blocks in chunk " + chunkX + ", " + chunkZ + "!", e);
         }
+        this.connection.commit();
     }
 
     private void deleteRemovedLogBlocksInChunk(ChunkBlockCache chunkBlockCache) {
@@ -592,7 +601,7 @@ public class LeafDatabase {
         }
     }
 
-    private void saveSaplingBlocksInChunk(ChunkBlockCache chunk) {
+    private void saveSaplingBlocksInChunk(ChunkBlockCache chunk) throws SQLException {
         this.deleteRemovedSaplingsInChunk(chunk);
         if (chunk.getBlockDataMap().isEmpty()) return;
         final Connection connection = this.getConnection();
@@ -601,6 +610,7 @@ public class LeafDatabase {
         final int chunkX = chunkPosition.x();
         final int chunkZ = chunkPosition.z();
         final byte[] worldUUIDBytes = this.uuidToBytes(chunkPosition.world());
+        this.connection.setAutoCommit(false);
         try (final PreparedStatement statement = connection.prepareStatement(SET_SAPLING_BLOCK_STATEMENT)) {
             for (var entry : chunk.getBlockDataMap().entrySet()) {
                 final Position position = entry.getKey();
@@ -623,6 +633,7 @@ public class LeafDatabase {
         } catch (SQLException e) {
             throw new IllegalStateException("Could not save saplings in chunk " + chunkX + ", " + chunkZ + "!", e);
         }
+        this.connection.commit();
     }
 
     private void deleteRemovedSaplingsInChunk(ChunkBlockCache chunkBlockCache) {
@@ -690,7 +701,7 @@ public class LeafDatabase {
         }
     }
 
-    private void saveCaveVineBlocksInChunk(ChunkBlockCache chunk) {
+    private void saveCaveVineBlocksInChunk(ChunkBlockCache chunk) throws SQLException {
         this.deleteRemovedCaveVineBlocksInChunk(chunk);
         if (chunk.getBlockDataMap().isEmpty()) return;
         final Connection connection = this.getConnection();
@@ -699,6 +710,7 @@ public class LeafDatabase {
         final int chunkX = chunkPosition.x();
         final int chunkZ = chunkPosition.z();
         final byte[] worldUUIDBytes = this.uuidToBytes(chunkPosition.world());
+        this.connection.setAutoCommit(false);
         try (final PreparedStatement statement = connection.prepareStatement(SET_CAVE_VINES_BLOCK_STATEMENT)) {
             for (var entry : chunk.getBlockDataMap().entrySet()) {
                 final Position position = entry.getKey();
@@ -722,6 +734,7 @@ public class LeafDatabase {
         } catch (SQLException e) {
             throw new IllegalStateException("Could not save cave vine blocks in chunk " + chunkX + ", " + chunkZ + "!", e);
         }
+        this.connection.commit();
     }
 
     private void deleteRemovedCaveVineBlocksInChunk(ChunkBlockCache chunkBlockCache) {
@@ -790,7 +803,7 @@ public class LeafDatabase {
         }
     }
 
-    private void saveAgeableBlocksInChunk(ChunkBlockCache chunk) {
+    private void saveAgeableBlocksInChunk(ChunkBlockCache chunk) throws SQLException {
         this.deleteRemovedAgeableBlocksInChunk(chunk);
         if (chunk.getBlockDataMap().isEmpty()) return;
         final Connection connection = this.getConnection();
@@ -799,6 +812,7 @@ public class LeafDatabase {
         final int chunkX = chunkPosition.x();
         final int chunkZ = chunkPosition.z();
         final byte[] worldUUIDBytes = this.uuidToBytes(chunkPosition.world());
+        this.connection.setAutoCommit(false);
         try (final PreparedStatement statement = connection.prepareStatement(SET_AGEABLE_BLOCK_STATEMENT)) {
             for (var entry : chunk.getBlockDataMap().entrySet()) {
                 final Position position = entry.getKey();
@@ -821,6 +835,7 @@ public class LeafDatabase {
         } catch (SQLException e) {
             throw new IllegalStateException("Could not save ageable blocks in chunk " + chunkX + ", " + chunkZ + "!", e);
         }
+        this.connection.commit();
     }
 
     private void deleteRemovedAgeableBlocksInChunk(ChunkBlockCache chunkBlockCache) {
