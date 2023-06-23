@@ -2,6 +2,10 @@
 # Make sure you have your default state properly set up below before enabling!
 enabled: true
 
+# If you ever want the chunks to load new data, you must increase this
+# other than that, DO NOT TOUCH THIS
+chunk-version: 4
+
 # default materials that are actually in the world
 default-leaf-material: OAK_LEAVES
 default-log-material: OAK_LOG
@@ -17,6 +21,7 @@ whitelisted-worlds:
 
 leaves:
   "test_leaves":
+    # inventory-item: hook-id
     world-persistence: false
     leaf-material: OAK_LEAVES
     material: PAPER

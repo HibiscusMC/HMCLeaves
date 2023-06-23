@@ -24,15 +24,10 @@ import io.github.fisher2911.hmcleaves.HMCLeaves;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Objects;
-
 public class PDCUtil {
-
-    private static final byte CHUNK_VERSION = 4;
 
     public static final HMCLeaves PLUGIN = HMCLeaves.getPlugin(HMCLeaves.class);
     public static final NamespacedKey ITEM_ID_KEY = new NamespacedKey(PLUGIN, "item_id");
@@ -61,12 +56,12 @@ public class PDCUtil {
         itemStack.setItemMeta(itemMeta);
     }
 
-    public static boolean chunkHasLeafData(PersistentDataContainer container) {
-        return Objects.equals(container.get(HAS_LEAF_DATA_KEY, PersistentDataType.BYTE), CHUNK_VERSION);
-    }
-
-    public static void setChunkHasLeafData(PersistentDataContainer container) {
-        container.set(HAS_LEAF_DATA_KEY, PersistentDataType.BYTE, (byte) CHUNK_VERSION);
-    }
+//    public static boolean chunkHasLeafData(PersistentDataContainer container) {
+//        return Objects.equals(container.get(HAS_LEAF_DATA_KEY, PersistentDataType.BYTE), (byte) PLUGIN.getLeavesConfig().getChunkVersion());
+//    }
+//
+//    public static void setChunkHasLeafData(PersistentDataContainer container) {
+//        container.set(HAS_LEAF_DATA_KEY, PersistentDataType.BYTE, (byte) PLUGIN.getLeavesConfig().getChunkVersion());
+//    }
 
 }

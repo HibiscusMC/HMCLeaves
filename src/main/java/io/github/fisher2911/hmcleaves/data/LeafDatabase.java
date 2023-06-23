@@ -45,6 +45,7 @@ import java.util.concurrent.Executors;
 public class LeafDatabase {
 
     private final HMCLeaves plugin;
+    private final LeavesConfig config;
     private final Path databaseFilePath;
     private final ExecutorService writeExecutor;
     private final ExecutorService readExecutor;
@@ -52,6 +53,7 @@ public class LeafDatabase {
 
     public LeafDatabase(HMCLeaves plugin) {
         this.plugin = plugin;
+        this.config = plugin.getLeavesConfig();
         this.databaseFilePath = this.plugin.getDataFolder().toPath().resolve("database").resolve("leaves.db");
         this.writeExecutor = Executors.newSingleThreadExecutor();
         this.readExecutor = Executors.newFixedThreadPool(4);
@@ -95,6 +97,33 @@ public class LeafDatabase {
             }
         });
     }
+
+    private static final String LOADED_CHUNKS_TABLE_NAME = "loaded_chunks";
+    private static final String LOADED_CHUNKS_TABLE_WORLD_UUID_COLUMN = "world_uuid";
+    private static final String LOADED_CHUNKS_TABLE_CHUNK_X_COLUMN = "chunk_x";
+    private static final String LOADED_CHUNKS_TABLE_CHUNK_Z_COLUMN = "chunk_z";
+    private static final String LOADED_CHUNKS_TABLE_CHUNK_VERSION_COLUMN = "chunk_version";
+    private static final String CREATE_LOADED_CHUNKS_TABLE_STATEMENT =
+            "CREATE TABLE IF NOT EXISTS " + LOADED_CHUNKS_TABLE_NAME + " (" +
+                    LOADED_CHUNKS_TABLE_WORLD_UUID_COLUMN + " BINARY(16) NOT NULL, " +
+                    LOADED_CHUNKS_TABLE_CHUNK_X_COLUMN + " INTEGER NOT NULL, " +
+                    LOADED_CHUNKS_TABLE_CHUNK_Z_COLUMN + " INTEGER NOT NULL, " +
+                    LOADED_CHUNKS_TABLE_CHUNK_VERSION_COLUMN + " INTEGER NOT NULL, " +
+                    "PRIMARY KEY (" + LOADED_CHUNKS_TABLE_WORLD_UUID_COLUMN + ", " + LOADED_CHUNKS_TABLE_CHUNK_X_COLUMN + ", " + LOADED_CHUNKS_TABLE_CHUNK_Z_COLUMN + ")" +
+                    ");";
+
+    private static final String GET_CHUNK_VERSION_STATEMENT =
+            "SELECT " + LOADED_CHUNKS_TABLE_CHUNK_VERSION_COLUMN + " FROM " + LOADED_CHUNKS_TABLE_NAME + " WHERE " +
+                    LOADED_CHUNKS_TABLE_WORLD_UUID_COLUMN + " = ? AND " +
+                    LOADED_CHUNKS_TABLE_CHUNK_X_COLUMN + " = ? AND " +
+                    LOADED_CHUNKS_TABLE_CHUNK_Z_COLUMN + " = ?;";
+
+    private static final String INSERT_CHUNK_VERSION_STATEMENT =
+            "INSERT OR REPLACE INTO " + LOADED_CHUNKS_TABLE_NAME + " (" +
+                    LOADED_CHUNKS_TABLE_WORLD_UUID_COLUMN + ", " +
+                    LOADED_CHUNKS_TABLE_CHUNK_X_COLUMN + ", " +
+                    LOADED_CHUNKS_TABLE_CHUNK_Z_COLUMN + ", " +
+                    LOADED_CHUNKS_TABLE_CHUNK_VERSION_COLUMN + ") VALUES (?, ?, ?, ?);";
 
     private static final String LEAVES_TABLE_NAME = "leaves";
     private static final String LEAVES_TABLE_WORLD_UUID_COLUMN = "world_uuid";
@@ -330,6 +359,11 @@ public class LeafDatabase {
     private void createTables() {
         final Connection connection = this.getConnection();
         if (connection == null) throw new IllegalStateException("Could not connect to database!");
+        try (final PreparedStatement statement = connection.prepareStatement(CREATE_LOADED_CHUNKS_TABLE_STATEMENT)) {
+            statement.execute();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Could not create tables!", e);
+        }
         try (final PreparedStatement statement = connection.prepareStatement(CREATE_LEAVES_TABLE_STATEMENT)) {
             statement.execute();
         } catch (SQLException e) {
@@ -362,6 +396,40 @@ public class LeafDatabase {
             this.connection.close();
         } catch (SQLException e) {
             throw new IllegalStateException("Could not close database connection!", e);
+        }
+    }
+
+    public boolean isChunkLoaded(ChunkPosition chunkPosition) {
+        try (final PreparedStatement statement = this.connection.prepareStatement(GET_CHUNK_VERSION_STATEMENT)) {
+            statement.setBytes(1, this.uuidToBytes(chunkPosition.world()));
+            statement.setInt(2, chunkPosition.x());
+            statement.setInt(3, chunkPosition.z());
+            try (final ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getInt(LOADED_CHUNKS_TABLE_CHUNK_VERSION_COLUMN) == this.config.getChunkVersion();
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public void setChunkLoaded(ChunkPosition chunkPosition) {
+        try {
+            final Connection connection = this.getConnection();
+            if (connection == null) throw new IllegalStateException("Could not connect to database!");
+            connection.setAutoCommit(false);
+            try (final PreparedStatement statement = connection.prepareStatement(INSERT_CHUNK_VERSION_STATEMENT)) {
+                statement.setBytes(1, this.uuidToBytes(chunkPosition.world()));
+                statement.setInt(2, chunkPosition.x());
+                statement.setInt(3, chunkPosition.z());
+                statement.setInt(4, this.config.getChunkVersion());
+                statement.execute();
+            }
+            connection.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 

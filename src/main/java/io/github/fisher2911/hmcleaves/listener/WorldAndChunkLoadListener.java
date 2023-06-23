@@ -28,7 +28,6 @@ import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.LeafDatabase;
 import io.github.fisher2911.hmcleaves.packet.PacketUtils;
-import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Axis;
@@ -72,17 +71,18 @@ public class WorldAndChunkLoadListener implements Listener {
     }
 
     public void loadDefaultWorlds() {
-//        for (World world : Bukkit.getWorlds()) {
-//            if (!this.leavesConfig.isWorldWhitelisted(world)) continue;
-//            for (Chunk chunk : world.getLoadedChunks()) {
+        for (World world : Bukkit.getWorlds()) {
+            if (!this.leavesConfig.isWorldWhitelisted(world)) continue;
+            for (Chunk chunk : world.getLoadedChunks()) {
+                this.loadChunk(chunk);
 //                final UUID worldUUID = world.getUID();
 //                if (!(PDCUtil.chunkHasLeafData(chunk.getPersistentDataContainer()))) {
 //                    this.loadNewChunkData(chunk);
 //                    continue;
 //                }
 //                this.loadChunkFromDatabase(ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ()));
-//            }
-//        }
+            }
+        }
     }
 
     @EventHandler
@@ -90,22 +90,29 @@ public class WorldAndChunkLoadListener implements Listener {
         final World world = event.getWorld();
         if (!this.leavesConfig.isWorldWhitelisted(world)) return;
         final Chunk chunk = event.getChunk();
+        this.loadChunk(chunk);
+    }
+
+    private void loadChunk(Chunk chunk) {
+        final World world = chunk.getWorld();
         final UUID worldUUID = world.getUID();
-        if (!(PDCUtil.chunkHasLeafData(chunk.getPersistentDataContainer()))) {
-            this.loadNewChunkData(chunk);
-            return;
-        }
+        final ChunkPosition chunkPosition = ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ());
+        final ChunkSnapshot snapshot = chunk.getChunkSnapshot();
+        this.leafDatabase.doDatabaseReadAsync(() -> {
+            if (!(this.leafDatabase.isChunkLoaded(chunkPosition))) {
+                this.loadNewChunkData(snapshot, world);
+                return;
+            }
+        });
         this.loadChunkFromDatabase(ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ()));
     }
 
-    private void loadNewChunkData(Chunk chunk) {
-        final World world = chunk.getWorld();
+    private void loadNewChunkData(ChunkSnapshot chunkSnapshot, World world) {
         final UUID worldUUID = world.getUID();
         final int minY = world.getMinHeight();
         final int maxY = world.getMaxHeight();
-        final int chunkX = chunk.getX();
-        final int chunkZ = chunk.getZ();
-        final ChunkSnapshot snapshot = chunk.getChunkSnapshot();
+        final int chunkX = chunkSnapshot.getX();
+        final int chunkZ = chunkSnapshot.getZ();
         final ChunkPosition chunkPosition = ChunkPosition.at(worldUUID, chunkX, chunkZ);
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
             final Map<Position, Material> worldMaterials = new HashMap<>();
@@ -114,7 +121,7 @@ public class WorldAndChunkLoadListener implements Listener {
             for (int x = 0; x < 16; x++) {
                 for (int y = minY; y < maxY; y++) {
                     for (int z = 0; z < 16; z++) {
-                        final org.bukkit.block.data.BlockData bukkitBlockData = snapshot.getBlockData(x, y, z);
+                        final org.bukkit.block.data.BlockData bukkitBlockData = chunkSnapshot.getBlockData(x, y, z);
                         final Material material = bukkitBlockData.getMaterial();
                         final Position position = Position.at(
                                 worldUUID,
@@ -124,8 +131,12 @@ public class WorldAndChunkLoadListener implements Listener {
                         );
                         if (Tag.LOGS.isTagged(material)) {
                             worldMaterials.put(position, material);
-                            final Orientable orientable = (Orientable) bukkitBlockData;
-                            final Axis axis = orientable.getAxis();
+                            final Axis axis;
+                            if (bukkitBlockData instanceof final Orientable orientable) {
+                                axis = orientable.getAxis();
+                            } else {
+                                axis = Axis.Y;
+                            }
                             final BlockData blockData;
                             if (material.toString().contains("STRIPPED")) {
                                 blockData = this.leavesConfig.getDefaultStrippedLogData(material, axis);
@@ -172,12 +183,10 @@ public class WorldAndChunkLoadListener implements Listener {
             this.leafDatabase.doDatabaseWriteAsync(() -> {
                 if (!this.plugin.isEnabled()) return;
                 final ChunkBlockCache newChunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
-                Bukkit.getScheduler().runTask(this.plugin, () -> {
-                    PDCUtil.setChunkHasLeafData(chunk.getPersistentDataContainer());
-                    Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () ->
-                            this.sendBlocksToPlayersAlreadyInChunk(world, chunkX, chunkZ, worldMaterials)
-                    );
-                });
+                this.leafDatabase.setChunkLoaded(chunkPosition);
+                Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () ->
+                        this.sendBlocksToPlayersAlreadyInChunk(world, chunkX, chunkZ, worldMaterials)
+                );
                 if (newChunkBlockCache == null) return;
                 this.leafDatabase.saveBlocksInChunk(newChunkBlockCache);
                 if (markClean) newChunkBlockCache.markClean();
@@ -261,14 +270,15 @@ public class WorldAndChunkLoadListener implements Listener {
         if (!this.leavesConfig.isWorldWhitelisted(world)) return;
         final UUID worldUUID = world.getUID();
         for (Chunk chunk : world.getLoadedChunks()) {
-            final ChunkPosition chunkPosition = ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ());
-            this.leafDatabase.doDatabaseReadAsync(() -> {
-                final Map<Position, BlockData> chunkBlocks = this.leafDatabase.getBlocksInChunk(chunkPosition, this.leavesConfig);
-                chunkBlocks.forEach(this.blockCache::addBlockData);
-                final ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
-                if (chunkBlockCache == null) return;
-                chunkBlockCache.markClean();
-            });
+            this.loadChunk(chunk);
+//            final ChunkPosition chunkPosition = ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ());
+//            this.leafDatabase.doDatabaseReadAsync(() -> {
+//                final Map<Position, BlockData> chunkBlocks = this.leafDatabase.getBlocksInChunk(chunkPosition, this.leavesConfig);
+//                chunkBlocks.forEach(this.blockCache::addBlockData);
+//                final ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
+//                if (chunkBlockCache == null) return;
+//                chunkBlockCache.markClean();
+//            });
         }
     }
 

@@ -258,6 +258,7 @@ public class LeavesConfig {
     private Material defaultLogMaterial = Material.OAK_LOG;
     private Material defaultStrippedLogMaterial = Material.STRIPPED_OAK_LOG;
 
+    private int chunkVersion;
     private boolean useWorldWhitelist;
     private Set<String> whitelistedWorlds;
 
@@ -415,6 +416,7 @@ public class LeavesConfig {
     private static final String ONLY_FOLLOW_WORLD_PERSISTENCE_IF_CONNECTED_TO_LOG_PATH = "only-follow-world-persistence-if-connected-to-log";
     private boolean onlyFollowWorldPersistenceIfConnectedToLog;
 
+    private static final String CHUNK_VERSION_PATH = "chunk-version";
     private static final String USE_WORLD_WHITELIST_PATH = "use-world-whitelist";
     private static final String WHITELISTED_WORLDS_PATH = "whitelisted-worlds";
 
@@ -436,6 +438,11 @@ public class LeavesConfig {
         }
         this.useWorldWhitelist = config.getBoolean(USE_WORLD_WHITELIST_PATH, false);
         this.whitelistedWorlds = new HashSet<>(config.getStringList(WHITELISTED_WORLDS_PATH));
+        if (!config.contains(CHUNK_VERSION_PATH)) {
+            config.set(CHUNK_VERSION_PATH, 1);
+            this.plugin.saveConfig();
+        }
+        this.chunkVersion = config.getInt(CHUNK_VERSION_PATH);
         initLeavesAndLogs();
         this.loadLeavesSection(config);
         this.loadLogsSection(config);
@@ -460,6 +467,10 @@ public class LeavesConfig {
                             .collect(Collectors.toList())
             );
         }
+    }
+
+    public int getChunkVersion() {
+        return this.chunkVersion;
     }
 
     public boolean isOnlyFollowWorldPersistenceIfConnectedToLog() {
@@ -978,8 +989,16 @@ public class LeavesConfig {
     private static final String NAME_PATH = "name";
     private static final String LORE_PATH = "lore";
     private static final String MODEL_DATA_PATH = "model-data";
+    private static final String INVENTORY_ITEM_PATH = "inventory-item";
 
     private Supplier<ItemStack> loadItemStack(ConfigurationSection section, String itemId, String hookId) {
+        if (section.contains(INVENTORY_ITEM_PATH, true)) {
+            final String actualHookId = section.getString(INVENTORY_ITEM_PATH);
+            if (actualHookId != null) {
+                return this.loadItemStack(section.getConfigurationSection(INVENTORY_ITEM_PATH), itemId, actualHookId);
+            }
+            return this.loadItemStack(section.getConfigurationSection(INVENTORY_ITEM_PATH), itemId, itemId);
+        }
         final String materialStr = section.getString(MATERIAL_PATH);
         Material material;
         try {
