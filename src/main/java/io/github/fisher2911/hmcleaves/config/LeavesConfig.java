@@ -202,6 +202,19 @@ public class LeavesConfig {
         } catch (IllegalArgumentException ignored) {
 
         }
+
+        // 1.20 leaves / logs
+        try {
+            LEAVES.add(Material.valueOf("CHERRY_LEAVES"));
+
+            LOGS.add(Material.valueOf("CHERRY_LOG"));
+            LOGS.add(Material.valueOf("CHERRY_WOOD"));
+            LOGS.add(Material.valueOf("STRIPPED_CHERRY_LOG"));
+            LOGS.add(Material.valueOf("STRIPPED_CHERRY_WOOD"));
+        } catch (IllegalArgumentException ignored) {
+
+        }
+
     }
 
     public static int getDefaultLeafId(Material leafMaterial) {
