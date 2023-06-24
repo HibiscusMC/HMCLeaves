@@ -107,4 +107,11 @@ public class WorldBlockCache {
         });
     }
 
+    public ChunkBlockCache addChunkCache(ChunkPosition chunkPosition) {
+        final ChunkBlockCache chunkBlockCache = new ChunkBlockCache(chunkPosition, new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
+        final ChunkBlockCache previous = this.blockCacheMap.putIfAbsent(chunkPosition, chunkBlockCache);
+        if (previous != null) return previous;
+        return chunkBlockCache;
+    }
+
 }

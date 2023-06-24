@@ -96,4 +96,13 @@ public class BlockCache {
         if (worldBlockCache == null) return null;
         return worldBlockCache.removeChunkBlockCache(position);
     }
+
+    public ChunkBlockCache addChunkCache(ChunkPosition chunkPosition) {
+        WorldBlockCache worldBlockCache = this.getWorldBlockCache(chunkPosition.world());
+        if (worldBlockCache == null) {
+            worldBlockCache = this.addWorldBlockCache(chunkPosition.world());
+        }
+        return worldBlockCache.addChunkCache(chunkPosition);
+    }
+
 }

@@ -172,6 +172,12 @@ public class LeafDatabase {
                     LEAVES_TABLE_BLOCK_Y_COLUMN + " = ? AND " +
                     LEAVES_TABLE_BLOCK_Z_COLUMN + " = ?;";
 
+    private static final String DELETE_LEAF_CHUNK_STATEMENT =
+            "DELETE FROM " + LEAVES_TABLE_NAME + " WHERE " +
+                    LEAVES_TABLE_WORLD_UUID_COLUMN + " = ? AND " +
+                    LEAVES_TABLE_CHUNK_X_COLUMN + " = ? AND " +
+                    LEAVES_TABLE_CHUNK_Z_COLUMN + " = ?;";
+
 
     private static final String LOGS_TABLE_NAME = "logs";
     private static final String LOGS_TABLE_WORLD_UUID_COLUMN = "world_uuid";
@@ -220,6 +226,12 @@ public class LeafDatabase {
                     LOGS_TABLE_BLOCK_Y_COLUMN + " = ? AND " +
                     LOGS_TABLE_BLOCK_Z_COLUMN + " = ?;";
 
+    private static final String DELETE_LOG_CHUNK_STATEMENT =
+            "DELETE FROM " + LOGS_TABLE_NAME + " WHERE " +
+                    LOGS_TABLE_WORLD_UUID_COLUMN + " = ? AND " +
+                    LOGS_TABLE_CHUNK_X_COLUMN + " = ? AND " +
+                    LOGS_TABLE_CHUNK_Z_COLUMN + " = ?;";
+
     private static final String SAPLINGS_TABLE_NAME = "saplings";
     private static final String SAPLINGS_TABLE_WORLD_UUID_COLUMN = "world_uuid";
     private static final String SAPLINGS_TABLE_CHUNK_X_COLUMN = "chunk_x";
@@ -263,6 +275,12 @@ public class LeafDatabase {
                     SAPLINGS_TABLE_BLOCK_X_COLUMN + " = ? AND " +
                     SAPLINGS_TABLE_BLOCK_Y_COLUMN + " = ? AND " +
                     SAPLINGS_TABLE_BLOCK_Z_COLUMN + " = ?;";
+
+    public static final String DELETE_SAPLING_CHUNK_STATEMENT =
+            "DELETE FROM " + SAPLINGS_TABLE_NAME + " WHERE " +
+                    SAPLINGS_TABLE_WORLD_UUID_COLUMN + " = ? AND " +
+                    SAPLINGS_TABLE_CHUNK_X_COLUMN + " = ? AND " +
+                    SAPLINGS_TABLE_CHUNK_Z_COLUMN + " = ?;";
 
     private static final String CAVE_VINES_TABLE_NAME = "cave_vines";
     private static final String CAVE_VINES_TABLE_WORLD_UUID_COLUMN = "world_uuid";
@@ -311,6 +329,12 @@ public class LeafDatabase {
                     CAVE_VINES_TABLE_BLOCK_Y_COLUMN + " = ? AND " +
                     CAVE_VINES_TABLE_BLOCK_Z_COLUMN + " = ?;";
 
+    public static final String DELETE_CAVE_VINES_CHUNK_STATEMENT =
+            "DELETE FROM " + CAVE_VINES_TABLE_NAME + " WHERE " +
+                    CAVE_VINES_TABLE_WORLD_UUID_COLUMN + " = ? AND " +
+                    CAVE_VINES_TABLE_CHUNK_X_COLUMN + " = ? AND " +
+                    CAVE_VINES_TABLE_CHUNK_Z_COLUMN + " = ?;";
+
     private static final String AGEABLE_TABLE_NAME = "ageable";
     private static final String AGEABLE_TABLE_WORLD_UUID_COLUMN = "world_uuid";
     private static final String AGEABLE_TABLE_CHUNK_X_COLUMN = "chunk_x";
@@ -354,6 +378,12 @@ public class LeafDatabase {
                     AGEABLE_TABLE_BLOCK_X_COLUMN + " = ? AND " +
                     AGEABLE_TABLE_BLOCK_Y_COLUMN + " = ? AND " +
                     AGEABLE_TABLE_BLOCK_Z_COLUMN + " = ?;";
+
+    private static final String DELETE_AGEABLE_CHUNK_STATEMENT =
+            "DELETE FROM " + AGEABLE_TABLE_NAME + " WHERE " +
+                    AGEABLE_TABLE_WORLD_UUID_COLUMN + " = ? AND " +
+                    AGEABLE_TABLE_CHUNK_X_COLUMN + " = ? AND " +
+                    AGEABLE_TABLE_CHUNK_Z_COLUMN + " = ?;";
 
 
     private void createTables() {
@@ -449,6 +479,18 @@ public class LeafDatabase {
         }
     }
 
+    public void deleteChunk(ChunkPosition chunkPosition) {
+        try {
+            this.deleteLeafChunk(chunkPosition);
+            this.deleteLogChunk(chunkPosition);
+            this.deleteSaplingChunk(chunkPosition);
+            this.deleteCaveVinesChunk(chunkPosition);
+            this.deleteAgeableChunk(chunkPosition);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     public Map<Position, BlockData> getBlocksInChunk(ChunkPosition chunkPosition, LeavesConfig config) {
         final Map<Position, BlockData> blocks = new HashMap<>();
         blocks.putAll(this.getLeafBlocksInChunk(chunkPosition, config));
@@ -476,6 +518,7 @@ public class LeafDatabase {
                 final int blockY = position.y();
                 final int blockZ = position.z();
                 final BlockData blockData = entry.getValue();
+                if (!blockData.shouldSave()) continue;
                 if (!(blockData instanceof final LeafData leafData)) continue;
                 final String blockID = blockData.id();
                 statement.setBytes(1, worldUUIDBytes);
@@ -525,6 +568,24 @@ public class LeafDatabase {
         } catch (SQLException e) {
             throw new IllegalStateException("Could not delete removed leaf blocks in chunk " + chunkX + ", " + chunkZ + "!", e);
         }
+    }
+
+    private void deleteLeafChunk(ChunkPosition chunkPosition) throws SQLException {
+        final Connection connection = this.getConnection();
+        if (connection == null) throw new IllegalStateException("Could not connect to database!");
+        final byte[] worldUUIDBytes = this.uuidToBytes(chunkPosition.world());
+        final int chunkX = chunkPosition.x();
+        final int chunkZ = chunkPosition.z();
+        connection.setAutoCommit(false);
+        try (final PreparedStatement statement = connection.prepareStatement(DELETE_LEAF_CHUNK_STATEMENT)) {
+            statement.setBytes(1, worldUUIDBytes);
+            statement.setInt(2, chunkX);
+            statement.setInt(3, chunkZ);
+            statement.execute();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Could not delete leaf chunk " + chunkX + ", " + chunkZ + "!", e);
+        }
+        connection.commit();
     }
 
     private Map<Position, BlockData> getLeafBlocksInChunk(ChunkPosition chunkPosition, LeavesConfig config) {
@@ -579,6 +640,7 @@ public class LeafDatabase {
             for (var entry : chunkBlockCache.getBlockDataMap().entrySet()) {
                 final Position position = entry.getKey();
                 final BlockData blockData = entry.getValue();
+                if (!blockData.shouldSave()) continue;
                 if (!(blockData instanceof final LogData logData)) continue;
                 final int blockX = position.x();
                 final int blockY = position.y();
@@ -630,6 +692,24 @@ public class LeafDatabase {
         } catch (SQLException e) {
             throw new IllegalStateException("Could not delete removed log blocks in chunk " + chunkX + ", " + chunkZ + "!", e);
         }
+    }
+
+    private void deleteLogChunk(ChunkPosition chunkPosition) throws SQLException {
+        final Connection connection = this.getConnection();
+        if (connection == null) throw new IllegalStateException("Could not connect to database!");
+        final byte[] worldUUIDBytes = this.uuidToBytes(chunkPosition.world());
+        final int chunkX = chunkPosition.x();
+        final int chunkZ = chunkPosition.z();
+        connection.setAutoCommit(false);
+        try (final PreparedStatement statement = connection.prepareStatement(DELETE_LOG_CHUNK_STATEMENT)) {
+            statement.setBytes(1, worldUUIDBytes);
+            statement.setInt(2, chunkX);
+            statement.setInt(3, chunkZ);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Could not delete log chunk " + chunkX + ", " + chunkZ + "!", e);
+        }
+        connection.commit();
     }
 
     private Map<Position, BlockData> getLogBlocksInChunk(ChunkPosition chunkPosition, LeavesConfig config) {
@@ -686,6 +766,7 @@ public class LeafDatabase {
                 final int blockY = position.y();
                 final int blockZ = position.z();
                 final BlockData blockData = entry.getValue();
+                if (!blockData.shouldSave()) continue;
                 if (!(blockData instanceof SaplingData)) continue;
                 final String blockID = blockData.id();
                 statement.setBytes(1, worldUUIDBytes);
@@ -734,6 +815,24 @@ public class LeafDatabase {
         } catch (SQLException e) {
             throw new IllegalStateException("Could not delete removed saplings in chunk " + chunkX + ", " + chunkZ + "!", e);
         }
+    }
+
+    private void deleteSaplingChunk(ChunkPosition chunkPosition) throws SQLException {
+        final Connection connection = this.getConnection();
+        if (connection == null) throw new IllegalStateException("Could not connect to database!");
+        final byte[] worldUUIDBytes = this.uuidToBytes(chunkPosition.world());
+        final int chunkX = chunkPosition.x();
+        final int chunkZ = chunkPosition.z();
+        connection.setAutoCommit(false);
+        try (final PreparedStatement statement = connection.prepareStatement(DELETE_SAPLING_CHUNK_STATEMENT)) {
+            statement.setBytes(1, worldUUIDBytes);
+            statement.setInt(2, chunkX);
+            statement.setInt(3, chunkZ);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Could not delete sapling chunk " + chunkX + ", " + chunkZ + "!", e);
+        }
+        connection.commit();
     }
 
     private Map<Position, BlockData> getSaplingBlocksInChunk(ChunkPosition chunkPosition, LeavesConfig config) {
@@ -786,6 +885,7 @@ public class LeafDatabase {
                 final int blockY = position.y();
                 final int blockZ = position.z();
                 final BlockData blockData = entry.getValue();
+                if (!blockData.shouldSave()) continue;
                 if (!(blockData instanceof final CaveVineData caveVineData)) continue;
                 final String blockID = blockData.id();
                 statement.setBytes(1, worldUUIDBytes);
@@ -835,6 +935,24 @@ public class LeafDatabase {
         } catch (SQLException e) {
             throw new IllegalStateException("Could not delete removed cave vine blocks in chunk " + chunkX + ", " + chunkZ + "!", e);
         }
+    }
+
+    private void deleteCaveVinesChunk(ChunkPosition chunkPosition) throws SQLException {
+        final Connection connection = this.getConnection();
+        if (connection == null) throw new IllegalStateException("Could not connect to database!");
+        final byte[] worldUUIDBytes = this.uuidToBytes(chunkPosition.world());
+        final int chunkX = chunkPosition.x();
+        final int chunkZ = chunkPosition.z();
+        connection.setAutoCommit(false);
+        try (final PreparedStatement statement = connection.prepareStatement(DELETE_CAVE_VINES_CHUNK_STATEMENT)) {
+            statement.setBytes(1, worldUUIDBytes);
+            statement.setInt(2, chunkX);
+            statement.setInt(3, chunkZ);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Could not delete cave vines chunk " + chunkX + ", " + chunkZ + "!", e);
+        }
+        connection.commit();
     }
 
     private Map<Position, BlockData> getCaveVineBlocksInChunk(ChunkPosition chunkPosition, LeavesConfig config) {
@@ -888,6 +1006,7 @@ public class LeafDatabase {
                 final int blockY = position.y();
                 final int blockZ = position.z();
                 final BlockData blockData = entry.getValue();
+                if (!blockData.shouldSave()) continue;
                 if (!(blockData instanceof AgeableData)) continue;
                 final String blockID = blockData.id();
                 statement.setBytes(1, worldUUIDBytes);
@@ -936,6 +1055,24 @@ public class LeafDatabase {
         } catch (SQLException e) {
             throw new IllegalStateException("Could not delete removed ageable blocks in chunk " + chunkX + ", " + chunkZ + "!", e);
         }
+    }
+
+    private void deleteAgeableChunk(ChunkPosition chunkPosition) throws SQLException {
+        final Connection connection = this.getConnection();
+        if (connection == null) throw new IllegalStateException("Could not connect to database!");
+        final byte[] worldUUIDBytes = this.uuidToBytes(chunkPosition.world());
+        final int chunkX = chunkPosition.x();
+        final int chunkZ = chunkPosition.z();
+        connection.setAutoCommit(false);
+        try (final PreparedStatement statement = connection.prepareStatement(DELETE_AGEABLE_CHUNK_STATEMENT)) {
+            statement.setBytes(1, worldUUIDBytes);
+            statement.setInt(2, chunkX);
+            statement.setInt(3, chunkZ);
+            statement.execute();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Could not delete ageable chunk " + chunkX + ", " + chunkZ + "!", e);
+        }
+        connection.commit();
     }
 
     private Map<Position, BlockData> getAgeableBlocksInChunk(ChunkPosition chunkPosition, LeavesConfig config) {

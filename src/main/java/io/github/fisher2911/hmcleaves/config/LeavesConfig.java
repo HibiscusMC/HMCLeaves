@@ -42,6 +42,8 @@ import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.Orientable;
+import org.bukkit.block.data.type.CaveVinesPlant;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -209,8 +211,8 @@ public class LeavesConfig {
 
             LOGS.add(Material.valueOf("CHERRY_LOG"));
             LOGS.add(Material.valueOf("CHERRY_WOOD"));
-            LOGS.add(Material.valueOf("STRIPPED_CHERRY_LOG"));
-            LOGS.add(Material.valueOf("STRIPPED_CHERRY_WOOD"));
+            STRIPPED_LOGS.add(Material.valueOf("STRIPPED_CHERRY_LOG"));
+            STRIPPED_LOGS.add(Material.valueOf("STRIPPED_CHERRY_WOOD"));
         } catch (IllegalArgumentException ignored) {
 
         }
@@ -255,6 +257,31 @@ public class LeavesConfig {
 
     public static String getDefaultAgeableStringId(Material material) {
         return DEFAULT_AGEABLE_ID + "_" + material.name().toLowerCase();
+    }
+
+    @Nullable
+    public static String getDefaultBlockStringId(org.bukkit.block.data.BlockData blockData) {
+        final Material material = blockData.getMaterial();
+        if (Tag.LEAVES.isTagged(material)) {
+            return getDefaultLeafStringId(material);
+        }
+        if (Tag.SAPLINGS.isTagged(material)) {
+            return getDefaultSaplingStringId(material);
+        }
+        if (Tag.LOGS.isTagged(material)) {
+            final Orientable orientable = (Orientable) blockData;
+            if (material.toString().contains("STRIPPED")) {
+                return getDefaultStrippedLogStringId(material) + "_" + orientable.getAxis().name().toLowerCase();
+            }
+            return getDefaultLogStringId(material) + "_" + orientable.getAxis().name().toLowerCase();
+        }
+        if (Tag.CAVE_VINES.isTagged(material)) {
+            return getDefaultCaveVinesStringId(((CaveVinesPlant) blockData).isBerries());
+        }
+        if (AGEABLE_MATERIALS.contains(material)) {
+            return getDefaultAgeableStringId(material);
+        }
+        return null;
     }
 
     private final HMCLeaves plugin;
@@ -353,6 +380,31 @@ public class LeavesConfig {
     @Nullable
     public BlockData getDefaultCaveVinesData(boolean glowBerries) {
         return this.blockDataMap.get(getDefaultCaveVinesStringId(glowBerries));
+    }
+
+    @Nullable
+    public BlockData getDefaultBlockData(org.bukkit.block.data.BlockData blockData) {
+        final Material material = blockData.getMaterial();
+        if (Tag.LEAVES.isTagged(material)) {
+            return getDefaultLeafData(material);
+        }
+        if (Tag.SAPLINGS.isTagged(material)) {
+            return getDefaultSaplingData(material);
+        }
+        if (Tag.LOGS.isTagged(material)) {
+            final Orientable orientable = (Orientable) blockData;
+            if (material.toString().contains("STRIPPED")) {
+                return getDefaultStrippedLogData(material, orientable.getAxis());
+            }
+            return getDefaultLogData(material, orientable.getAxis());
+        }
+        if (Tag.CAVE_VINES.isTagged(material)) {
+            return getDefaultCaveVinesData(((CaveVinesPlant) blockData).isBerries());
+        }
+        if (AGEABLE_MATERIALS.contains(material)) {
+            return getDefaultAgeableData(material);
+        }
+        return null;
     }
 
     private static final Map<Material, Material> AGEABLE_MATERIAL_CONVERSION = Map.of(

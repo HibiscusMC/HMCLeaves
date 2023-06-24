@@ -21,6 +21,7 @@
 package io.github.fisher2911.hmcleaves.data;
 
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
+import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -78,6 +79,11 @@ public record LeafData(
     @Override
     public Material breakReplacement() {
         return this.waterlogged ? Material.WATER : Material.AIR;
+    }
+
+    @Override
+    public boolean shouldSave() {
+        return !this.id().equals(LeavesConfig.getDefaultLeafStringId(this.realBlockType()));
     }
 
 }

@@ -122,13 +122,43 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         final Column column = packet.getColumn();
         final int chunkX = column.getX();
         final int chunkZ = column.getZ();
+        final ChunkPosition chunkPos = ChunkPosition.at(world, chunkX, chunkZ);
+        ChunkBlockCache chunkCache = this.blockCache.getChunkBlockCache(chunkPos);
+        if (chunkCache == null) {
+            chunkCache = this.blockCache.addChunkCache(chunkPos);
+        }
         final BaseChunk[] chunks = column.getChunks();
         for (int i = 0; i < chunks.length; i++) {
             final BaseChunk chunk = chunks[i];
             final int worldY = i * 16 - heightAdjustment;
-            final ChunkPosition chunkPos = ChunkPosition.at(world, chunkX, chunkZ);
-            final ChunkBlockCache chunkCache = this.blockCache.getChunkBlockCache(chunkPos);
-            if (chunkCache == null) continue;
+            if (!chunkCache.hasSentFirstPacket()) {
+                for (int x = 0; x < 16; x++) {
+                    for (int y = 0; y < 16; y++) {
+                        for (int z = 0; z < 16; z++) {
+                            final WrappedBlockState state = chunk.get(x, y, z);
+                            final org.bukkit.block.data.BlockData bukkitBlockData = SpigotConversionUtil.toBukkitBlockData(state);
+                            if (bukkitBlockData == null) continue;
+                            BlockData blockData = this.leavesConfig.getDefaultBlockData(bukkitBlockData);
+                            if (blockData == null) continue;
+                            final Position position = Position.at(world, chunkX * 16 + x, worldY + y, chunkZ * 16 + z);
+                            final BlockData currentBlockData = chunkCache.getBlockDataAt(position);
+                            if (currentBlockData != BlockData.EMPTY) {
+                                blockData = currentBlockData;
+                            } else {
+                                chunkCache.setBlockData(position, blockData);
+                            }
+                            chunk.set(
+                                    PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
+                                    x,
+                                    y,
+                                    z,
+                                    blockData.getNewState(bukkitBlockData.getMaterial()).getGlobalId()
+                            );
+                        }
+                    }
+                }
+                continue;
+            }
             for (var entry : chunkCache.getBlockDataMap().entrySet()) {
                 final var position = entry.getKey();
                 final int difference = position.y() - worldY;
@@ -147,6 +177,9 @@ public class LeavesPacketListener extends PacketListenerAbstract {
                         blockData.getNewState(worldMaterial).getGlobalId()
                 );
             }
+        }
+        if (!chunkCache.hasSentFirstPacket()) {
+            chunkCache.setSentFirstPacket(true);
         }
     }
 

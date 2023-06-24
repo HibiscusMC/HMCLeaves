@@ -77,4 +77,9 @@ public record AgeableData(
         return this.placeAgainstPredicate.test(block);
     }
 
+    @Override
+    public boolean shouldSave() {
+        return !this.id().equals(LeavesConfig.getDefaultAgeableStringId(this.realBlockType()));
+    }
+
 }

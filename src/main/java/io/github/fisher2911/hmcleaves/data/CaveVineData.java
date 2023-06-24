@@ -89,4 +89,9 @@ public record CaveVineData(
         return Material.AIR;
     }
 
+    @Override
+    public boolean shouldSave() {
+        return !this.id().equals(LeavesConfig.getDefaultCaveVinesStringId(this.glowBerry()));
+    }
+
 }

@@ -21,6 +21,7 @@
 package io.github.fisher2911.hmcleaves.data;
 
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
+import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import org.bukkit.Axis;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -86,6 +87,11 @@ public interface BlockData {
         public Material breakReplacement() {
             return Material.AIR;
         }
+
+        @Override
+        public boolean shouldSave() {
+            return false;
+        }
     };
 
     String id();
@@ -108,6 +114,8 @@ public interface BlockData {
     boolean isWorldTypeSame(Material worldMaterial);
 
     Material breakReplacement();
+
+    boolean shouldSave();
 
     static LeafData leafData(
             String id,

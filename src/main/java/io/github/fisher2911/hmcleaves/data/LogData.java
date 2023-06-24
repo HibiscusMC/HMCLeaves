@@ -21,10 +21,10 @@
 package io.github.fisher2911.hmcleaves.data;
 
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
+import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Axis;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.jetbrains.annotations.Nullable;
@@ -117,6 +117,14 @@ public record LogData(
     @Override
     public Material breakReplacement() {
         return Material.AIR;
+    }
+
+    @Override
+    public boolean shouldSave() {
+        if (this.stripped()) {
+            return !this.strippedLogId().equals(LeavesConfig.getDefaultStrippedLogStringId(this.strippedBlockType()));
+        }
+        return !this.id().equals(LeavesConfig.getDefaultLogStringId(this.realBlockType()));
     }
 
 }
