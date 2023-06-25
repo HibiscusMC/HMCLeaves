@@ -194,13 +194,16 @@ public class LeavesPacketListener extends PacketListenerAbstract {
                     blockPosition.getZ()
             );
             final BlockData blockData = this.blockCache.getBlockData(position);
-            if (blockData == BlockData.EMPTY) return;
             final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(packet.getBlockState()).getMaterial();
+            if (blockData == BlockData.EMPTY) return;
             final WrappedBlockState sendState = blockData.getNewState(worldMaterial);
 //            final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(sendState).getMaterial();
             if (!blockData.isWorldTypeSame(worldMaterial) /*worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial*//*&& !worldMaterial.isAir()*/ && worldMaterial != Material.MOVING_PISTON) {
                 Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
-                    this.blockCache.removeBlockData(position);
+                    if (worldMaterial.isAir()) return;
+                    if (!blockData.isWorldTypeSame(worldMaterial)) {
+                        this.blockCache.removeBlockData(position);
+                    }
                 }, 1);
                 return;
             }
@@ -230,10 +233,12 @@ public class LeavesPacketListener extends PacketListenerAbstract {
                 if (blockData == BlockData.EMPTY) continue;
                 final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(PacketUtils.getState(block)).getMaterial();
                 final WrappedBlockState sendState = blockData.getNewState(worldMaterial);
-//                final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(sendState).getMaterial();
-                if (!blockData.isWorldTypeSame(worldMaterial) /*worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial*//* && !worldMaterial.isAir()*/ && worldMaterial != Material.MOVING_PISTON) {
+                if (!blockData.isWorldTypeSame(worldMaterial) && worldMaterial != Material.MOVING_PISTON) {
+                    if (worldMaterial.isAir()) continue;
                     Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
-                        this.blockCache.removeBlockData(position);
+                        if (!blockData.isWorldTypeSame(worldMaterial)) {
+                            this.blockCache.removeBlockData(position);
+                        }
                     }, 1);
                     continue;
                 }

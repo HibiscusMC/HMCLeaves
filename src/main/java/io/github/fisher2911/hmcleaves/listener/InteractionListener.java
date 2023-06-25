@@ -85,7 +85,9 @@ public class InteractionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if (event.getHand() != EquipmentSlot.HAND) return;
+        if (event.getHand() != EquipmentSlot.HAND) {
+            return;
+        }
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         final World world = event.getPlayer().getWorld();
         if (!this.leavesConfig.isWorldWhitelisted(world)) return;
@@ -181,69 +183,68 @@ public class InteractionListener implements Listener {
                 return;
             }
         }
-
-        Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
-            final Block placedBlock = placeLocation.getBlock();
-            final BlockState previousState = placedBlock.getState();
-            placedBlock.setType(blockData.worldBlockType());
-            final BlockPlaceEvent blockPlaceEvent = new HMCLeavesBlockDataPlaceEvent(
-                    placedBlock,
-                    previousState,
-                    block,
-                    clickedWith,
-                    player,
-                    true,
-                    event.getHand(),
-                    blockData
-            );
-            Bukkit.getPluginManager().callEvent(blockPlaceEvent);
-            if (blockPlaceEvent.isCancelled()) {
-                previousState.update(true, false);
+//        Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
+        final Block placedBlock = placeLocation.getBlock();
+        final BlockState previousState = placedBlock.getState();
+        placedBlock.setType(blockData.worldBlockType(), false);
+        final BlockPlaceEvent blockPlaceEvent = new HMCLeavesBlockDataPlaceEvent(
+                placedBlock,
+                previousState,
+                block,
+                clickedWith,
+                player,
+                true,
+                event.getHand(),
+                blockData
+        );
+        Bukkit.getPluginManager().callEvent(blockPlaceEvent);
+        if (blockPlaceEvent.isCancelled()) {
+            previousState.update(true, false);
+            return;
+        }
+        if (player.getGameMode() != GameMode.CREATIVE) {
+            clickedWith.setAmount(clickedWith.getAmount() - 1);
+        }
+        final boolean waterlogged = this.isStateWaterSource(previousState);
+        final Position position = Position.fromLocation(placeLocation);
+        PacketUtils.sendArmSwing(player, List.of(player));
+        if (waterlogged && blockData instanceof final LeafData leafData) {
+            this.blockCache.addBlockData(position, leafData.waterlog(waterlogged));
+        } else {
+            this.blockCache.addBlockData(position, blockData);
+        }
+        final Sound sound = blockData.placeSound();
+        if (sound != null) {
+            world.playSound(placeLocation, sound, 1, 1);
+        }
+        if (placedBlock.getBlockData() instanceof final Leaves leaves) {
+            if (!(blockData instanceof final LeafData leafData)) {
                 return;
             }
-            if (player.getGameMode() != GameMode.CREATIVE) {
-                clickedWith.setAmount(clickedWith.getAmount() - 1);
+            if (player.getGameMode() != GameMode.CREATIVE || leafData.worldPersistence() || this.leavesConfig.isOnlyFollowWorldPersistenceIfConnectedToLog()) {
+                leaves.setPersistent(true);
             }
-            final boolean waterlogged = this.isStateWaterSource(previousState);
-            final Position position = Position.fromLocation(placeLocation);
-            if (waterlogged && blockData instanceof final LeafData leafData) {
-                this.blockCache.addBlockData(position, leafData.waterlog(waterlogged));
-            } else {
-                this.blockCache.addBlockData(position, blockData);
+            leaves.setDistance(this.getDistance(placeLocation));
+            if (leaves.isPersistent() && leaves.getDistance() < 7 && this.leavesConfig.isOnlyFollowWorldPersistenceIfConnectedToLog()) {
+                leaves.setPersistent(false);
             }
-            PacketUtils.sendArmSwing(player, List.of(player));
-            final Sound sound = blockData.placeSound();
-            if (sound != null) {
-                world.playSound(placeLocation, sound, 1, 1);
+            if (waterlogged && leaves instanceof final Waterlogged waterloggedData) {
+                waterloggedData.setWaterlogged(true);
             }
-            if (placedBlock.getBlockData() instanceof final Leaves leaves) {
-                if (!(blockData instanceof final LeafData leafData)) {
-                    return;
-                }
-                if (player.getGameMode() != GameMode.CREATIVE || leafData.worldPersistence() || this.leavesConfig.isOnlyFollowWorldPersistenceIfConnectedToLog()) {
-                    leaves.setPersistent(true);
-                }
-                leaves.setDistance(this.getDistance(placeLocation));
-                if (leaves.isPersistent() && leaves.getDistance() < 7 && this.leavesConfig.isOnlyFollowWorldPersistenceIfConnectedToLog()) {
-                    leaves.setPersistent(false);
-                }
-                if (waterlogged && leaves instanceof final Waterlogged waterloggedData) {
-                    waterloggedData.setWaterlogged(true);
-                }
-                placedBlock.setBlockData(leaves, true);
-                return;
-            }
-            if (blockData instanceof final LogData logData && placedBlock.getBlockData() instanceof final Orientable orientable) {
-                orientable.setAxis(logData.axis());
-                placedBlock.setBlockData(orientable, true);
-                return;
-            }
-            if (blockData instanceof final CaveVineData caveVineData && placedBlock.getBlockData() instanceof final CaveVinesPlant caveVinesPlant) {
-                caveVinesPlant.setBerries(caveVineData.glowBerry());
-                placedBlock.setBlockData(caveVinesPlant, true);
-                return;
-            }
-        }, 1);
+            placedBlock.setBlockData(leaves, true);
+            return;
+        }
+        if (blockData instanceof final LogData logData && placedBlock.getBlockData() instanceof final Orientable orientable) {
+            orientable.setAxis(logData.axis());
+            placedBlock.setBlockData(orientable, true);
+            return;
+        }
+        if (blockData instanceof final CaveVineData caveVineData && placedBlock.getBlockData() instanceof final CaveVinesPlant caveVinesPlant) {
+            caveVinesPlant.setBerries(caveVineData.glowBerry());
+            placedBlock.setBlockData(caveVinesPlant, true);
+            return;
+        }
+//        }, 1);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
