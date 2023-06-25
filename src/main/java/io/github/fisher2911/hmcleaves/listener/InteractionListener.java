@@ -287,7 +287,7 @@ public class InteractionListener implements Listener {
                 blockData = this.leavesConfig.getDefaultAgeableData(material);
             }
             if (blockData == null) return;
-            if (!this.leavesConfig.canPlaceBlockAgainst(blockData, block)) {
+            if (!this.leavesConfig.canPlaceBlockAgainst(blockData, event.getBlock())) {
                 event.setCancelled(true);
                 return;
             }

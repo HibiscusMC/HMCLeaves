@@ -620,19 +620,19 @@ public class LeavesConfig {
         final Predicate<Block> predicate = this.blockSupportPredicateMap.get(blockData.id());
         if (predicate == null) return true;
         for (final BlockFace blockFace : blockData.supportableFaces()) {
-            if (!predicate.test(block.getRelative(blockFace))) {
-                return false;
+            if (predicate.test(block.getRelative(blockFace))) {
+                if (blockData instanceof final LimitedStacking limitedStacking) {
+                    final int stack = ChainedBlockUtil.countStack(
+                            Position.fromLocation(block.getLocation()),
+                            blockData,
+                            this.plugin.getBlockCache()
+                    );
+                    return stack < limitedStacking.stackLimit();
+                }
+                return true;
             }
         }
-        if (blockData instanceof final LimitedStacking limitedStacking) {
-            final int stack = ChainedBlockUtil.countStack(
-                    Position.fromLocation(block.getLocation()),
-                    blockData,
-                    this.plugin.getBlockCache()
-            );
-            return stack < limitedStacking.stackLimit();
-        }
-        return true;
+        return false;
     }
 
     public void reload() {
@@ -815,7 +815,7 @@ public class LeavesConfig {
             final Material leafMaterial = this.loadMaterial(leavesSection, itemId + "." + LEAF_MATERIAL_PATH, this.defaultLeafMaterial);
             final boolean worldPersistence = leavesSection.getBoolean(itemId + "." + WORLD_PERSISTENCE_PATH, state.isPersistent());
             final String modelPath = leavesSection.getString(itemId + "." + MODEL_PATH_PATH, null);
-            final Set<BlockFace> supportableFaces = this.loadSupportableFaces(leavesSection, DEFAULT_BLOCK_SUPPORTABLE_FACES);
+            final Set<BlockFace> supportableFaces = this.loadSupportableFaces(leavesSection.getConfigurationSection(itemId), DEFAULT_BLOCK_SUPPORTABLE_FACES);
             final BlockData blockData = BlockData.leafData(
                     itemId,
                     state.getGlobalId(),
@@ -903,7 +903,7 @@ public class LeavesConfig {
                     strippedLogId,
                     strippedLogId
             );
-            final Set<BlockFace> supportableFaces = this.loadSupportableFaces(logsSection, DEFAULT_BLOCK_SUPPORTABLE_FACES);
+            final Set<BlockFace> supportableFaces = this.loadSupportableFaces(logsSection.getConfigurationSection(itemId), DEFAULT_BLOCK_SUPPORTABLE_FACES);
             this.itemSupplierMap.put(itemId, itemStackSupplier);
             this.itemSupplierMap.put(strippedLogId, strippedItemStackSupplier);
             this.playerItemIds.add(itemId);
@@ -1028,7 +1028,7 @@ public class LeavesConfig {
             final String modelPath = caveVinesSection.getString(itemId + "." + MODEL_PATH_PATH);
             final int stateId = caveVinesSection.getInt(itemId + "." + STATE_ID_PATH);
             final int stackLimit = caveVinesSection.getInt(itemId + "." + STACK_LIMIT_PATH, Integer.MAX_VALUE);
-            final Set<BlockFace> supportableFaces = this.loadSupportableFaces(caveVinesSection, DEFAULT_CAVE_VINES_SUPPORTABLE_FACES);
+            final Set<BlockFace> supportableFaces = this.loadSupportableFaces(caveVinesSection.getConfigurationSection(itemId), DEFAULT_CAVE_VINES_SUPPORTABLE_FACES);
             final CaveVineData blockData = BlockData.caveVineData(
                     itemId,
                     withGlowBerryId,
@@ -1072,7 +1072,17 @@ public class LeavesConfig {
         }
         return false;
     };
-    private static final Predicate<Block> DEFAULT_KELP_PREDICATE = block -> block.getType() == Material.WATER;
+    private static final Predicate<Block> DEFAULT_KELP_PREDICATE = block ->
+            (
+                    block.getType().isSolid() ||
+                            block.getType() == Material.KELP ||
+                            block.getType() == Material.KELP_PLANT
+            ) && (
+                    block.getRelative(BlockFace.UP).getType() == Material.KELP ||
+                            block.getRelative(BlockFace.UP).getType() == Material.KELP_PLANT ||
+                            block.getRelative(BlockFace.UP).getType() == Material.WATER
+            );
+
     private static final Predicate<Block> DEFAULT_TWISTING_VINES_PREDICATE = block ->
             block.getType().isSolid() ||
                     block.getType() == Material.TWISTING_VINES_PLANT ||
@@ -1092,7 +1102,7 @@ public class LeavesConfig {
                     sugarCaneSection,
                     Material.SUGAR_CANE,
                     Sound.BLOCK_GRASS_PLACE,
-                    this.loadSupportableFaces(sugarCaneSection, DEFAULT_SUGAR_CANE_SUPPORTABLE_FACES),
+                    DEFAULT_SUGAR_CANE_SUPPORTABLE_FACES,
                     m -> m == Material.SUGAR_CANE,
                     DEFAULT_SUGAR_CANE_PREDICATE,
                     Material.SUGAR_CANE,
@@ -1105,7 +1115,7 @@ public class LeavesConfig {
                     kelpSection,
                     Material.KELP,
                     Sound.BLOCK_GRASS_PLACE,
-                    this.loadSupportableFaces(kelpSection, DEFAULT_KELP_SUPPORTABLE_FACES),
+                    DEFAULT_KELP_SUPPORTABLE_FACES,
                     m -> m == Material.KELP_PLANT || m == Material.KELP,
                     DEFAULT_KELP_PREDICATE,
                     Material.KELP_PLANT,
@@ -1144,7 +1154,7 @@ public class LeavesConfig {
             ConfigurationSection config,
             Material ageableMaterial,
             Sound placeSound,
-            Set<BlockFace> supportableFaces,
+            Set<BlockFace> defaultSupportableFaces,
             Predicate<Material> worldTypeSamePredicate,
             Predicate<Block> defaultPlacePredicate,
             Material defaultLowerMaterial,
@@ -1177,7 +1187,7 @@ public class LeavesConfig {
                     defaultLowerMaterial,
                     stackLimit,
                     breakReplacement,
-                    supportableFaces
+                    this.loadSupportableFaces(config.getConfigurationSection(itemId), defaultSupportableFaces)
             );
             this.blockSupportPredicateMap.put(itemId, placePredicate);
             this.blockDataMap.put(itemId, data);
@@ -1274,7 +1284,9 @@ public class LeavesConfig {
     }
 
     private Set<BlockFace> loadSupportableFaces(ConfigurationSection section, Set<BlockFace> defaultSupportableFaces) {
-        if (!section.contains(SUPPORTABLE_FACES_PATH)) return defaultSupportableFaces;
+        if (!section.contains(SUPPORTABLE_FACES_PATH)) {
+            return defaultSupportableFaces;
+        }
         return section.getStringList(SUPPORTABLE_FACES_PATH)
                 .stream()
                 .map(s -> {
