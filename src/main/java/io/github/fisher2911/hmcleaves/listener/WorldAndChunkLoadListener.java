@@ -93,26 +93,26 @@ public class WorldAndChunkLoadListener implements Listener {
         final UUID worldUUID = world.getUID();
         final ChunkPosition chunkPosition = ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ());
         final ChunkSnapshot snapshot = chunk.getChunkSnapshot();
-        this.leafDatabase.doDatabaseReadAsync(() -> {
-            if (!(this.leafDatabase.isChunkLoaded(chunkPosition))) {
-                this.loadNewChunkData(snapshot, world);
-                return;
-            }
-        });
+//        this.leafDatabase.doDatabaseReadAsync(() -> {
+//            if (!(this.leafDatabase.isChunkLoaded(chunkPosition))) {
+//                this.loadNewChunkData(snapshot, world);
+//                return;
+//            }
+//        });
         this.loadChunkFromDatabase(ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ()));
     }
 
     private void loadNewChunkData(ChunkSnapshot chunkSnapshot, World world) {
-        final UUID worldUUID = world.getUID();
-        final int minY = world.getMinHeight();
-        final int maxY = world.getMaxHeight();
-        final int chunkX = chunkSnapshot.getX();
-        final int chunkZ = chunkSnapshot.getZ();
-        final ChunkPosition chunkPosition = ChunkPosition.at(worldUUID, chunkX, chunkZ);
-        this.leafDatabase.doDatabaseWriteAsync(() -> {
-            this.leafDatabase.deleteChunk(chunkPosition);
-            this.leafDatabase.setChunkLoaded(chunkPosition);
-        });
+//        final UUID worldUUID = world.getUID();
+//        final int minY = world.getMinHeight();
+//        final int maxY = world.getMaxHeight();
+//        final int chunkX = chunkSnapshot.getX();
+//        final int chunkZ = chunkSnapshot.getZ();
+//        final ChunkPosition chunkPosition = ChunkPosition.at(worldUUID, chunkX, chunkZ);
+//        this.leafDatabase.doDatabaseWriteAsync(() -> {
+//            this.leafDatabase.deleteChunk(chunkPosition);
+//            this.leafDatabase.setChunkLoaded(chunkPosition);
+//        });
 //        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
 //            final Map<Position, Material> worldMaterials = new HashMap<>();
 //            ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
