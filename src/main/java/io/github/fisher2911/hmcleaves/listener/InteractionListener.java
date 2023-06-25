@@ -225,7 +225,7 @@ public class InteractionListener implements Listener {
                 leaves.setPersistent(true);
             }
             leaves.setDistance(this.getDistance(placeLocation));
-            if (leaves.isPersistent() && leaves.getDistance() < 7 && this.leavesConfig.isOnlyFollowWorldPersistenceIfConnectedToLog()) {
+            if (leaves.isPersistent() && leaves.getDistance() < 7 && this.leavesConfig.isOnlyFollowWorldPersistenceIfConnectedToLog() && player.getGameMode() == GameMode.CREATIVE) {
                 leaves.setPersistent(false);
             }
             if (waterlogged && leaves instanceof final Waterlogged waterloggedData) {
