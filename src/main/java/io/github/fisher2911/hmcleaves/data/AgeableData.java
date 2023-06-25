@@ -25,7 +25,6 @@ import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Material;
 import org.bukkit.Sound;
-import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,13 +37,11 @@ public record AgeableData(
         int sendBlockId,
         String modelPath,
         Sound placeSound,
-        // faces that can support this block
-        Set<BlockFace> supportableFaces,
         Predicate<Material> worldTypeSamePredicate,
-        Predicate<Block> placeAgainstPredicate,
         Material defaultLowerMaterial,
         int stackLimit,
-        Material breakReplacement
+        Material breakReplacement,
+        Set<BlockFace> supportableFaces
 ) implements BlockData, LimitedStacking {
 
     @Override
@@ -71,10 +68,6 @@ public record AgeableData(
     @Override
     public boolean isWorldTypeSame(Material worldMaterial) {
         return this.worldTypeSamePredicate.test(worldMaterial);
-    }
-
-    public boolean canBePlacedAgainst(Block block) {
-        return this.placeAgainstPredicate.test(block);
     }
 
     @Override

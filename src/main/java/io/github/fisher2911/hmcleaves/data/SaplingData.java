@@ -25,9 +25,11 @@ import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.block.BlockFace;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Set;
 
 public record SaplingData(
         String id,
@@ -37,6 +39,8 @@ public record SaplingData(
         boolean randomPasteRotation,
         String modelPath
 ) implements BlockData {
+
+    private static final Set<BlockFace> SUPPORTABLE_FACES = Set.of(BlockFace.DOWN);
 
     @Override
     public WrappedBlockState getNewState(@Nullable Material worldMaterial) {
@@ -67,7 +71,11 @@ public record SaplingData(
     @Override
     public boolean shouldSave() {
         return !this.id().equals(LeavesConfig.getDefaultSaplingStringId(this.realBlockType()));
+    }
 
+    @Override
+    public Set<BlockFace> supportableFaces() {
+        return SUPPORTABLE_FACES;
     }
 
 }

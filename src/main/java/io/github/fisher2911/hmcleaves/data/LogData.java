@@ -27,9 +27,11 @@ import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Axis;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.block.BlockFace;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import java.util.Set;
 
 public record LogData(
         String id,
@@ -39,7 +41,8 @@ public record LogData(
         Material strippedBlockType,
         boolean stripped,
         int strippedSendBlockId,
-        Axis axis
+        Axis axis,
+        Set<BlockFace> supportableFaces
 ) implements BlockData {
 
     @Override
@@ -79,7 +82,8 @@ public record LogData(
                 this.strippedBlockType,
                 true,
                 this.strippedSendBlockId,
-                this.axis
+                this.axis,
+                this.supportableFaces
         );
     }
 

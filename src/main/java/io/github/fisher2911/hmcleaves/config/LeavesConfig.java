@@ -27,14 +27,16 @@ import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.CaveVineData;
+import io.github.fisher2911.hmcleaves.data.LimitedStacking;
 import io.github.fisher2911.hmcleaves.data.LogData;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
+import io.github.fisher2911.hmcleaves.util.ChainedBlockUtil;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
+import io.github.fisher2911.hmcleaves.world.Position;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Axis;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
@@ -46,12 +48,17 @@ import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.CaveVinesPlant;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -285,6 +292,7 @@ public class LeavesConfig {
     }
 
     private final HMCLeaves plugin;
+    private final Path itemsFolderPath;
     private final TextureFileGenerator textureFileGenerator;
     private final Map<String, BlockData> blockDataMap;
     // so that tab complete doesn't show directional ID's
@@ -293,7 +301,7 @@ public class LeavesConfig {
     private final Map<String, Supplier<ItemStack>> saplingItemSupplierMap;
     private final Map<String, Supplier<ItemStack>> leafDropItemSupplierMap;
     // what blocks a sapling can be placed on
-    private final Map<String, Predicate<Location>> saplingSoilPredicateMap;
+    private final Map<String, Predicate<Block>> blockSupportPredicateMap;
     private Material defaultLeafMaterial = Material.OAK_LEAVES;
     private Material defaultLogMaterial = Material.OAK_LOG;
     private Material defaultStrippedLogMaterial = Material.STRIPPED_OAK_LOG;
@@ -308,7 +316,7 @@ public class LeavesConfig {
             Map<String, Supplier<ItemStack>> itemSupplierMap,
             Map<String, Supplier<ItemStack>> saplingItemSupplierMap,
             Map<String, Supplier<ItemStack>> leafDropItemSupplierMap,
-            Map<String, Predicate<Location>> saplingSoilPredicateMap
+            Map<String, Predicate<Block>> blockSupportPredicateMap
     ) {
         this.plugin = plugin;
         this.textureFileGenerator = new TextureFileGenerator(plugin);
@@ -317,7 +325,9 @@ public class LeavesConfig {
         this.itemSupplierMap = itemSupplierMap;
         this.saplingItemSupplierMap = saplingItemSupplierMap;
         this.leafDropItemSupplierMap = leafDropItemSupplierMap;
-        this.saplingSoilPredicateMap = saplingSoilPredicateMap;
+        this.blockSupportPredicateMap = blockSupportPredicateMap;
+        this.itemsFolderPath = this.plugin.getDataFolder().toPath()
+                .resolve("items");
     }
 
     @Nullable
@@ -478,12 +488,25 @@ public class LeavesConfig {
 
     private static final String MODEL_PATH_PATH = "model-path";
 
+    private static final String SUPPORTABLE_FACES_PATH = "supportable-faces";
+
     private static final String ONLY_FOLLOW_WORLD_PERSISTENCE_IF_CONNECTED_TO_LOG_PATH = "only-follow-world-persistence-if-connected-to-log";
     private boolean onlyFollowWorldPersistenceIfConnectedToLog;
 
     private static final String CHUNK_VERSION_PATH = "chunk-version";
     private static final String USE_WORLD_WHITELIST_PATH = "use-world-whitelist";
     private static final String WHITELISTED_WORLDS_PATH = "whitelisted-worlds";
+
+    private static final Collection<String> DEFAULT_FILE_NAMES = List.of(
+            "cave-vines.yml",
+            "kelp.yml",
+            "leaves.yml",
+            "logs.yml",
+            "saplings.yml",
+            "sugar-cane.yml",
+            "twisting-vines.yml",
+            "weeping-vines.yml"
+    );
 
     public void load() {
         this.plugin.saveDefaultConfig();
@@ -509,11 +532,33 @@ public class LeavesConfig {
         }
         this.chunkVersion = config.getInt(CHUNK_VERSION_PATH);
         initLeavesAndLogs();
+        final File itemsFolder = this.itemsFolderPath.toFile();
+        if (!itemsFolder.exists() && !itemsFolder.mkdirs()) {
+            throw new IllegalStateException("Could not create items folder");
+        }
+        final File[] files = itemsFolder.listFiles();
+        if (files == null) {
+            return;
+        }
+        for (String fileName : DEFAULT_FILE_NAMES) {
+            final File defaultFile = new File(itemsFolder, fileName);
+            if (!defaultFile.exists()) {
+                this.plugin.saveResource("items/" + fileName, false);
+            }
+        }
         this.loadLeavesSection(config);
         this.loadLogsSection(config);
         this.loadSaplingsSection(config);
         this.loadCaveVinesSection(config);
         this.loadAgeableSections(config);
+        for (final File file : files) {
+            final YamlConfiguration fileConfig = YamlConfiguration.loadConfiguration(file);
+            this.loadLeavesSection(fileConfig);
+            this.loadLogsSection(fileConfig);
+            this.loadSaplingsSection(fileConfig);
+            this.loadCaveVinesSection(fileConfig);
+            this.loadAgeableSections(fileConfig);
+        }
         for (Material leaf : LEAVES) {
             this.textureFileGenerator.generateFile(
                     leaf,
@@ -532,6 +577,7 @@ public class LeavesConfig {
                             .collect(Collectors.toList())
             );
         }
+        this.loadDefaults();
     }
 
     public int getChunkVersion() {
@@ -570,9 +616,23 @@ public class LeavesConfig {
         return useWorldWhitelist;
     }
 
-    public boolean canPlaceSaplingOn(String saplingId, Location location) {
-        final Predicate<Location> soilPredicate = this.saplingSoilPredicateMap.get(saplingId);
-        return soilPredicate != null && soilPredicate.test(location);
+    public boolean canPlaceBlockAgainst(BlockData blockData, Block block) {
+        final Predicate<Block> predicate = this.blockSupportPredicateMap.get(blockData.id());
+        if (predicate == null) return true;
+        for (final BlockFace blockFace : blockData.supportableFaces()) {
+            if (!predicate.test(block.getRelative(blockFace))) {
+                return false;
+            }
+        }
+        if (blockData instanceof final LimitedStacking limitedStacking) {
+            final int stack = ChainedBlockUtil.countStack(
+                    Position.fromLocation(block.getLocation()),
+                    blockData,
+                    this.plugin.getBlockCache()
+            );
+            return stack < limitedStacking.stackLimit();
+        }
+        return true;
     }
 
     public void reload() {
@@ -588,37 +648,13 @@ public class LeavesConfig {
         this.load();
     }
 
-    private void loadLeavesSection(FileConfiguration config) {
-        final ConfigurationSection leavesSection = config.getConfigurationSection(LEAVES_PATH);
-        if (leavesSection == null) return;
-        for (var itemId : leavesSection.getKeys(false)) {
-            final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(
-                    leavesSection.getConfigurationSection(itemId),
-                    itemId,
-                    itemId
-//                    HOOK_ID_PATH
-            );
-            this.itemSupplierMap.put(itemId, itemStackSupplier);
-            this.playerItemIds.add(itemId);
-            final int stateId = leavesSection.getInt(itemId + "." + STATE_ID_PATH);
-            final WrappedBlockState state = getLeafById(stateId);
-            final Material leafMaterial = this.loadMaterial(leavesSection, itemId + "." + LEAF_MATERIAL_PATH, this.defaultLeafMaterial);
-            final boolean worldPersistence = leavesSection.getBoolean(itemId + "." + WORLD_PERSISTENCE_PATH, state.isPersistent());
-            final String modelPath = leavesSection.getString(itemId + "." + MODEL_PATH_PATH, null);
-            final BlockData blockData = BlockData.leafData(
-                    itemId,
-                    state.getGlobalId(),
-                    leafMaterial,
-                    state.getDistance(),
-                    state.isPersistent(),
-                    worldPersistence,
-                    false,
-                    modelPath
-            );
-            this.blockDataMap.put(itemId, blockData);
-            this.loadSapling(leavesSection.getConfigurationSection(itemId), itemId);
-            this.loadLeafDropReplacement(leavesSection.getConfigurationSection(itemId), itemId);
-        }
+    private static final String ALLOWED_SUPPORTABLE_BLOCKS = "allowed-supportable-blocks";
+
+    private static final Set<BlockFace> DEFAULT_BLOCK_SUPPORTABLE_FACES = Arrays.stream(BlockFace.values())
+            .filter(BlockFace::isCartesian)
+            .collect(Collectors.toUnmodifiableSet());
+
+    private void loadDefaults() {
         for (Material leaf : LEAVES) {
             final String defaultLeafStringId = getDefaultLeafStringId(leaf);
             final int defaultLeafId = getDefaultLeafId(leaf);
@@ -631,8 +667,174 @@ public class LeavesConfig {
                     leafStateById.isPersistent(),
                     false,
                     false,
-                    null
+                    null,
+                    DEFAULT_BLOCK_SUPPORTABLE_FACES
             ));
+        }
+
+        for (Material logMaterial : LOGS) {
+            for (Axis axis : Axis.values()) {
+                final String defaultLogStringId = getDefaultLogStringId(logMaterial) + "_" + axis.name().toLowerCase();
+                final Material strippedLogMaterial = STRIPPED_LOGS.get(LOGS.indexOf(logMaterial));
+                final String defaultStrippedLogStringId = getDefaultStrippedLogStringId(strippedLogMaterial) + "_" + axis.name().toLowerCase();
+                final LogData blockData = BlockData.logData(
+                        defaultLogStringId,
+                        defaultStrippedLogStringId,
+                        getLogById(getDefaultLogId(logMaterial)).getGlobalId(),
+                        logMaterial,
+                        strippedLogMaterial,
+                        false,
+                        getLogById(getDefaultStrippedLogId(logMaterial, false)).getGlobalId(),
+                        axis,
+                        DEFAULT_BLOCK_SUPPORTABLE_FACES
+                );
+                this.blockDataMap.put(defaultLogStringId, blockData);
+                this.blockDataMap.put(defaultStrippedLogStringId, blockData.strip());
+            }
+        }
+
+        for (Material sapling : SAPLINGS) {
+            final WrappedBlockState state = WrappedBlockState.getDefaultState(
+                    PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
+                    SpigotConversionUtil.fromBukkitBlockData(sapling.createBlockData()).getType()
+            );
+            final String defaultSaplingId = getDefaultSaplingStringId(sapling);
+            this.blockDataMap.put(
+                    defaultSaplingId,
+                    BlockData.saplingData(
+                            defaultSaplingId,
+                            state.getGlobalId(),
+                            sapling,
+                            new ArrayList<>(),
+                            false,
+                            null
+                    )
+            );
+            this.blockSupportPredicateMap.put(defaultSaplingId, DEFAULT_SAPLING_PREDICATE);
+        }
+
+        final String defaultCaveVinesStringId = getDefaultCaveVinesStringId(false);
+        final String defaultCaveVinesStringIdWithBerries = getDefaultCaveVinesStringId(true);
+        final CaveVineData defaultCaveVineData = BlockData.caveVineData(
+                defaultCaveVinesStringId,
+                defaultCaveVinesStringIdWithBerries,
+                getCaveVinesById(1).getGlobalId(),
+                false,
+                null,
+                Integer.MAX_VALUE,
+                DEFAULT_CAVE_VINES_SUPPORTABLE_FACES
+        );
+        this.blockSupportPredicateMap.put(defaultCaveVinesStringId, DEFAULT_CAVE_VINES_PREDICATE);
+        this.blockSupportPredicateMap.put(defaultCaveVinesStringIdWithBerries, DEFAULT_CAVE_VINES_PREDICATE);
+        this.blockDataMap.put(
+                defaultCaveVinesStringId,
+                defaultCaveVineData
+        );
+        this.blockDataMap.put(
+                defaultCaveVinesStringIdWithBerries,
+                defaultCaveVineData.withGlowBerry(true)
+        );
+
+        this.loadAgeableDefaults(
+                Material.SUGAR_CANE,
+                Sound.BLOCK_GRASS_PLACE,
+                DEFAULT_SUGAR_CANE_SUPPORTABLE_FACES,
+                m -> m == Material.SUGAR_CANE,
+                DEFAULT_SUGAR_CANE_PREDICATE,
+                Material.SUGAR_CANE,
+                Material.AIR
+        );
+        this.loadAgeableDefaults(
+                Material.KELP,
+                Sound.BLOCK_GRASS_PLACE,
+                DEFAULT_KELP_SUPPORTABLE_FACES,
+                m -> m == Material.KELP_PLANT || m == Material.KELP,
+                DEFAULT_KELP_PREDICATE,
+                Material.KELP_PLANT,
+                Material.WATER
+        );
+        this.loadAgeableDefaults(
+                Material.TWISTING_VINES,
+                Sound.BLOCK_VINE_PLACE,
+                Set.of(BlockFace.DOWN),
+                m -> m == Material.TWISTING_VINES || m == Material.TWISTING_VINES_PLANT,
+                DEFAULT_TWISTING_VINES_PREDICATE,
+                Material.TWISTING_VINES_PLANT,
+                Material.AIR
+        );
+        this.loadAgeableDefaults(
+                Material.WEEPING_VINES,
+                Sound.BLOCK_WEEPING_VINES_PLACE,
+                Set.of(BlockFace.UP),
+                m -> m == Material.WEEPING_VINES || m == Material.WEEPING_VINES_PLANT,
+                DEFAULT_WEEPING_VINES_PREDICATE,
+                Material.WEEPING_VINES_PLANT,
+                Material.AIR
+        );
+    }
+
+    private void loadAgeableDefaults(
+            Material ageableMaterial,
+            Sound placeSound,
+            Set<BlockFace> supportableFaces,
+            Predicate<Material> worldTypeSamePredicate,
+            Predicate<Block> defaultPlacePredicate,
+            Material defaultLowerMaterial,
+            Material breakReplacement
+    ) {
+        final String defaultStringId = getDefaultAgeableStringId(ageableMaterial);
+        final var defaultData = BlockData.ageableData(
+                defaultStringId,
+                ageableMaterial,
+                getAgeableById(ageableMaterial, 0).getGlobalId(),
+                null,
+                placeSound,
+                worldTypeSamePredicate,
+                defaultLowerMaterial,
+                Integer.MAX_VALUE,
+                breakReplacement,
+                supportableFaces
+        );
+        this.blockDataMap.put(defaultStringId, defaultData);
+        this.blockSupportPredicateMap.put(defaultStringId, defaultPlacePredicate);
+    }
+
+    private void loadLeavesSection(FileConfiguration config) {
+        final ConfigurationSection leavesSection = config.getConfigurationSection(LEAVES_PATH);
+        if (leavesSection == null) return;
+        for (var itemId : leavesSection.getKeys(false)) {
+            final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(
+                    leavesSection.getConfigurationSection(itemId),
+                    itemId,
+                    itemId
+            );
+            this.itemSupplierMap.put(itemId, itemStackSupplier);
+            this.playerItemIds.add(itemId);
+            final int stateId = leavesSection.getInt(itemId + "." + STATE_ID_PATH);
+            final WrappedBlockState state = getLeafById(stateId);
+            final Material leafMaterial = this.loadMaterial(leavesSection, itemId + "." + LEAF_MATERIAL_PATH, this.defaultLeafMaterial);
+            final boolean worldPersistence = leavesSection.getBoolean(itemId + "." + WORLD_PERSISTENCE_PATH, state.isPersistent());
+            final String modelPath = leavesSection.getString(itemId + "." + MODEL_PATH_PATH, null);
+            final Set<BlockFace> supportableFaces = this.loadSupportableFaces(leavesSection, DEFAULT_BLOCK_SUPPORTABLE_FACES);
+            final BlockData blockData = BlockData.leafData(
+                    itemId,
+                    state.getGlobalId(),
+                    leafMaterial,
+                    state.getDistance(),
+                    state.isPersistent(),
+                    worldPersistence,
+                    false,
+                    modelPath,
+                    supportableFaces
+            );
+            final ConfigurationSection predicateSection = leavesSection.getConfigurationSection(itemId + "." + ALLOWED_SUPPORTABLE_BLOCKS);
+            if (predicateSection != null) {
+                final Predicate<Block> predicate = this.loadSupportableBlockPredicate(predicateSection);
+                this.blockSupportPredicateMap.put(itemId, predicate);
+            }
+            this.blockDataMap.put(itemId, blockData);
+            this.loadSapling(leavesSection.getConfigurationSection(itemId), itemId);
+            this.loadLeafDropReplacement(leavesSection.getConfigurationSection(itemId), itemId);
         }
     }
 
@@ -701,10 +903,16 @@ public class LeavesConfig {
                     strippedLogId,
                     strippedLogId
             );
+            final Set<BlockFace> supportableFaces = this.loadSupportableFaces(logsSection, DEFAULT_BLOCK_SUPPORTABLE_FACES);
             this.itemSupplierMap.put(itemId, itemStackSupplier);
             this.itemSupplierMap.put(strippedLogId, strippedItemStackSupplier);
             this.playerItemIds.add(itemId);
             this.playerItemIds.add(strippedLogId);
+            final ConfigurationSection predicateSection = logsSection.getConfigurationSection(itemId + "." + ALLOWED_SUPPORTABLE_BLOCKS);
+            if (predicateSection != null) {
+                final Predicate<Block> predicate = this.loadSupportableBlockPredicate(predicateSection);
+                this.blockSupportPredicateMap.put(itemId, predicate);
+            }
             for (Axis axis : Axis.values()) {
                 final String directionalId = itemId + "_" + axis.name().toLowerCase();
                 final String strippedDirectionalId = strippedLogId + "_" + axis.name().toLowerCase();
@@ -716,31 +924,18 @@ public class LeavesConfig {
                         strippedLogMaterial,
                         false,
                         strippedLogState.getGlobalId(),
-                        axis
+                        axis,
+                        supportableFaces
                 );
+                if (predicateSection != null) {
+                    final Predicate<Block> predicate = this.loadSupportableBlockPredicate(predicateSection);
+                    this.blockSupportPredicateMap.put(directionalId, predicate);
+                    this.blockSupportPredicateMap.put(strippedDirectionalId, predicate);
+                }
                 this.blockDataMap.put(directionalId, blockData);
                 this.blockDataMap.put(strippedDirectionalId, blockData.strip());
                 this.itemSupplierMap.put(directionalId, itemStackSupplier);
                 this.itemSupplierMap.put(strippedDirectionalId, strippedItemStackSupplier);
-            }
-        }
-        for (Material logMaterial : LOGS) {
-            for (Axis axis : Axis.values()) {
-                final String defaultLogStringId = getDefaultLogStringId(logMaterial) + "_" + axis.name().toLowerCase();
-                final Material strippedLogMaterial = STRIPPED_LOGS.get(LOGS.indexOf(logMaterial));
-                final String defaultStrippedLogStringId = getDefaultStrippedLogStringId(strippedLogMaterial) + "_" + axis.name().toLowerCase();
-                final LogData blockData = BlockData.logData(
-                        defaultLogStringId,
-                        defaultStrippedLogStringId,
-                        getLogById(getDefaultLogId(logMaterial)).getGlobalId(),
-                        logMaterial,
-                        strippedLogMaterial,
-                        false,
-                        getLogById(getDefaultStrippedLogId(logMaterial, false)).getGlobalId(),
-                        axis
-                );
-                this.blockDataMap.put(defaultLogStringId, blockData);
-                this.blockDataMap.put(defaultStrippedLogStringId, blockData.strip());
             }
         }
     }
@@ -748,9 +943,8 @@ public class LeavesConfig {
     private static final String STAGE_PATH = "stage";
     private static final String SCHEMATIC_FILES_PATH = "schematic-files";
     private static final String RANDOM_PASTE_ROTATION_PATH = "random-paste-rotation";
-    private static final String ALLOWED_SOIL_BLOCKS_PATH = "allowed-soil-blocks";
 
-    private static final Predicate<Location> DEFAULT_SAPLING_PREDICATE = location -> Tag.DIRT.isTagged(location.getBlock().getType());
+    private static final Predicate<Block> DEFAULT_SAPLING_PREDICATE = block -> Tag.DIRT.isTagged(block.getType());
 
     private void loadSaplingsSection(FileConfiguration config) {
         final ConfigurationSection saplingsSection = config.getConfigurationSection(SAPLINGS_PATH);
@@ -778,12 +972,12 @@ public class LeavesConfig {
             final List<String> schematicFiles = saplingsSection.getStringList(itemId + "." + SCHEMATIC_FILES_PATH);
             final boolean randomPasteRotation = saplingsSection.getBoolean(itemId + "." + RANDOM_PASTE_ROTATION_PATH, false);
             final String modelPath = saplingsSection.getString(itemId + "." + MODEL_PATH_PATH);
-            final ConfigurationSection predicateSection = saplingsSection.getConfigurationSection(itemId + "." + ALLOWED_SOIL_BLOCKS_PATH);
-            final Predicate<Location> predicate;
+            final ConfigurationSection predicateSection = saplingsSection.getConfigurationSection(itemId + "." + ALLOWED_SUPPORTABLE_BLOCKS);
+            final Predicate<Block> predicate;
             if (predicateSection == null) {
                 predicate = DEFAULT_SAPLING_PREDICATE;
             } else {
-                predicate = this.loadSaplingSoilPredicate(predicateSection);
+                predicate = this.loadSupportableBlockPredicate(predicateSection);
             }
             final WrappedBlockState state = WrappedBlockState.getDefaultState(
                     PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
@@ -799,30 +993,14 @@ public class LeavesConfig {
                     modelPath
             );
             this.blockDataMap.put(itemId, saplingData);
-            this.saplingSoilPredicateMap.put(itemId, predicate);
-        }
-        for (Material sapling : SAPLINGS) {
-            final WrappedBlockState state = WrappedBlockState.getDefaultState(
-                    PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
-                    SpigotConversionUtil.fromBukkitBlockData(sapling.createBlockData()).getType()
-            );
-            final String defaultSaplingId = getDefaultSaplingStringId(sapling);
-            this.blockDataMap.put(
-                    defaultSaplingId,
-                    BlockData.saplingData(
-                            defaultSaplingId,
-                            state.getGlobalId(),
-                            sapling,
-                            new ArrayList<>(),
-                            false,
-                            null
-                    )
-            );
-            this.saplingSoilPredicateMap.put(defaultSaplingId, DEFAULT_SAPLING_PREDICATE);
+            this.blockSupportPredicateMap.put(itemId, predicate);
         }
     }
 
     private static final String WITH_GLOW_BERRY_ID_PATH = "with-glow-berry-id";
+    private static final Predicate<Block> DEFAULT_CAVE_VINES_PREDICATE = block ->
+            block.getType().isSolid() || Tag.CAVE_VINES.isTagged(block.getType());
+    private static final Set<BlockFace> DEFAULT_CAVE_VINES_SUPPORTABLE_FACES = Set.of(BlockFace.UP);
 
     private void loadCaveVinesSection(ConfigurationSection config) {
         final ConfigurationSection caveVinesSection = config.getConfigurationSection(CAVE_VINES_PATH);
@@ -850,35 +1028,28 @@ public class LeavesConfig {
             final String modelPath = caveVinesSection.getString(itemId + "." + MODEL_PATH_PATH);
             final int stateId = caveVinesSection.getInt(itemId + "." + STATE_ID_PATH);
             final int stackLimit = caveVinesSection.getInt(itemId + "." + STACK_LIMIT_PATH, Integer.MAX_VALUE);
+            final Set<BlockFace> supportableFaces = this.loadSupportableFaces(caveVinesSection, DEFAULT_CAVE_VINES_SUPPORTABLE_FACES);
             final CaveVineData blockData = BlockData.caveVineData(
                     itemId,
                     withGlowBerryId,
                     getCaveVinesById(stateId).getGlobalId(),
                     false,
                     modelPath,
-                    stackLimit
+                    stackLimit,
+                    supportableFaces
             );
+            final ConfigurationSection predicateSection = caveVinesSection.getConfigurationSection(itemId + "." + ALLOWED_SUPPORTABLE_BLOCKS);
+            final Predicate<Block> placePredicate;
+            if (predicateSection != null) {
+                placePredicate = this.loadSupportableBlockPredicate(predicateSection);
+            } else {
+                placePredicate = DEFAULT_CAVE_VINES_PREDICATE;
+            }
+            this.blockSupportPredicateMap.put(itemId, placePredicate);
+            this.blockSupportPredicateMap.put(withGlowBerryId, placePredicate);
             this.blockDataMap.put(itemId, blockData);
             this.blockDataMap.put(withGlowBerryId, blockData.withGlowBerry(true));
         }
-        final String defaultCaveVinesStringId = getDefaultCaveVinesStringId(false);
-        final String defaultCaveVinesStringIdWithBerries = getDefaultCaveVinesStringId(true);
-        final CaveVineData defaultCaveVineData = BlockData.caveVineData(
-                defaultCaveVinesStringId,
-                defaultCaveVinesStringIdWithBerries,
-                getCaveVinesById(1).getGlobalId(),
-                false,
-                null,
-                Integer.MAX_VALUE
-        );
-        this.blockDataMap.put(
-                defaultCaveVinesStringId,
-                defaultCaveVineData
-        );
-        this.blockDataMap.put(
-                defaultCaveVinesStringIdWithBerries,
-                defaultCaveVineData.withGlowBerry(true)
-        );
     }
 
     private static final Set<org.bukkit.block.BlockFace> WATER_FACES = Set.of(
@@ -888,6 +1059,32 @@ public class LeavesConfig {
             BlockFace.WEST
     );
 
+    private static final Predicate<Block> DEFAULT_SUGAR_CANE_PREDICATE = block -> {
+        final Material material = block.getType();
+        if (material == Material.SUGAR_CANE) return true;
+        if (!Tag.SAND.isTagged(material) && !Tag.DIRT.isTagged(material)) {
+            return false;
+        }
+        for (final BlockFace face : WATER_FACES) {
+            final Material relative = block.getRelative(face).getType();
+            if (relative == Material.WATER)
+                return true;
+        }
+        return false;
+    };
+    private static final Predicate<Block> DEFAULT_KELP_PREDICATE = block -> block.getType() == Material.WATER;
+    private static final Predicate<Block> DEFAULT_TWISTING_VINES_PREDICATE = block ->
+            block.getType().isSolid() ||
+                    block.getType() == Material.TWISTING_VINES_PLANT ||
+                    block.getType() == Material.TWISTING_VINES;
+    private static final Predicate<Block> DEFAULT_WEEPING_VINES_PREDICATE = block ->
+            block.getType().isSolid() ||
+                    block.getType() == Material.WEEPING_VINES_PLANT ||
+                    block.getType() == Material.WEEPING_VINES;
+
+    private static final Set<BlockFace> DEFAULT_SUGAR_CANE_SUPPORTABLE_FACES = Set.of(BlockFace.DOWN);
+    private static final Set<BlockFace> DEFAULT_KELP_SUPPORTABLE_FACES = Set.of(BlockFace.DOWN);
+
     private void loadAgeableSections(ConfigurationSection config) {
         final ConfigurationSection sugarCaneSection = config.getConfigurationSection(SUGAR_CANE_PATH);
         if (sugarCaneSection != null) {
@@ -895,21 +1092,9 @@ public class LeavesConfig {
                     sugarCaneSection,
                     Material.SUGAR_CANE,
                     Sound.BLOCK_GRASS_PLACE,
-                    Set.of(BlockFace.DOWN),
+                    this.loadSupportableFaces(sugarCaneSection, DEFAULT_SUGAR_CANE_SUPPORTABLE_FACES),
                     m -> m == Material.SUGAR_CANE,
-                    b -> {
-                        final Material material = b.getType();
-                        if (material == Material.SUGAR_CANE) return true;
-                        if (!Tag.SAND.isTagged(material) && !Tag.DIRT.isTagged(material)) {
-                            return false;
-                        }
-                        for (final BlockFace face : WATER_FACES) {
-                            final Material relative = b.getRelative(face).getType();
-                            if (relative == Material.WATER)
-                                return true;
-                        }
-                        return false;
-                    },
+                    DEFAULT_SUGAR_CANE_PREDICATE,
                     Material.SUGAR_CANE,
                     Material.AIR
             );
@@ -920,9 +1105,9 @@ public class LeavesConfig {
                     kelpSection,
                     Material.KELP,
                     Sound.BLOCK_GRASS_PLACE,
-                    Set.of(BlockFace.DOWN),
+                    this.loadSupportableFaces(kelpSection, DEFAULT_KELP_SUPPORTABLE_FACES),
                     m -> m == Material.KELP_PLANT || m == Material.KELP,
-                    b -> b.getRelative(BlockFace.UP).getType() == Material.WATER,
+                    DEFAULT_KELP_PREDICATE,
                     Material.KELP_PLANT,
                     Material.WATER
             );
@@ -935,7 +1120,7 @@ public class LeavesConfig {
                     Sound.BLOCK_VINE_PLACE,
                     Set.of(BlockFace.DOWN),
                     m -> m == Material.TWISTING_VINES || m == Material.TWISTING_VINES_PLANT,
-                    b -> b.getType().isSolid() || b.getType() == Material.TWISTING_VINES_PLANT || b.getType() == Material.TWISTING_VINES,
+                    DEFAULT_TWISTING_VINES_PREDICATE,
                     Material.TWISTING_VINES_PLANT,
                     Material.AIR
             );
@@ -948,7 +1133,7 @@ public class LeavesConfig {
                     Sound.BLOCK_WEEPING_VINES_PLACE,
                     Set.of(BlockFace.UP),
                     m -> m == Material.WEEPING_VINES || m == Material.WEEPING_VINES_PLANT,
-                    b -> b.getType().isSolid() || b.getType() == Material.WEEPING_VINES_PLANT || b.getType() == Material.WEEPING_VINES,
+                    DEFAULT_WEEPING_VINES_PREDICATE,
                     Material.WEEPING_VINES_PLANT,
                     Material.AIR
             );
@@ -961,7 +1146,7 @@ public class LeavesConfig {
             Sound placeSound,
             Set<BlockFace> supportableFaces,
             Predicate<Material> worldTypeSamePredicate,
-            Predicate<Block> canBePlacedAgainstPredicate,
+            Predicate<Block> defaultPlacePredicate,
             Material defaultLowerMaterial,
             Material breakReplacement
     ) {
@@ -975,45 +1160,37 @@ public class LeavesConfig {
             final String modelPath = config.getString(itemId + "." + MODEL_PATH_PATH);
             final int stackLimit = config.getInt(itemId + "." + STACK_LIMIT_PATH, Integer.MAX_VALUE);
             final var state = getAgeableById(ageableMaterial, stateId);
+            final ConfigurationSection predicateSection = config.getConfigurationSection(itemId + "." + ALLOWED_SUPPORTABLE_BLOCKS);
+            final Predicate<Block> placePredicate;
+            if (predicateSection != null) {
+                placePredicate = this.loadSupportableBlockPredicate(predicateSection);
+            } else {
+                placePredicate = defaultPlacePredicate;
+            }
             final var data = BlockData.ageableData(
                     itemId,
                     ageableMaterial,
                     state.getGlobalId(),
                     modelPath,
                     placeSound,
-                    supportableFaces,
                     worldTypeSamePredicate,
-                    canBePlacedAgainstPredicate,
                     defaultLowerMaterial,
                     stackLimit,
-                    breakReplacement
+                    breakReplacement,
+                    supportableFaces
             );
+            this.blockSupportPredicateMap.put(itemId, placePredicate);
             this.blockDataMap.put(itemId, data);
             this.itemSupplierMap.put(itemId, itemStackSupplier);
             this.playerItemIds.add(itemId);
         }
-        final String defaultStringId = getDefaultAgeableStringId(ageableMaterial);
-        final var defaultData = BlockData.ageableData(
-                defaultStringId,
-                ageableMaterial,
-                getAgeableById(ageableMaterial, 0).getGlobalId(),
-                null,
-                placeSound,
-                supportableFaces,
-                worldTypeSamePredicate,
-                canBePlacedAgainstPredicate,
-                defaultLowerMaterial,
-                Integer.MAX_VALUE,
-                breakReplacement
-        );
-        this.blockDataMap.put(defaultStringId, defaultData);
     }
 
     private static final String TAGS_PATH = "tags";
     private static final String HOOK_BLOCK_IDS_PATH = "hook-block-ids";
     private static final String MATERIALS_PATH = "materials";
 
-    private Predicate<Location> loadSaplingSoilPredicate(ConfigurationSection predicateSection) {
+    private Predicate<Block> loadSupportableBlockPredicate(ConfigurationSection predicateSection) {
         final Set<Tag<Material>> tags = predicateSection.getStringList(TAGS_PATH).
                 stream()
                 .map(s -> Bukkit.getTag(Tag.REGISTRY_BLOCKS, NamespacedKey.minecraft(s), Material.class))
@@ -1031,13 +1208,13 @@ public class LeavesConfig {
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        return location -> {
-            final Material material = location.getBlock().getType();
+        return block -> {
+            final Material material = block.getType();
             if (materialStrings.contains(material)) return true;
             for (Tag<Material> tag : tags) {
                 if (tag.isTagged(material)) return true;
             }
-            return hookBlockIds.contains(Hooks.getCustomBlockIdAt(location));
+            return hookBlockIds.contains(Hooks.getCustomBlockIdAt(block.getLocation()));
         };
     }
 
@@ -1094,6 +1271,21 @@ public class LeavesConfig {
             };
         }
         return itemStack::clone;
+    }
+
+    private Set<BlockFace> loadSupportableFaces(ConfigurationSection section, Set<BlockFace> defaultSupportableFaces) {
+        if (!section.contains(SUPPORTABLE_FACES_PATH)) return defaultSupportableFaces;
+        return section.getStringList(SUPPORTABLE_FACES_PATH)
+                .stream()
+                .map(s -> {
+                    try {
+                        return BlockFace.valueOf(s.toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toUnmodifiableSet());
     }
 
 }

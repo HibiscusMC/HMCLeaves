@@ -21,11 +21,9 @@
 package io.github.fisher2911.hmcleaves.data;
 
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
-import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import org.bukkit.Axis;
 import org.bukkit.Material;
 import org.bukkit.Sound;
-import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.jetbrains.annotations.Nullable;
 
@@ -89,6 +87,11 @@ public interface BlockData {
         }
 
         @Override
+        public Set<BlockFace> supportableFaces() {
+            return Set.of();
+        }
+
+        @Override
         public boolean shouldSave() {
             return false;
         }
@@ -115,6 +118,9 @@ public interface BlockData {
 
     Material breakReplacement();
 
+    // faces that can support this block
+    Set<BlockFace> supportableFaces();
+
     boolean shouldSave();
 
     static LeafData leafData(
@@ -125,7 +131,8 @@ public interface BlockData {
             boolean displayPersistence,
             boolean worldPersistence,
             boolean waterlogged,
-            String modelPath
+            String modelPath,
+            Set<BlockFace> supportableFaces
     ) {
         return new LeafData(
                 id,
@@ -135,7 +142,8 @@ public interface BlockData {
                 displayPersistence,
                 worldPersistence,
                 waterlogged,
-                modelPath
+                modelPath,
+                supportableFaces
         );
     }
 
@@ -147,7 +155,8 @@ public interface BlockData {
             Material strippedBlockType,
             boolean stripped,
             int strippedSendBlockId,
-            Axis axis
+            Axis axis,
+            Set<BlockFace> supportableFaces
     ) {
         return new LogData(
                 id,
@@ -157,7 +166,8 @@ public interface BlockData {
                 strippedBlockType,
                 stripped,
                 strippedSendBlockId,
-                axis
+                axis,
+                supportableFaces
         );
     }
 
@@ -185,7 +195,8 @@ public interface BlockData {
             int sendBlockId,
             boolean glowBerry,
             String modelPath,
-            int stackLimit
+            int stackLimit,
+            Set<BlockFace> supportableFaces
     ) {
         return new CaveVineData(
                 id,
@@ -193,7 +204,8 @@ public interface BlockData {
                 sendBlockId,
                 glowBerry,
                 modelPath,
-                stackLimit
+                stackLimit,
+                supportableFaces
         );
     }
 
@@ -203,12 +215,11 @@ public interface BlockData {
             int sendBlockId,
             String modelPath,
             Sound placeSound,
-            Set<BlockFace> supportableFaces,
             Predicate<Material> worldTypeSamePredicate,
-            Predicate<Block> canBePlacedAgainstPredicate,
             Material defaultLowerMaterial,
             int stackLimit,
-            Material breakReplacement
+            Material breakReplacement,
+            Set<BlockFace> supportableFaces
     ) {
         return new AgeableData(
                 id,
@@ -216,12 +227,11 @@ public interface BlockData {
                 sendBlockId,
                 modelPath,
                 placeSound,
-                supportableFaces,
                 worldTypeSamePredicate,
-                canBePlacedAgainstPredicate,
                 defaultLowerMaterial,
                 stackLimit,
-                breakReplacement
+                breakReplacement,
+                supportableFaces
         );
     }
 

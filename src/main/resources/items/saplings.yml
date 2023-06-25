@@ -1,0 +1,21 @@
+saplings:
+  test_sapling:
+    sapling-material: OAK_SAPLING
+    material: PAPER
+    model-data: 3
+    name: "&6Test Sapling"
+    lore:
+      - "&aLine 1"
+    stage: 1
+    schematic-files:
+      - "test.schem"
+      - "test2.schem"
+    random-paste-rotation: true
+    model-path: "blocks/saplings/test_sapling"
+    allowed-supportable-blocks:
+      materials:
+        - STONE
+      tags:
+        - dirt
+      hook-block-ids:
+        - amethyst_block

@@ -1,0 +1,8 @@
+kelp:
+  test_kelp:
+    material: paper
+    model-data: 6
+    name: "&6Test Kelp"
+    lore:
+      - "&aLine 1"
+    state-id: 1

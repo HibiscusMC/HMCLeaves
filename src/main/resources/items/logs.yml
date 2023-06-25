@@ -1,0 +1,13 @@
+logs:
+  test_log:
+    log-material: OAK_LOG
+    stripped-log-material: STRIPPED_OAK_LOG
+    material: PAPER
+    model-data: 2
+    name: "&5Test Log"
+    lore:
+      - "&aLine 1"
+    instrument: BANJO
+    note: 2
+    stripped-instrument: BANJO
+    stripped-note: 3

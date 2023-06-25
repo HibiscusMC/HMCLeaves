@@ -1,0 +1,15 @@
+leaves:
+  "test_leaves":
+    # inventory-item: hook-id
+    world-persistence: false
+    leaf-material: OAK_LEAVES
+    material: PAPER
+    model-data: 1
+    name: "&Test Leaves"
+    lore:
+      - "&aLine 1"
+      - "&bLine 2"
+    state-id: 1
+    sapling: test_sapling
+    leaf-drop-replacement: test_leaves
+    model-path: "blocks/leaves/test_leaves"

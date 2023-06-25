@@ -26,7 +26,10 @@ import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.Tag;
+import org.bukkit.block.BlockFace;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Set;
 
 public record CaveVineData(
         String id,
@@ -34,7 +37,8 @@ public record CaveVineData(
         int sendBlockId,
         boolean glowBerry,
         String modelPath,
-        int stackLimit
+        int stackLimit,
+        Set<BlockFace> supportableFaces
 ) implements BlockData, LimitedStacking {
 
     @Override
@@ -76,7 +80,7 @@ public record CaveVineData(
 
     public CaveVineData withGlowBerry(boolean glowBerry) {
         if (glowBerry == this.glowBerry) return this;
-        return new CaveVineData(this.id, this.withGlowBerryId, this.sendBlockId, glowBerry, this.modelPath, this.stackLimit);
+        return new CaveVineData(this.id, this.withGlowBerryId, this.sendBlockId, glowBerry, this.modelPath, this.stackLimit, this.supportableFaces);
     }
 
     @Override
