@@ -540,10 +540,19 @@ public class LeavesConfig {
         if (files == null) {
             return;
         }
-        for (String fileName : DEFAULT_FILE_NAMES) {
-            final File defaultFile = new File(itemsFolder, fileName);
-            if (!defaultFile.exists()) {
-                this.plugin.saveResource("items/" + fileName, false);
+        boolean createDefaults = true;
+        for (final File file : files) {
+            if (!DEFAULT_FILE_NAMES.contains(file)) {
+                createDefaults = false;
+                break;
+            }
+        }
+        if (createDefaults) {
+            for (final String fileName : DEFAULT_FILE_NAMES) {
+                final File defaultFile = new File(itemsFolder, fileName);
+                if (!defaultFile.exists()) {
+                    this.plugin.saveResource("items/" + fileName, false);
+                }
             }
         }
         this.loadLeavesSection(config);
