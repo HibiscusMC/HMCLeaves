@@ -21,7 +21,9 @@
 package io.github.fisher2911.hmcleaves.packet;
 
 import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.manager.player.PlayerManager;
 import com.github.retrooper.packetevents.protocol.potion.PotionTypes;
+import com.github.retrooper.packetevents.protocol.sound.SoundCategory;
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import com.github.retrooper.packetevents.util.Vector3i;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBlockBreakAnimation;
@@ -33,10 +35,12 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerRe
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import io.github.fisher2911.hmcleaves.data.BlockData;
+import io.github.fisher2911.hmcleaves.data.SoundData;
 import io.github.fisher2911.hmcleaves.util.Pair;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -45,6 +49,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 
 public class PacketUtils {
 
@@ -175,6 +180,47 @@ public class PacketUtils {
                         )
                 );
             }
+        }
+    }
+
+    public static void sendSound(
+            SoundData soundData,
+            Position position,
+            Collection<? extends Player> players
+    ) {
+        sendSound(
+                soundData.name(),
+                soundData.soundCategory(),
+                soundData.volume(),
+                soundData.pitch(),
+                position,
+                players
+        );
+    }
+
+    public static void sendSound(
+            String name,
+            SoundCategory soundCategory,
+            float volume,
+            float pitch,
+            Position position,
+            Collection<? extends Player> players
+    ) {
+        final Vector3i effectPosition = new Vector3i(position.x(), position.y(), position.z());
+        final WrapperPlayServerNamedSoundEffect packet = new WrapperPlayServerNamedSoundEffect(
+                0,
+                Optional.of(name),
+                Optional.of(false),
+                Optional.empty(),
+                soundCategory,
+                effectPosition,
+                volume,
+                pitch
+        );
+        final PlayerManager playerManager = PacketEvents.getAPI().getPlayerManager();
+        for (Player player : players) {
+            Bukkit.broadcastMessage("Sent sound to " + player.getName() + " " + name + " " + soundCategory + " " + volume + " " + pitch);
+            playerManager.sendPacket(player, packet);
         }
     }
 

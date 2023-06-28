@@ -37,7 +37,8 @@ public record SaplingData(
         Material realBlockType,
         List<String> schematicFiles,
         boolean randomPasteRotation,
-        String modelPath
+        String modelPath,
+        @Nullable BlockDataSound blockDataSound
 ) implements BlockData {
 
     private static final Set<BlockFace> SUPPORTABLE_FACES = Set.of(BlockFace.DOWN);

@@ -23,6 +23,8 @@ package io.github.fisher2911.hmcleaves.data;
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
+import io.github.fisher2911.hmcleaves.packet.BlockBreakManager;
+import io.github.fisher2911.hmcleaves.packet.BlockBreakModifier;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Axis;
 import org.bukkit.Material;
@@ -42,8 +44,9 @@ public record LogData(
         boolean stripped,
         int strippedSendBlockId,
         Axis axis,
-        Set<BlockFace> supportableFaces
-) implements BlockData {
+        Set<BlockFace> supportableFaces,
+        @Nullable BlockDataSound blockDataSound
+) implements BlockData, MineableData {
 
     @Override
     public Material worldBlockType() {
@@ -83,7 +86,8 @@ public record LogData(
                 true,
                 this.strippedSendBlockId,
                 this.axis,
-                this.supportableFaces
+                this.supportableFaces,
+                this.blockDataSound
         );
     }
 
@@ -129,6 +133,11 @@ public record LogData(
             return !this.strippedLogId().equals(LeavesConfig.getDefaultStrippedLogStringId(this.strippedBlockType()));
         }
         return !this.id().equals(LeavesConfig.getDefaultLogStringId(this.realBlockType()));
+    }
+
+    @Override
+    public BlockBreakModifier blockBreakModifier() {
+        return BlockBreakManager.LOG_BREAK_MODIFIER;
     }
 
 }

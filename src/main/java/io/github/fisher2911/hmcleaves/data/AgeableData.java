@@ -41,7 +41,8 @@ public record AgeableData(
         Material defaultLowerMaterial,
         int stackLimit,
         Material breakReplacement,
-        Set<BlockFace> supportableFaces
+        Set<BlockFace> supportableFaces,
+        @Nullable BlockDataSound blockDataSound
 ) implements BlockData, LimitedStacking {
 
     @Override

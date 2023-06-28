@@ -38,7 +38,8 @@ public record CaveVineData(
         boolean glowBerry,
         String modelPath,
         int stackLimit,
-        Set<BlockFace> supportableFaces
+        Set<BlockFace> supportableFaces,
+        @Nullable BlockDataSound blockDataSound
 ) implements BlockData, LimitedStacking {
 
     @Override
@@ -80,7 +81,7 @@ public record CaveVineData(
 
     public CaveVineData withGlowBerry(boolean glowBerry) {
         if (glowBerry == this.glowBerry) return this;
-        return new CaveVineData(this.id, this.withGlowBerryId, this.sendBlockId, glowBerry, this.modelPath, this.stackLimit, this.supportableFaces);
+        return new CaveVineData(this.id, this.withGlowBerryId, this.sendBlockId, glowBerry, this.modelPath, this.stackLimit, this.supportableFaces, this.blockDataSound);
     }
 
     @Override

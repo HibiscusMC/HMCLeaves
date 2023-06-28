@@ -31,6 +31,7 @@ import io.github.fisher2911.hmcleaves.data.LeafDatabase;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.listener.InteractionListener;
 import io.github.fisher2911.hmcleaves.listener.LeafDropListener;
+import io.github.fisher2911.hmcleaves.listener.SoundListener;
 import io.github.fisher2911.hmcleaves.listener.WorldAndChunkLoadListener;
 import io.github.fisher2911.hmcleaves.packet.BlockBreakManager;
 import io.github.fisher2911.hmcleaves.listener.LeafAndLogEditListener;
@@ -108,7 +109,8 @@ public class HMCLeaves extends JavaPlugin {
                         new InteractionListener(this),
                         new LeafDropListener(this),
                         this.worldAndChunkLoadListener,
-                        new LeafAndLogEditListener(this)
+                        new LeafAndLogEditListener(this),
+                        new SoundListener(this)
                 )
                 .forEach(listener -> getServer().getPluginManager().registerEvents(listener, this));
     }

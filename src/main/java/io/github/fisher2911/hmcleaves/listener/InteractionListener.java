@@ -28,11 +28,13 @@ import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.CaveVineData;
 import io.github.fisher2911.hmcleaves.data.LeafData;
 import io.github.fisher2911.hmcleaves.data.LogData;
+import io.github.fisher2911.hmcleaves.data.MineableData;
 import io.github.fisher2911.hmcleaves.data.SaplingData;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.packet.BlockBreakManager;
 import io.github.fisher2911.hmcleaves.packet.PacketUtils;
 import io.github.fisher2911.hmcleaves.util.ChainedBlockUtil;
+import io.github.fisher2911.hmcleaves.util.ItemUtil;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Axis;
@@ -61,10 +63,13 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffectType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -303,7 +308,8 @@ public class InteractionListener implements Listener {
         if (event instanceof BlockBreakManager.LeavesBlockBreakEvent) return;
         if (!this.leavesConfig.isWorldWhitelisted(event.getBlock().getWorld())) return;
         ChainedBlockUtil.handleBlockBreak(event.getBlock(), this.blockCache, this.leavesConfig);
-        if (event.getPlayer().getGameMode() == GameMode.CREATIVE) return;
+        final Player player = event.getPlayer();
+        if (player.getGameMode() == GameMode.CREATIVE) return;
         final Location location = event.getBlock().getLocation();
         final Position position = Position.fromLocation(location);
         final BlockData blockData = this.blockCache.getBlockData(position);
@@ -318,8 +324,54 @@ public class InteractionListener implements Listener {
             }, 1);
             return;
         }
-        if (!(blockData instanceof LogData)) return;
+        final ItemStack heldItem = player.getInventory().getItemInMainHand();
+        final Material material = heldItem.getType();
+        if (ItemUtil.isQuickMiningTool(material)) {
+            Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> PacketUtils.sendMiningFatigue(player));
+        }
+        if (!(blockData instanceof final MineableData mineableData) || mineableData.blockBreakModifier() == null) {
+            return;
+        }
         event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onSwitchItemHeld(PlayerItemHeldEvent event) {
+        final Player player = event.getPlayer();
+        if (player.getGameMode() == GameMode.CREATIVE) return;
+        final ItemStack newItem = player.getInventory().getItem(event.getNewSlot());
+        final ItemStack oldItem = player.getInventory().getItem(event.getPreviousSlot());
+        if (newItem != null) {
+            final Material material = newItem.getType();
+            if (ItemUtil.isQuickMiningTool(material)) {
+                Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> PacketUtils.sendMiningFatigue(player));
+                return;
+            }
+        }
+        if (oldItem != null || player.getPotionEffect(PotionEffectType.SLOW_DIGGING) == null) {
+            final Material material = oldItem.getType();
+            if (ItemUtil.isQuickMiningTool(material)) {
+                Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> PacketUtils.removeMiningFatigue(player));
+            }
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onBlockDamage(BlockDamageEvent event) {
+        final Player player = event.getPlayer();
+        if (player.getGameMode() == GameMode.CREATIVE) return;
+        final Block block = event.getBlock();
+        final ItemStack itemStack = player.getInventory().getItemInMainHand();
+        if (itemStack == null) return;
+        final BlockData blockData = this.blockCache.getBlockData(Position.fromLocation(block.getLocation()));
+        if (blockData instanceof final MineableData mineableData && mineableData.blockBreakModifier() != null) {
+            return;
+        }
+        final Material material = itemStack.getType();
+        if (ItemUtil.isQuickMiningTool(material)) {
+            Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> PacketUtils.removeMiningFatigue(player));
+        }
+
     }
 
     private static final Set<BlockFace> BLOCK_RELATIVE_FACES = Set.of(

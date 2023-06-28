@@ -25,6 +25,8 @@ import io.github.fisher2911.hmcleaves.cache.BlockCache;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.LogData;
+import io.github.fisher2911.hmcleaves.data.MineableData;
+import io.github.fisher2911.hmcleaves.util.ItemUtil;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -40,7 +42,9 @@ import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.SplittableRandom;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -67,12 +71,20 @@ public class BlockBreakManager {
         return this.blockBreakDataMap.get(uuid);
     }
 
-    public void startBlockBreak(Player player, Position position, BlockData blockData) {
-        final int blockBreakTime = this.calculateBlockBreakTimeInTicks(player, player.getInventory().getItemInMainHand());
+    private static final int LOG_HARDNESS = 2;
+    public static final BlockBreakModifier LOG_BREAK_MODIFIER = new BlockBreakModifier(LOG_HARDNESS, false, Set.of(BlockBreakModifier.ToolType.AXE));
+
+    public <T extends MineableData & BlockData> void startBlockBreak(Player player, Position position, T mineableData) {
+        if (mineableData.blockBreakModifier() == null) return;
+        final int blockBreakTime = this.calculateBlockBreakTimeInTicks(
+                player,
+                player.getInventory().getItemInMainHand(),
+                mineableData.blockBreakModifier()
+        );
 //        final int period = (int) Math.ceil(blockBreakTime / (double) BlockBreakData.MAX_DAMAGE);
         final BlockBreakData blockBreakData = new BlockBreakData(
                 RANDOM.nextInt(10_000, 20_000),
-                blockData,
+                mineableData,
                 player,
                 position,
                 blockBreakTime,
@@ -94,80 +106,86 @@ public class BlockBreakManager {
 
     private BukkitTask createScheduler(int blockBreakTime, UUID uuid) {
         return Bukkit.getScheduler().runTaskTimer(this.plugin,
-                    () -> {
-                        final BlockBreakData blockBreakData = BlockBreakManager.this.blockBreakDataMap.get(uuid);
-                        if (blockBreakData == null) {
+                () -> {
+                    final BlockBreakData blockBreakData = BlockBreakManager.this.blockBreakDataMap.get(uuid);
+                    if (blockBreakData == null) {
+                        return;
+                    }
+                    final Player player = blockBreakData.getBreaker();
+                    if (blockBreakData.isBroken()) {
+                        final Block block = blockBreakData.getPosition().toLocation().getBlock();
+                        final LeavesBlockBreakEvent event = new LeavesBlockBreakEvent(block, player);
+                        Bukkit.getPluginManager().callEvent(event);
+                        if (event.isCancelled()) {
+                            blockBreakData.resetProgress();
                             return;
                         }
-                        final Player player = blockBreakData.getBreaker();
-                        if (blockBreakData.isBroken()) {
-                            final Block block = blockBreakData.getPosition().toLocation().getBlock();
-                            final LeavesBlockBreakEvent event = new LeavesBlockBreakEvent(block, player);
-                            Bukkit.getPluginManager().callEvent(event);
-                            if (event.isCancelled()) {
-                                blockBreakData.resetProgress();
-                                return;
+                        PacketUtils.sendBlockBreakAnimation(
+                                blockBreakData.getBreaker(),
+                                blockBreakData.getPosition().toLocation(),
+                                blockBreakData.getEntityId(),
+                                (byte) -1
+                        );
+                        PacketUtils.sendBlockBroken(
+                                player,
+                                blockBreakData.getPosition(),
+                                blockBreakData.getBlockData().sendBlockId()
+                        );
+                        BlockBreakManager.this.blockCache.removeBlockData(blockBreakData.getPosition());
+                        block.setType(Material.AIR);
+                        Supplier<ItemStack> itemStackSupplier = null;
+                        final BlockBreakModifier blockBreakModifier = blockBreakData.getBlockData().blockBreakModifier();
+                        if (blockBreakData.getBlockData() instanceof final LogData logData) {
+//                            if (logData.stripped()) {
+//                                itemStackSupplier = BlockBreakManager.this.leavesConfig.getItemSupplier(logData.strippedLogId());
+//                            } else {
+                            itemStackSupplier = BlockBreakManager.this.leavesConfig.getItemSupplier(logData.getCurrentId());
+//                            }
+                        } else if (itemStackSupplier == null) {
+                            itemStackSupplier = () -> new ItemStack(blockBreakData.getBlockData().worldBlockType());
+                        }
+                        final ItemStack heldItem = blockBreakData.getBreaker().getInventory().getItemInMainHand();
+                        if (!blockBreakModifier.requiresToolToDrop() || blockBreakModifier.hasToolType(heldItem.getType())) {
+                            itemStackSupplier = BlockBreakManager.this.leavesConfig.getItemSupplier(blockBreakData.getBlockData().id());
+                        } else {
+                            itemStackSupplier = null;
+                        }
+                        if (event.isDropItems() && itemStackSupplier != null) {
+                            final World world = block.getWorld();
+                            final ItemStack itemStack = itemStackSupplier.get();
+                            if (itemStack != null) {
+                                final Supplier<ItemStack> finalItemStackSupplier = itemStackSupplier;
+                                Bukkit.getScheduler().runTaskLater(BlockBreakManager.this.plugin, () -> world.dropItem(block.getLocation().clone().add(0.5, 0, 0.5), finalItemStackSupplier.get()), 1);
                             }
-                            PacketUtils.sendBlockBreakAnimation(
-                                    blockBreakData.getBreaker(),
-                                    blockBreakData.getPosition().toLocation(),
-                                    blockBreakData.getEntityId(),
-                                    (byte) -1
-                            );
-                            PacketUtils.sendBlockBroken(
-                                    player,
-                                    blockBreakData.getPosition(),
-                                    blockBreakData.getBlockData().sendBlockId()
-                            );
-                            BlockBreakManager.this.blockCache.removeBlockData(blockBreakData.getPosition());
-                            block.setType(Material.AIR);
-                            Supplier<ItemStack> itemStackSupplier = null;
-                            if (blockBreakData.getBlockData() instanceof final LogData logData) {
-                                if (logData.stripped()) {
-                                    itemStackSupplier = BlockBreakManager.this.leavesConfig.getItemSupplier(logData.strippedLogId());
-                                } else {
-                                    itemStackSupplier = BlockBreakManager.this.leavesConfig.getItemSupplier(blockBreakData.getBlockData().id());
-                                }
-                                if (itemStackSupplier == null) {
-                                    itemStackSupplier = () -> new ItemStack(logData.worldBlockType());
-                                }
-                            }
-                            if (itemStackSupplier != null) {
-                                final World world = block.getWorld();
-                                final ItemStack itemStack = itemStackSupplier.get();
-                                if (itemStack != null) {
-                                    final Supplier<ItemStack> finalItemStackSupplier = itemStackSupplier;
-                                    Bukkit.getScheduler().runTaskLater(BlockBreakManager.this.plugin, () -> world.dropItem(block.getLocation().clone().add(0.5, 0, 0.5), finalItemStackSupplier.get()), 1);
-                                }
-                            }
-                            blockBreakData.getBreakTask().cancel();
+                        }
+                        blockBreakData.getBreakTask().cancel();
+                        if (!ItemUtil.isQuickMiningTool(heldItem.getType())) {
                             PacketUtils.removeMiningFatigue(player);
-                            BlockBreakManager.this.blockBreakDataMap.remove(uuid);
-                            return;
                         }
-                        final int updatedBlockBreakTime = BlockBreakManager.this.calculateBlockBreakTimeInTicks(player, player.getInventory().getItemInMainHand());
-                        final double percentageToAdd = (double) blockBreakTime / updatedBlockBreakTime;
-                        blockBreakData.addBreakTimeProgress(percentageToAdd);
+                        BlockBreakManager.this.blockBreakDataMap.remove(uuid);
+                        return;
+                    }
+                    final int updatedBlockBreakTime = BlockBreakManager.this.calculateBlockBreakTimeInTicks(
+                            player,
+                            player.getInventory().getItemInMainHand(),
+                            blockBreakData.getBlockData().blockBreakModifier()
+                    );
+                    final double percentageToAdd = (double) blockBreakTime / updatedBlockBreakTime;
+                    blockBreakData.addBreakTimeProgress(percentageToAdd);
 //                        blockBreakData.addBreakTimeProgress(period);
-                        blockBreakData.send(blockBreakData.getPosition());
+                    blockBreakData.send(blockBreakData.getPosition());
                 }, 1, 1);
     }
 
-    private static final int LOG_HARDNESS = 2;
-
-    private static final Map<Material, Integer> TOOL_SPEED_MULTIPLIERS = Map.of(
-            Material.GOLDEN_AXE, 12,
-            Material.NETHERITE_AXE, 9,
-            Material.DIAMOND_AXE, 8,
-            Material.IRON_AXE, 6,
-            Material.STONE_AXE, 4,
-            Material.WOODEN_AXE, 2
-    );
+    private static final Map<Material, Integer> TOOL_SPEED_MULTIPLIERS = createToolSpeedModifiers();
 
     // formula found at https://minecraft.fandom.com/wiki/Breaking#Speed
-    private int calculateBlockBreakTimeInTicks(Player player, ItemStack inHand) {
+    private int calculateBlockBreakTimeInTicks(Player player, ItemStack inHand, BlockBreakModifier modifier) {
         final Material material = inHand.getType();
         double speedMultiplier = TOOL_SPEED_MULTIPLIERS.getOrDefault(material, 1);
+        if (!modifier.hasToolType(material)) {
+            speedMultiplier = 1;
+        }
         final int efficiencyLevel = inHand.getEnchantmentLevel(Enchantment.DIG_SPEED);
         if (efficiencyLevel != 0) {
             speedMultiplier += Math.pow(efficiencyLevel, 2) + 1;
@@ -189,11 +207,29 @@ public class BlockBreakManager {
         if (!player.isOnGround()) {
             speedMultiplier /= 5;
         }
-        final double damage = (speedMultiplier / LOG_HARDNESS) / 30;
+        final double damage = (speedMultiplier / modifier.hardness()) / 30;
         if (damage > 1) {
             return 0;
         }
         return (int) Math.ceil(1 / damage);
+    }
+
+    private static Map<Material, Integer> createToolSpeedModifiers() {
+        final Map<Material, Integer> map = new HashMap<>();
+        final Set<Material> goldTools = Set.of(Material.GOLDEN_SHOVEL, Material.GOLDEN_PICKAXE, Material.GOLDEN_AXE, Material.GOLDEN_HOE, Material.GOLDEN_SWORD);
+        final Set<Material> netheriteTools = Set.of(Material.NETHERITE_SHOVEL, Material.NETHERITE_PICKAXE, Material.NETHERITE_AXE, Material.NETHERITE_HOE, Material.NETHERITE_SWORD);
+        final Set<Material> diamondTools = Set.of(Material.DIAMOND_SHOVEL, Material.DIAMOND_PICKAXE, Material.DIAMOND_AXE, Material.DIAMOND_HOE, Material.DIAMOND_SWORD);
+        final Set<Material> ironTools = Set.of(Material.IRON_SHOVEL, Material.IRON_PICKAXE, Material.IRON_AXE, Material.IRON_HOE, Material.IRON_SWORD);
+        final Set<Material> stoneTools = Set.of(Material.STONE_SHOVEL, Material.STONE_PICKAXE, Material.STONE_AXE, Material.STONE_HOE, Material.STONE_SWORD);
+        final Set<Material> woodenTools = Set.of(Material.WOODEN_SHOVEL, Material.WOODEN_PICKAXE, Material.WOODEN_AXE, Material.WOODEN_HOE, Material.WOODEN_SWORD);
+        goldTools.forEach(material -> map.put(material, 12));
+        netheriteTools.forEach(material -> map.put(material, 9));
+        diamondTools.forEach(material -> map.put(material, 8));
+        ironTools.forEach(material -> map.put(material, 6));
+        stoneTools.forEach(material -> map.put(material, 4));
+        woodenTools.forEach(material -> map.put(material, 2));
+        map.put(Material.SHEARS, 2);
+        return map;
     }
 
 //    public void setBlockBreakData(UUID uuid, BlockBreakData blockBreakData) {
@@ -212,9 +248,9 @@ public class BlockBreakManager {
         private double breakTimeProgress;
         private final BukkitTask breakTask;
 
-        public BlockBreakData(
+        public <T extends BlockData & MineableData> BlockBreakData(
                 int entityId,
-                BlockData blockData,
+                T blockData,
                 Player breaker,
                 Position position,
                 int totalBreakTime,
@@ -234,8 +270,8 @@ public class BlockBreakManager {
             return entityId;
         }
 
-        public BlockData getBlockData() {
-            return blockData;
+        public <T extends BlockData & MineableData> T getBlockData() {
+            return (T) this.blockData;
         }
 
         public Player getBreaker() {

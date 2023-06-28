@@ -21,6 +21,7 @@
 package io.github.fisher2911.hmcleaves.data;
 
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
+import io.github.fisher2911.hmcleaves.packet.BlockBreakModifier;
 import org.bukkit.Axis;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -95,6 +96,11 @@ public interface BlockData {
         public boolean shouldSave() {
             return false;
         }
+
+        @Override
+        public @Nullable BlockDataSound blockDataSound() {
+            return null;
+        }
     };
 
     String id();
@@ -123,6 +129,9 @@ public interface BlockData {
 
     boolean shouldSave();
 
+    @Nullable
+    BlockDataSound blockDataSound();
+
     static LeafData leafData(
             String id,
             int sendBlockData,
@@ -132,7 +141,9 @@ public interface BlockData {
             boolean worldPersistence,
             boolean waterlogged,
             String modelPath,
-            Set<BlockFace> supportableFaces
+            Set<BlockFace> supportableFaces,
+            BlockBreakModifier blockBreakModifier,
+            BlockDataSound blockDataSound
     ) {
         return new LeafData(
                 id,
@@ -143,7 +154,9 @@ public interface BlockData {
                 worldPersistence,
                 waterlogged,
                 modelPath,
-                supportableFaces
+                supportableFaces,
+                blockBreakModifier,
+                blockDataSound
         );
     }
 
@@ -156,7 +169,8 @@ public interface BlockData {
             boolean stripped,
             int strippedSendBlockId,
             Axis axis,
-            Set<BlockFace> supportableFaces
+            Set<BlockFace> supportableFaces,
+            BlockDataSound blockDataSound
     ) {
         return new LogData(
                 id,
@@ -167,7 +181,8 @@ public interface BlockData {
                 stripped,
                 strippedSendBlockId,
                 axis,
-                supportableFaces
+                supportableFaces,
+                blockDataSound
         );
     }
 
@@ -177,7 +192,8 @@ public interface BlockData {
             Material realBlockType,
             List<String> schematicFiles,
             boolean randomPasteRotation,
-            String modelPath
+            String modelPath,
+            BlockDataSound blockDataSound
     ) {
         return new SaplingData(
                 id,
@@ -185,7 +201,8 @@ public interface BlockData {
                 realBlockType,
                 schematicFiles,
                 randomPasteRotation,
-                modelPath
+                modelPath,
+                blockDataSound
         );
     }
 
@@ -196,7 +213,8 @@ public interface BlockData {
             boolean glowBerry,
             String modelPath,
             int stackLimit,
-            Set<BlockFace> supportableFaces
+            Set<BlockFace> supportableFaces,
+            BlockDataSound blockDataSound
     ) {
         return new CaveVineData(
                 id,
@@ -205,7 +223,8 @@ public interface BlockData {
                 glowBerry,
                 modelPath,
                 stackLimit,
-                supportableFaces
+                supportableFaces,
+                blockDataSound
         );
     }
 
@@ -219,7 +238,8 @@ public interface BlockData {
             Material defaultLowerMaterial,
             int stackLimit,
             Material breakReplacement,
-            Set<BlockFace> supportableFaces
+            Set<BlockFace> supportableFaces,
+            BlockDataSound blockDataSound
     ) {
         return new AgeableData(
                 id,
@@ -231,7 +251,8 @@ public interface BlockData {
                 defaultLowerMaterial,
                 stackLimit,
                 breakReplacement,
-                supportableFaces
+                supportableFaces,
+                blockDataSound
         );
     }
 

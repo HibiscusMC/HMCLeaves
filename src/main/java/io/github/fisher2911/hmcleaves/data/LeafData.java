@@ -22,10 +22,12 @@ package io.github.fisher2911.hmcleaves.data;
 
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
+import io.github.fisher2911.hmcleaves.packet.BlockBreakModifier;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.block.BlockFace;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
 
@@ -38,8 +40,10 @@ public record LeafData(
         boolean worldPersistence,
         boolean waterlogged,
         String modelPath,
-        Set<BlockFace> supportableFaces
-) implements BlockData {
+        Set<BlockFace> supportableFaces,
+        @Nullable BlockBreakModifier blockBreakModifier,
+        BlockDataSound blockDataSound
+) implements BlockData, MineableData {
 
     @Override
     public Material worldBlockType() {
@@ -71,7 +75,9 @@ public record LeafData(
                 this.worldPersistence,
                 waterLog,
                 this.modelPath,
-                this.supportableFaces
+                this.supportableFaces,
+                this.blockBreakModifier,
+                this.blockDataSound
         );
     }
 

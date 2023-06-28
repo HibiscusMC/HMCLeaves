@@ -21,15 +21,19 @@
 package io.github.fisher2911.hmcleaves.config;
 
 import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.protocol.sound.SoundCategory;
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import com.github.retrooper.packetevents.protocol.world.states.enums.Instrument;
 import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.data.BlockData;
+import io.github.fisher2911.hmcleaves.data.BlockDataSound;
 import io.github.fisher2911.hmcleaves.data.CaveVineData;
 import io.github.fisher2911.hmcleaves.data.LimitedStacking;
 import io.github.fisher2911.hmcleaves.data.LogData;
+import io.github.fisher2911.hmcleaves.data.SoundData;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
+import io.github.fisher2911.hmcleaves.packet.BlockBreakModifier;
 import io.github.fisher2911.hmcleaves.util.ChainedBlockUtil;
 import io.github.fisher2911.hmcleaves.util.PDCUtil;
 import io.github.fisher2911.hmcleaves.world.Position;
@@ -103,7 +107,7 @@ public class LeavesConfig {
         }
         final int materialId = id / STATES_PER_LEAF;
         final int distance = id % 7 + 1;
-        final boolean persistent = id % STATES_PER_LEAF > STATES_PER_LEAF / 2;
+        final boolean persistent = id % STATES_PER_LEAF >= STATES_PER_LEAF / 2;
         final Material material = LEAVES.get(materialId);
         final WrappedBlockState state = WrappedBlockState.getDefaultState(
                 PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
@@ -677,7 +681,9 @@ public class LeavesConfig {
                     false,
                     false,
                     null,
-                    DEFAULT_BLOCK_SUPPORTABLE_FACES
+                    DEFAULT_BLOCK_SUPPORTABLE_FACES,
+                    null,
+                    null
             ));
         }
 
@@ -695,7 +701,8 @@ public class LeavesConfig {
                         false,
                         getLogById(getDefaultStrippedLogId(logMaterial, false)).getGlobalId(),
                         axis,
-                        DEFAULT_BLOCK_SUPPORTABLE_FACES
+                        DEFAULT_BLOCK_SUPPORTABLE_FACES,
+                        null
                 );
                 this.blockDataMap.put(defaultLogStringId, blockData);
                 this.blockDataMap.put(defaultStrippedLogStringId, blockData.strip());
@@ -716,6 +723,7 @@ public class LeavesConfig {
                             sapling,
                             new ArrayList<>(),
                             false,
+                            null,
                             null
                     )
             );
@@ -731,7 +739,8 @@ public class LeavesConfig {
                 false,
                 null,
                 Integer.MAX_VALUE,
-                DEFAULT_CAVE_VINES_SUPPORTABLE_FACES
+                DEFAULT_CAVE_VINES_SUPPORTABLE_FACES,
+                null
         );
         this.blockSupportPredicateMap.put(defaultCaveVinesStringId, DEFAULT_CAVE_VINES_PREDICATE);
         this.blockSupportPredicateMap.put(defaultCaveVinesStringIdWithBerries, DEFAULT_CAVE_VINES_PREDICATE);
@@ -802,7 +811,8 @@ public class LeavesConfig {
                 defaultLowerMaterial,
                 Integer.MAX_VALUE,
                 breakReplacement,
-                supportableFaces
+                supportableFaces,
+                null
         );
         this.blockDataMap.put(defaultStringId, defaultData);
         this.blockSupportPredicateMap.put(defaultStringId, defaultPlacePredicate);
@@ -825,6 +835,13 @@ public class LeavesConfig {
             final boolean worldPersistence = leavesSection.getBoolean(itemId + "." + WORLD_PERSISTENCE_PATH, state.isPersistent());
             final String modelPath = leavesSection.getString(itemId + "." + MODEL_PATH_PATH, null);
             final Set<BlockFace> supportableFaces = this.loadSupportableFaces(leavesSection.getConfigurationSection(itemId), DEFAULT_BLOCK_SUPPORTABLE_FACES);
+            final BlockBreakModifier blockBreakModifier = this.loadBlockBreakModifier(leavesSection.getConfigurationSection(itemId));
+            final BlockDataSound sound = this.loadBlockDataSound(leavesSection.getConfigurationSection(itemId));
+            if (sound != null) {
+                for (int i = 0; i < 50; i++) {
+                    System.out.println("Sound not null: " + sound);
+                }
+            }
             final BlockData blockData = BlockData.leafData(
                     itemId,
                     state.getGlobalId(),
@@ -834,7 +851,9 @@ public class LeavesConfig {
                     worldPersistence,
                     false,
                     modelPath,
-                    supportableFaces
+                    supportableFaces,
+                    blockBreakModifier,
+                    sound
             );
             final ConfigurationSection predicateSection = leavesSection.getConfigurationSection(itemId + "." + ALLOWED_SUPPORTABLE_BLOCKS);
             if (predicateSection != null) {
@@ -922,6 +941,7 @@ public class LeavesConfig {
                 final Predicate<Block> predicate = this.loadSupportableBlockPredicate(predicateSection);
                 this.blockSupportPredicateMap.put(itemId, predicate);
             }
+            final BlockDataSound sound = this.loadBlockDataSound(logsSection.getConfigurationSection(itemId));
             for (Axis axis : Axis.values()) {
                 final String directionalId = itemId + "_" + axis.name().toLowerCase();
                 final String strippedDirectionalId = strippedLogId + "_" + axis.name().toLowerCase();
@@ -934,7 +954,8 @@ public class LeavesConfig {
                         false,
                         strippedLogState.getGlobalId(),
                         axis,
-                        supportableFaces
+                        supportableFaces,
+                        sound
                 );
                 if (predicateSection != null) {
                     final Predicate<Block> predicate = this.loadSupportableBlockPredicate(predicateSection);
@@ -993,13 +1014,15 @@ public class LeavesConfig {
                     SpigotConversionUtil.fromBukkitBlockData(saplingMaterial.createBlockData()).getType()
             );
             state.setStage(stage);
+            final BlockDataSound sound = this.loadBlockDataSound(saplingsSection.getConfigurationSection(itemId));
             final BlockData saplingData = BlockData.saplingData(
                     itemId,
                     state.getGlobalId(),
                     saplingMaterial,
                     schematicFiles,
                     randomPasteRotation,
-                    modelPath
+                    modelPath,
+                    sound
             );
             this.blockDataMap.put(itemId, saplingData);
             this.blockSupportPredicateMap.put(itemId, predicate);
@@ -1038,6 +1061,7 @@ public class LeavesConfig {
             final int stateId = caveVinesSection.getInt(itemId + "." + STATE_ID_PATH);
             final int stackLimit = caveVinesSection.getInt(itemId + "." + STACK_LIMIT_PATH, Integer.MAX_VALUE);
             final Set<BlockFace> supportableFaces = this.loadSupportableFaces(caveVinesSection.getConfigurationSection(itemId), DEFAULT_CAVE_VINES_SUPPORTABLE_FACES);
+            final BlockDataSound sound = this.loadBlockDataSound(caveVinesSection.getConfigurationSection(itemId));
             final CaveVineData blockData = BlockData.caveVineData(
                     itemId,
                     withGlowBerryId,
@@ -1045,7 +1069,8 @@ public class LeavesConfig {
                     false,
                     modelPath,
                     stackLimit,
-                    supportableFaces
+                    supportableFaces,
+                    sound
             );
             final ConfigurationSection predicateSection = caveVinesSection.getConfigurationSection(itemId + "." + ALLOWED_SUPPORTABLE_BLOCKS);
             final Predicate<Block> placePredicate;
@@ -1186,6 +1211,7 @@ public class LeavesConfig {
             } else {
                 placePredicate = defaultPlacePredicate;
             }
+            final BlockDataSound blockDataSound = this.loadBlockDataSound(config.getConfigurationSection(itemId));
             final var data = BlockData.ageableData(
                     itemId,
                     ageableMaterial,
@@ -1196,7 +1222,8 @@ public class LeavesConfig {
                     defaultLowerMaterial,
                     stackLimit,
                     breakReplacement,
-                    this.loadSupportableFaces(config.getConfigurationSection(itemId), defaultSupportableFaces)
+                    this.loadSupportableFaces(config.getConfigurationSection(itemId), defaultSupportableFaces),
+                    blockDataSound
             );
             this.blockSupportPredicateMap.put(itemId, placePredicate);
             this.blockDataMap.put(itemId, data);
@@ -1307,6 +1334,60 @@ public class LeavesConfig {
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toUnmodifiableSet());
+    }
+
+    private static final String BLOCK_BREAK_MODIFIER_PATH = "block-break-modifier";
+    private static final String HARDNESS_PATH = "hardness";
+    private static final String TOOL_TYPES_PATH = "tool-types";
+    private static final String REQUIRES_TOOL_TO_DROP_PATH = "requires-tool-to-drop";
+
+    @Nullable
+    private BlockBreakModifier loadBlockBreakModifier(ConfigurationSection section) {
+        if (!section.contains(BLOCK_BREAK_MODIFIER_PATH)) {
+            return null;
+        }
+        final ConfigurationSection blockBreakModifierSection = section.getConfigurationSection(BLOCK_BREAK_MODIFIER_PATH);
+        if (blockBreakModifierSection == null) {
+            return null;
+        }
+        final int hardness = blockBreakModifierSection.getInt(HARDNESS_PATH, 1);
+        final boolean requiresToolToDrop = blockBreakModifierSection.getBoolean(REQUIRES_TOOL_TO_DROP_PATH, false);
+        final Set<BlockBreakModifier.ToolType> toolTypes = blockBreakModifierSection.getStringList(TOOL_TYPES_PATH)
+                .stream()
+                .map(s -> {
+                    try {
+                        return BlockBreakModifier.ToolType.valueOf(s.toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toUnmodifiableSet());
+        return new BlockBreakModifier(hardness, requiresToolToDrop, toolTypes);
+    }
+
+    private static final String STEP_SOUND_PATH = "step-sound";
+    private static final String HIT_SOUND_PATH = "hit-sound";
+
+    private BlockDataSound loadBlockDataSound(@Nullable ConfigurationSection section) {
+        if (section == null) return null;
+        final SoundData stepSound = this.loadSoundData(section.getConfigurationSection(STEP_SOUND_PATH));
+        final SoundData hitSound = this.loadSoundData(section.getConfigurationSection(HIT_SOUND_PATH));
+        return new BlockDataSound(stepSound, hitSound);
+    }
+
+    private static final String SOUND_NAME_PATH = "name";
+    private static final String SOUND_CATEGORY_PATH = "category";
+    private static final String SOUND_VOLUME_PATH = "volume";
+    private static final String SOUND_PITCH_PATH = "pitch";
+
+    private SoundData loadSoundData(@Nullable ConfigurationSection section) {
+        if (section == null) return null;
+        final String name = section.getString(SOUND_NAME_PATH);
+        final SoundCategory category = SoundCategory.valueOf(section.getString(SOUND_CATEGORY_PATH).toUpperCase());
+        final float volume = (float) section.getDouble(SOUND_VOLUME_PATH);
+        final float pitch = (float) section.getDouble(SOUND_PITCH_PATH);
+        return new SoundData(name, category, volume, pitch);
     }
 
 }

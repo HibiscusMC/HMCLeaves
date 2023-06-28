@@ -46,8 +46,9 @@ import io.github.fisher2911.hmcleaves.cache.BlockCache;
 import io.github.fisher2911.hmcleaves.cache.ChunkBlockCache;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
-import io.github.fisher2911.hmcleaves.data.LogData;
+import io.github.fisher2911.hmcleaves.data.MineableData;
 import io.github.fisher2911.hmcleaves.util.ChunkUtil;
+import io.github.fisher2911.hmcleaves.util.ItemUtil;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
@@ -262,24 +263,30 @@ public class LeavesPacketListener extends PacketListenerAbstract {
                 blockPosition.getZ()
         );
         final BlockData blockData = this.blockCache.getBlockData(position);
-        if (!(blockData instanceof LogData)) return;
+        if (!(blockData instanceof final MineableData mineableData) || mineableData.blockBreakModifier() == null)
+            return;
         if (diggingAction == DiggingAction.START_DIGGING) {
             PacketUtils.sendMiningFatigue(player);
             this.blockBreakManager.startBlockBreak(
                     player,
                     position,
-                    blockData
+                    (MineableData & BlockData) mineableData
             );
             return;
         }
+        final Material heldMaterial = player.getInventory().getItemInMainHand().getType();
         if (diggingAction == DiggingAction.CANCELLED_DIGGING) {
             this.blockBreakManager.cancelBlockBreak(player);
-            PacketUtils.removeMiningFatigue(player);
+            if (!ItemUtil.isQuickMiningTool(heldMaterial)) {
+                PacketUtils.removeMiningFatigue(player);
+            }
             return;
         }
         if (diggingAction == DiggingAction.FINISHED_DIGGING) {
             this.blockBreakManager.cancelBlockBreak(player);
-            PacketUtils.removeMiningFatigue(player);
+            if (!ItemUtil.isQuickMiningTool(heldMaterial)) {
+                PacketUtils.removeMiningFatigue(player);
+            }
         }
     }
 
@@ -297,9 +304,9 @@ public class LeavesPacketListener extends PacketListenerAbstract {
                 below.y,
                 below.z
         ));
-        if (!(blockData instanceof final LogData logData)) return;
+        if (!(blockData instanceof MineableData)) return;
         final ParticleBlockStateData particleBlockStateData = new ParticleBlockStateData(
-                logData.getNewState(null)
+                blockData.getNewState(null)
         );
         particle.setData(particleBlockStateData);
     }
