@@ -169,6 +169,7 @@ public interface BlockData {
             boolean stripped,
             int strippedSendBlockId,
             Axis axis,
+            String modelPath,
             Set<BlockFace> supportableFaces,
             BlockDataSound blockDataSound
     ) {
@@ -181,6 +182,7 @@ public interface BlockData {
                 stripped,
                 strippedSendBlockId,
                 axis,
+                modelPath,
                 supportableFaces,
                 blockDataSound
         );

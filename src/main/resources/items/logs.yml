@@ -2,6 +2,7 @@ logs:
   test_log:
     log-material: OAK_LOG
     stripped-log-material: STRIPPED_OAK_LOG
+    stripped-log-id: test_stripped_log
     material: PAPER
     model-data: 2
     name: "&5Test Log"
@@ -10,4 +11,6 @@ logs:
     instrument: BANJO
     note: 2
     stripped-instrument: BANJO
-    stripped-note: 3
+    stripped-note: 6
+    # set to false if you are using a hook that automatically generates axes
+    generate-axes: true

@@ -20,6 +20,7 @@
 
 package io.github.fisher2911.hmcleaves.config;
 
+import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
@@ -28,6 +29,7 @@ import com.google.gson.stream.JsonWriter;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.LeafData;
+import io.github.fisher2911.hmcleaves.data.LogData;
 import io.github.fisher2911.hmcleaves.data.SaplingData;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import org.bukkit.Material;
@@ -53,8 +55,6 @@ public class TextureFileGenerator {
 
     private static final String VARIANTS_PATH = "variants";
     private static final String MODEL_PATH = "model";
-    private static final String LEAVES_PATH = "blocks/leaves";
-    private static final String SAPLINGS_PATH = "blocks/saplings";
 
     public void generateFile(Material material, Collection<BlockData> data) {
         if (data.isEmpty()) return;
@@ -78,6 +78,13 @@ public class TextureFileGenerator {
                                         convertDataToString(blockData),
                                         blockData.id(),
                                         blockData.modelPath()
+                                );
+                            }
+                            if (blockData instanceof final LogData logData) {
+                                return new JSONData(
+                                        convertDataToString(blockData),
+                                        blockData.id(),
+                                        blockData.modelPath() + "_" + logData.axis().name().toLowerCase()
                                 );
                             }
                             throw new IllegalArgumentException("Cannot convert data type: " + blockData.getClass().getName());
@@ -105,6 +112,8 @@ public class TextureFileGenerator {
     // leaves
     private static final String DISTANCE_KEY = "distance";
     private static final String PERSISTENT_KEY = "persistent";
+    private static final String INSTRUMENT_KEY = "instrument";
+    private static final String NOTE_KEY = "note";
 
     // saplings
     private static final String STAGE = "stage";
@@ -115,6 +124,10 @@ public class TextureFileGenerator {
         }
         if (blockData instanceof final SaplingData saplingData) {
             return STAGE + "=" + saplingData.getNewState(null).getStage();
+        }
+        if (blockData instanceof final LogData logData) {
+            final WrappedBlockState state = logData.getNewState(null);
+            return INSTRUMENT_KEY + "=" + state.getInstrument().name() + "," + NOTE_KEY + "=" + state.getNote();
         }
         throw new IllegalArgumentException(blockData.getClass().getSimpleName() + " cannot be converted to a string for texture file!");
     }

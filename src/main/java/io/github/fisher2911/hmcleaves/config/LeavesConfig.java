@@ -590,6 +590,26 @@ public class LeavesConfig {
                             .collect(Collectors.toList())
             );
         }
+        for (Material log : LOGS) {
+            this.textureFileGenerator.generateFile(
+                    Material.NOTE_BLOCK,
+                    this.blockDataMap.values().stream()
+                            .filter(LogData.class::isInstance)
+                            .filter(blockData -> blockData.realBlockType() == log)
+                            .filter(blockData -> blockData.modelPath() != null)
+                            .collect(Collectors.toList())
+            );
+        }
+        for (Material log : STRIPPED_LOGS) {
+            this.textureFileGenerator.generateFile(
+                    Material.NOTE_BLOCK,
+                    this.blockDataMap.values().stream()
+                            .filter(LogData.class::isInstance)
+                            .filter(blockData -> ((LogData) blockData).strippedBlockType() == log)
+                            .filter(blockData -> blockData.modelPath() != null)
+                            .collect(Collectors.toList())
+            );
+        }
         this.loadDefaults();
     }
 
@@ -701,6 +721,7 @@ public class LeavesConfig {
                         false,
                         getLogById(getDefaultStrippedLogId(logMaterial, false)).getGlobalId(),
                         axis,
+                        null,
                         DEFAULT_BLOCK_SUPPORTABLE_FACES,
                         null
                 );
@@ -837,11 +858,6 @@ public class LeavesConfig {
             final Set<BlockFace> supportableFaces = this.loadSupportableFaces(leavesSection.getConfigurationSection(itemId), DEFAULT_BLOCK_SUPPORTABLE_FACES);
             final BlockBreakModifier blockBreakModifier = this.loadBlockBreakModifier(leavesSection.getConfigurationSection(itemId));
             final BlockDataSound sound = this.loadBlockDataSound(leavesSection.getConfigurationSection(itemId));
-            if (sound != null) {
-                for (int i = 0; i < 50; i++) {
-                    System.out.println("Sound not null: " + sound);
-                }
-            }
             final BlockData blockData = BlockData.leafData(
                     itemId,
                     state.getGlobalId(),
@@ -896,12 +912,14 @@ public class LeavesConfig {
     private static final String NOTE_PATH = "note";
     private static final String STRIPPED_NOTE_PATH = "stripped-note";
     private static final String STRIPPED_LOG_ID_PATH = "stripped-log-id";
+    private static final String GENERATE_AXES_PATH = "generate-axes";
 
     private void loadLogsSection(FileConfiguration config) {
         final ConfigurationSection logsSection = config.getConfigurationSection(LOGS_PATH);
         if (logsSection == null) return;
         for (final var itemId : logsSection.getKeys(false)) {
             String strippedLogId = logsSection.getString(itemId + "." + STRIPPED_LOG_ID_PATH);
+            final boolean generateAxes = logsSection.getBoolean(itemId + "." + GENERATE_AXES_PATH, false);
             if (strippedLogId == null) {
                 strippedLogId = itemId;
             }
@@ -909,18 +927,24 @@ public class LeavesConfig {
             final WrappedBlockState strippedLogState = WrappedBlockState.getDefaultState(StateTypes.NOTE_BLOCK);
             final Material logMaterial = this.loadMaterial(logsSection, itemId + "." + LOG_MATERIAL_PATH, this.defaultLogMaterial);
             final Material strippedLogMaterial = this.loadMaterial(logsSection, itemId + "." + STRIPPED_LOG_MATERIAL_PATH, this.defaultStrippedLogMaterial);
+            final String modelPath = logsSection.getString(itemId + "." + MODEL_PATH_PATH, null);
+            Instrument instrument = INSTRUMENTS.get(0);
+            int note = 0;
+            Instrument strippedInstrument = INSTRUMENTS.get(0);
+            int strippedNote = 3;
             try {
-                final Instrument instrument = Instrument.valueOf(logsSection.getString(itemId + "." + INSTRUMENT_PATH).toUpperCase());
-                final int note = logsSection.getInt(itemId + "." + NOTE_PATH);
-                final Instrument strippedInstrument = Instrument.valueOf(logsSection.getString(itemId + "." + STRIPPED_INSTRUMENT_PATH).toUpperCase());
-                final int strippedNote = logsSection.getInt(itemId + "." + STRIPPED_NOTE_PATH);
-                state.setInstrument(instrument);
-                state.setNote(note);
-                strippedLogState.setInstrument(strippedInstrument);
-                strippedLogState.setNote(strippedNote);
+                instrument = Instrument.valueOf(logsSection.getString(itemId + "." + INSTRUMENT_PATH).toUpperCase());
+                note = logsSection.getInt(itemId + "." + NOTE_PATH);
+                strippedInstrument = Instrument.valueOf(logsSection.getString(itemId + "." + STRIPPED_INSTRUMENT_PATH).toUpperCase());
+                strippedNote = logsSection.getInt(itemId + "." + STRIPPED_NOTE_PATH);
             } catch (IllegalArgumentException | NullPointerException e) {
-                this.plugin.getLogger().severe("Invalid instrument or note for log " + itemId + " in config.yml");
+                this.plugin.getLogger().warning("Invalid instrument or note for log " + itemId + " in config.yml, " +
+                        "make sure you are using a hook if this is intentional");
             }
+            state.setInstrument(instrument);
+            state.setNote(note);
+            strippedLogState.setInstrument(strippedInstrument);
+            strippedLogState.setNote(strippedNote);
             final Supplier<ItemStack> itemStackSupplier = this.loadItemStack(
                     logsSection.getConfigurationSection(itemId),
                     itemId,
@@ -942,9 +966,27 @@ public class LeavesConfig {
                 this.blockSupportPredicateMap.put(itemId, predicate);
             }
             final BlockDataSound sound = this.loadBlockDataSound(logsSection.getConfigurationSection(itemId));
+            int nextNote = note;
+            Instrument nextInstrument = instrument;
+            int nextStrippedNote = strippedNote;
+            Instrument nextStrippedInstrument = strippedInstrument;
             for (Axis axis : Axis.values()) {
                 final String directionalId = itemId + "_" + axis.name().toLowerCase();
                 final String strippedDirectionalId = strippedLogId + "_" + axis.name().toLowerCase();
+                if (generateAxes) {
+                    nextNote = getNextNote(nextNote);
+                    state.setNote(nextNote);
+                    if (nextNote == 0) {
+                        nextInstrument = getNextInstrument(nextInstrument);
+                        state.setInstrument(nextInstrument);
+                    }
+                    nextStrippedNote = getNextNote(nextStrippedNote);
+                    strippedLogState.setNote(nextStrippedNote);
+                    if (nextStrippedNote == 0) {
+                        nextStrippedInstrument = getNextInstrument(nextStrippedInstrument);
+                        strippedLogState.setInstrument(nextStrippedInstrument);
+                    }
+                }
                 final LogData blockData = BlockData.logData(
                         directionalId,
                         strippedDirectionalId,
@@ -954,6 +996,7 @@ public class LeavesConfig {
                         false,
                         strippedLogState.getGlobalId(),
                         axis,
+                        modelPath,
                         supportableFaces,
                         sound
                 );
@@ -968,6 +1011,47 @@ public class LeavesConfig {
                 this.itemSupplierMap.put(strippedDirectionalId, strippedItemStackSupplier);
             }
         }
+    }
+
+    private static int getNextNote(int i) {
+        if (i == 24) {
+            return 0;
+        }
+        return i + 1;
+    }
+
+    private static final List<Instrument> INSTRUMENTS = List.of(
+            Instrument.BANJO,
+            Instrument.BASEDRUM,
+            Instrument.BASS,
+            Instrument.BELL,
+            Instrument.BIT,
+            Instrument.CHIME,
+            Instrument.COW_BELL,
+            Instrument.DIDGERIDOO,
+            Instrument.FLUTE,
+            Instrument.GUITAR,
+            Instrument.HARP,
+            Instrument.HAT,
+            Instrument.IRON_XYLOPHONE,
+            Instrument.PLING,
+            Instrument.SNARE,
+            Instrument.XYLOPHONE,
+            Instrument.ZOMBIE,
+            Instrument.SKELETON,
+            Instrument.CREEPER,
+            Instrument.DRAGON,
+            Instrument.WITHER_SKELETON,
+            Instrument.PIGLIN,
+            Instrument.CUSTOM_HEAD
+    );
+
+    private static Instrument getNextInstrument(Instrument instrument) {
+        final int index = INSTRUMENTS.indexOf(instrument);
+        if (index >= INSTRUMENTS.size()) {
+            throw new IllegalArgumentException("Invalid instrument index " + index);
+        }
+        return INSTRUMENTS.get(index + 1);
     }
 
     private static final String STAGE_PATH = "stage";
@@ -1385,8 +1469,8 @@ public class LeavesConfig {
         if (section == null) return null;
         final String name = section.getString(SOUND_NAME_PATH);
         final SoundCategory category = SoundCategory.valueOf(section.getString(SOUND_CATEGORY_PATH).toUpperCase());
-        final float volume = (float) section.getDouble(SOUND_VOLUME_PATH);
-        final float pitch = (float) section.getDouble(SOUND_PITCH_PATH);
+        final float volume = (float) section.getDouble(SOUND_VOLUME_PATH, 1);
+        final float pitch = (float) section.getDouble(SOUND_PITCH_PATH, 1);
         return new SoundData(name, category, volume, pitch);
     }
 

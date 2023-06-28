@@ -348,7 +348,7 @@ public class InteractionListener implements Listener {
                 return;
             }
         }
-        if (oldItem != null || player.getPotionEffect(PotionEffectType.SLOW_DIGGING) == null) {
+        if (oldItem != null && player.getPotionEffect(PotionEffectType.SLOW_DIGGING) == null) {
             final Material material = oldItem.getType();
             if (ItemUtil.isQuickMiningTool(material)) {
                 Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> PacketUtils.removeMiningFatigue(player));

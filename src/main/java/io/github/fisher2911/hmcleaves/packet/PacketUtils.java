@@ -40,7 +40,6 @@ import io.github.fisher2911.hmcleaves.util.Pair;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -219,7 +218,6 @@ public class PacketUtils {
         );
         final PlayerManager playerManager = PacketEvents.getAPI().getPlayerManager();
         for (Player player : players) {
-            Bukkit.broadcastMessage("Sent sound to " + player.getName() + " " + name + " " + soundCategory + " " + volume + " " + pitch);
             playerManager.sendPacket(player, packet);
         }
     }

@@ -44,6 +44,7 @@ public record LogData(
         boolean stripped,
         int strippedSendBlockId,
         Axis axis,
+        String modelPath,
         Set<BlockFace> supportableFaces,
         @Nullable BlockDataSound blockDataSound
 ) implements BlockData, MineableData {
@@ -86,6 +87,7 @@ public record LogData(
                 true,
                 this.strippedSendBlockId,
                 this.axis,
+                this.modelPath,
                 this.supportableFaces,
                 this.blockDataSound
         );
@@ -109,11 +111,6 @@ public record LogData(
     public String getCurrentId() {
         if (this.stripped) return this.strippedLogId;
         return this.id;
-    }
-
-    @Override
-    public @Nullable String modelPath() {
-        return null;
     }
 
     @Override
