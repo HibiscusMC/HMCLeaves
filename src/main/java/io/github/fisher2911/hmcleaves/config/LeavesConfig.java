@@ -254,8 +254,16 @@ public class LeavesConfig {
         return DEFAULT_LOG_ID + "_" + material.name().toLowerCase();
     }
 
+    public static String getDefaultLogStringId(Material material, Axis axis) {
+        return DEFAULT_LOG_ID + "_" + material.name().toLowerCase() + "_" + axis.name().toLowerCase();
+    }
+
     public static String getDefaultStrippedLogStringId(Material material) {
         return DEFAULT_STRIPPED_LOG_ID + "_" + material.name().toLowerCase();
+    }
+
+    public static String getDefaultStrippedLogStringId(Material material, Axis axis) {
+        return DEFAULT_STRIPPED_LOG_ID + "_" + material.name().toLowerCase() + "_" + axis.name().toLowerCase();
     }
 
     public static String getDefaultSaplingStringId(Material material) {

@@ -90,6 +90,7 @@ public class HMCLeaves extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        this.leafDatabase.shutdownNow().forEach(Runnable::run);
         for (var entry : this.blockCache.getCache().entrySet()) {
             final WorldBlockCache worldBlockCache = entry.getValue();
             for (var chunkEntry : worldBlockCache.getBlockCacheMap().entrySet()) {

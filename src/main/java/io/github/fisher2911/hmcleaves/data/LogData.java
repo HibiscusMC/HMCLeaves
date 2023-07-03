@@ -127,9 +127,9 @@ public record LogData(
     @Override
     public boolean shouldSave() {
         if (this.stripped()) {
-            return !this.strippedLogId().equals(LeavesConfig.getDefaultStrippedLogStringId(this.strippedBlockType()));
+            return !this.strippedLogId().equals(LeavesConfig.getDefaultStrippedLogStringId(this.strippedBlockType(), this.axis()));
         }
-        return !this.id().equals(LeavesConfig.getDefaultLogStringId(this.realBlockType()));
+        return !this.id().equals(LeavesConfig.getDefaultLogStringId(this.realBlockType(), this.axis()));
     }
 
     @Override

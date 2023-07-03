@@ -28,6 +28,7 @@ import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.LeafDatabase;
 import io.github.fisher2911.hmcleaves.packet.PacketUtils;
+import io.github.fisher2911.hmcleaves.util.Pair;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Bukkit;
@@ -45,10 +46,15 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 public class WorldAndChunkLoadListener implements Listener {
@@ -57,12 +63,14 @@ public class WorldAndChunkLoadListener implements Listener {
     private final BlockCache blockCache;
     private final LeavesConfig leavesConfig;
     private final LeafDatabase leafDatabase;
+    private final Executor chunkBlockReadExecutor;
 
     public WorldAndChunkLoadListener(HMCLeaves plugin) {
         this.plugin = plugin;
         this.blockCache = plugin.getBlockCache();
         this.leavesConfig = plugin.getLeavesConfig();
         this.leafDatabase = plugin.getLeafDatabase();
+        this.chunkBlockReadExecutor = Executors.newSingleThreadExecutor();
     }
 
     public void loadDefaultWorlds() {
@@ -93,134 +101,93 @@ public class WorldAndChunkLoadListener implements Listener {
         final UUID worldUUID = world.getUID();
         final ChunkPosition chunkPosition = ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ());
         final ChunkSnapshot snapshot = chunk.getChunkSnapshot();
-//        this.leafDatabase.doDatabaseReadAsync(() -> {
-//            if (!(this.leafDatabase.isChunkLoaded(chunkPosition))) {
-//                this.loadNewChunkData(snapshot, world);
-//                return;
-//            }
-//        });
-        this.loadChunkFromDatabase(ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ()));
+        this.leafDatabase.doDatabaseReadAsync(() -> {
+            if (!(this.leafDatabase.isChunkLoaded(chunkPosition))) {
+                this.loadNewChunkData(snapshot, world);
+                return;
+            }
+            this.loadChunkFromDatabase(ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ()), snapshot);
+        });
     }
 
     private void loadNewChunkData(ChunkSnapshot chunkSnapshot, World world) {
-//        final UUID worldUUID = world.getUID();
-//        final int minY = world.getMinHeight();
-//        final int maxY = world.getMaxHeight();
-//        final int chunkX = chunkSnapshot.getX();
-//        final int chunkZ = chunkSnapshot.getZ();
-//        final ChunkPosition chunkPosition = ChunkPosition.at(worldUUID, chunkX, chunkZ);
-//        this.leafDatabase.doDatabaseWriteAsync(() -> {
-//            this.leafDatabase.deleteChunk(chunkPosition);
-//            this.leafDatabase.setChunkLoaded(chunkPosition);
-//        });
-//        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
-//            final Map<Position, Material> worldMaterials = new HashMap<>();
-//            ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
-//            boolean markClean = chunkBlockCache == null || chunkBlockCache.isClean();
-//            for (int x = 0; x < 16; x++) {
-//                for (int y = minY; y < maxY; y++) {
-//                    for (int z = 0; z < 16; z++) {
-//                        final org.bukkit.block.data.BlockData bukkitBlockData = chunkSnapshot.getBlockData(x, y, z);
-//                        final Material material = bukkitBlockData.getMaterial();
-//                        final Position position = Position.at(
-//                                worldUUID,
-//                                chunkX * 16 + x,
-//                                y,
-//                                chunkZ * 16 + z
-//                        );
-//                        if (Tag.LOGS.isTagged(material)) {
-//                            worldMaterials.put(position, material);
-//                            final Axis axis;
-//                            if (bukkitBlockData instanceof final Orientable orientable) {
-//                                axis = orientable.getAxis();
-//                            } else {
-//                                axis = Axis.Y;
-//                            }
-//                            final BlockData blockData;
-//                            if (material.toString().contains("STRIPPED")) {
-//                                blockData = this.leavesConfig.getDefaultStrippedLogData(material, axis);
-//                            } else {
-//                                blockData = this.leavesConfig.getDefaultLogData(material, axis);
-//                            }
-//                            try {
-//                                this.blockCache.addBlockData(
-//                                        position,
-//                                        blockData
-//                                );
-//                            } catch (NullPointerException e) {
-//                                this.plugin.getLogger().severe("NPE when trying to add " + material + " " + LeavesConfig.getDefaultLogStringId(material) + " " + blockData);
-//                                this.plugin.getLogger().severe("Position: " + position);
-//                            }
-//                            continue;
-//                        }
-//                        if (Tag.CAVE_VINES.isTagged(material)) {
-//                            if (!(bukkitBlockData instanceof final CaveVinesPlant caveVines)) continue;
-//                            worldMaterials.put(position, material);
-//                            this.blockCache.addBlockData(
-//                                    position,
-//                                    this.leavesConfig.getDefaultCaveVinesData(caveVines.isBerries())
-//                            );
-//                            continue;
-//                        }
-//                        if (LeavesConfig.AGEABLE_MATERIALS.contains(material)) {
-//                            worldMaterials.put(position, material);
-//                            this.blockCache.addBlockData(
-//                                    position,
-//                                    this.leavesConfig.getDefaultAgeableData(material)
-//                            );
-//                            continue;
-//                        }
-//                        if (!(bukkitBlockData instanceof Leaves)) continue;
-//                        worldMaterials.put(position, material);
-//                        this.blockCache.addBlockData(
-//                                position,
-//                                this.leavesConfig.getDefaultLeafData(material)
-//                        );
-//                    }
-//                }
-//            }
-//            this.leafDatabase.doDatabaseWriteAsync(() -> {
-//                if (!this.plugin.isEnabled()) return;
-//                final ChunkBlockCache newChunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
-//                this.leafDatabase.setChunkLoaded(chunkPosition);
-//                Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () ->
-//                        this.sendBlocksToPlayersAlreadyInChunk(world, chunkX, chunkZ, worldMaterials)
-//                );
-//                if (newChunkBlockCache == null) return;
-//                this.leafDatabase.saveBlocksInChunk(newChunkBlockCache);
-//                if (markClean) newChunkBlockCache.markClean();
-//            });
-//        });
+        final List<Pair<Integer, Integer>> yDataCount = new ArrayList<>();
+        final Map<Position, Material> worldMaterials = new HashMap<>();
+        for (int y = world.getMinHeight(); y < world.getMaxHeight(); y++) {
+            int count = 0;
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    final org.bukkit.block.data.BlockData bukkitBlockData = chunkSnapshot.getBlockData(x, y, z);
+                    final BlockData blockData = this.leavesConfig.getDefaultBlockData(bukkitBlockData);
+                    if (blockData == null) continue;
+                    final Position position = Position.at(world.getUID(), chunkSnapshot.getX() * 16 + x, y, chunkSnapshot.getZ() * 16 + z);
+                    this.blockCache.addBlockData(position, blockData);
+                    worldMaterials.put(position, bukkitBlockData.getMaterial());
+                    count++;
+                }
+            }
+            if (count == 0) continue;
+            yDataCount.add(Pair.of(y, count));
+        }
+        final ChunkPosition chunkPosition = ChunkPosition.at(world.getUID(), chunkSnapshot.getX(), chunkSnapshot.getZ());
+        this.sendBlocksToPlayersAlreadyInChunk(world, chunkPosition.x(), chunkPosition.z(), worldMaterials);
+        this.leafDatabase.doDatabaseWriteAsync(() -> {
+            try {
+                this.leafDatabase.saveDefaultDataLayers(chunkPosition, yDataCount);
+                this.leafDatabase.setChunkLoaded(chunkPosition);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
-    private void loadChunkFromDatabase(ChunkPosition chunkPosition) {
-        this.leafDatabase.doDatabaseReadAsync(() -> {
-            final Map<Position, BlockData> chunkBlocks = this.leafDatabase.getBlocksInChunk(chunkPosition, this.leavesConfig);
-            ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
-            boolean markClean = chunkBlockCache == null || chunkBlockCache.isClean();
-            chunkBlocks.forEach(this.blockCache::addBlockData);
-            chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
-            if (!this.plugin.isEnabled()) return;
-            final ChunkBlockCache finalChunkBlockCache = chunkBlockCache;
-            Bukkit.getScheduler().runTask(this.plugin, () -> {
-                final World world = Bukkit.getWorld(chunkPosition.world());
-                if (world == null) return;
-                final Map<Position, Material> worldMaterials = new HashMap<>();
-                if (finalChunkBlockCache == null) return;
-                for (var entry : finalChunkBlockCache.getBlockDataMap().entrySet()) {
-                    final Position position = entry.getKey();
-                    final Location location = position.toLocation();
-                    final Material material = world.getType(location);
-                    worldMaterials.put(position, material);
+    private void loadChunkFromDatabase(ChunkPosition chunkPosition, ChunkSnapshot snapshot) {
+//        this.leafDatabase.doDatabaseReadAsync(() -> {
+        final Map<Position, BlockData> chunkBlocks = this.leafDatabase.getBlocksInChunk(chunkPosition, this.leavesConfig);
+        final Collection<Pair<Integer, Integer>> layers = this.leafDatabase.getDefaultLayersInChunk(chunkPosition);
+        ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
+        boolean markClean = chunkBlockCache == null || chunkBlockCache.isClean();
+        chunkBlocks.forEach(this.blockCache::addBlockData);
+        chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
+        if (!this.plugin.isEnabled()) return;
+        final ChunkBlockCache finalChunkBlockCache = chunkBlockCache;
+        final Map<Position, Material> worldMaterials = new HashMap<>();
+        for (var pair : layers) {
+            final int y = pair.getFirst();
+            final int count = pair.getSecond();
+            if (count == 0) continue;
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    final Position position = Position.at(chunkPosition.world(), chunkPosition.x() * 16 + x, y, chunkPosition.z() * 16 + z);
+                    final BlockData current = this.blockCache.getBlockData(position);
+                    if (current != BlockData.EMPTY) continue;
+                    final org.bukkit.block.data.BlockData bukkitBlockData = snapshot.getBlockData(x, y, z);
+                    final BlockData blockData = this.leavesConfig.getDefaultBlockData(bukkitBlockData);
+                    if (blockData == null) continue;
+                    this.blockCache.addBlockData(position, blockData);
+                    worldMaterials.put(position, bukkitBlockData.getMaterial());
                 }
-                Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
-                            this.sendBlocksToPlayersAlreadyInChunk(world, chunkPosition.x(), chunkPosition.z(), worldMaterials);
-                        }
-                );
-            });
-            if (chunkBlockCache == null || !markClean) return;
-            chunkBlockCache.markClean();
+            }
+
+        }
+        Bukkit.getScheduler().runTask(this.plugin, () -> {
+            final World world = Bukkit.getWorld(chunkPosition.world());
+            if (world == null) return;
+            if (finalChunkBlockCache == null) return;
+            for (var entry : finalChunkBlockCache.getBlockDataMap().entrySet()) {
+                final Position position = entry.getKey();
+                final Location location = position.toLocation();
+                final Material material = world.getType(location);
+                worldMaterials.put(position, material);
+            }
+            Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
+                        this.sendBlocksToPlayersAlreadyInChunk(world, chunkPosition.x(), chunkPosition.z(), worldMaterials);
+                    }
+            );
         });
+        if (chunkBlockCache == null || !markClean) return;
+        chunkBlockCache.markClean();
+//        });
     }
 
     private void sendBlocksToPlayersAlreadyInChunk(World world, int chunkX, int chunkZ, Map<Position, Material> worldMaterials) {

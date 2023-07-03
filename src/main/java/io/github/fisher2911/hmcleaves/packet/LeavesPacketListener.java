@@ -132,34 +132,34 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         for (int i = 0; i < chunks.length; i++) {
             final BaseChunk chunk = chunks[i];
             final int worldY = i * 16 - heightAdjustment;
-            if (!chunkCache.hasSentFirstPacket()) {
-                for (int x = 0; x < 16; x++) {
-                    for (int y = 0; y < 16; y++) {
-                        for (int z = 0; z < 16; z++) {
-                            final WrappedBlockState state = chunk.get(x, y, z);
-                            final org.bukkit.block.data.BlockData bukkitBlockData = SpigotConversionUtil.toBukkitBlockData(state);
-                            if (bukkitBlockData == null) continue;
-                            BlockData blockData = this.leavesConfig.getDefaultBlockData(bukkitBlockData);
-                            if (blockData == null) continue;
-                            final Position position = Position.at(world, chunkX * 16 + x, worldY + y, chunkZ * 16 + z);
-                            final BlockData currentBlockData = chunkCache.getBlockDataAt(position);
-                            if (currentBlockData != BlockData.EMPTY) {
-                                blockData = currentBlockData;
-                            } else {
-                                chunkCache.setBlockData(position, blockData);
-                            }
-                            chunk.set(
-                                    PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
-                                    x,
-                                    y,
-                                    z,
-                                    blockData.getNewState(bukkitBlockData.getMaterial()).getGlobalId()
-                            );
-                        }
-                    }
-                }
-                continue;
-            }
+//            if (!chunkCache.hasSentFirstPacket()) {
+//                for (int x = 0; x < 16; x++) {
+//                    for (int y = 0; y < 16; y++) {
+//                        for (int z = 0; z < 16; z++) {
+//                            final WrappedBlockState state = chunk.get(x, y, z);
+//                            final org.bukkit.block.data.BlockData bukkitBlockData = SpigotConversionUtil.toBukkitBlockData(state);
+//                            if (bukkitBlockData == null) continue;
+//                            BlockData blockData = this.leavesConfig.getDefaultBlockData(bukkitBlockData);
+//                            if (blockData == null) continue;
+//                            final Position position = Position.at(world, chunkX * 16 + x, worldY + y, chunkZ * 16 + z);
+//                            final BlockData currentBlockData = chunkCache.getBlockDataAt(position);
+//                            if (currentBlockData != BlockData.EMPTY) {
+//                                blockData = currentBlockData;
+//                            } else {
+//                                chunkCache.setBlockData(position, blockData);
+//                            }
+//                            chunk.set(
+//                                    PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
+//                                    x,
+//                                    y,
+//                                    z,
+//                                    blockData.getNewState(bukkitBlockData.getMaterial()).getGlobalId()
+//                            );
+//                        }
+//                    }
+//                }
+//                continue;
+//            }
             for (var entry : chunkCache.getBlockDataMap().entrySet()) {
                 final var position = entry.getKey();
                 final int difference = position.y() - worldY;
