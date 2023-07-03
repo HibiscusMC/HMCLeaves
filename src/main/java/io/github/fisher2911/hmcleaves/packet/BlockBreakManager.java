@@ -135,20 +135,16 @@ public class BlockBreakManager {
                         block.setType(Material.AIR);
                         Supplier<ItemStack> itemStackSupplier = null;
                         final BlockBreakModifier blockBreakModifier = blockBreakData.getBlockData().blockBreakModifier();
-                        if (blockBreakData.getBlockData() instanceof final LogData logData) {
-//                            if (logData.stripped()) {
-//                                itemStackSupplier = BlockBreakManager.this.leavesConfig.getItemSupplier(logData.strippedLogId());
-//                            } else {
-                            itemStackSupplier = BlockBreakManager.this.leavesConfig.getItemSupplier(logData.getCurrentId());
-//                            }
-                        } else if (itemStackSupplier == null) {
-                            itemStackSupplier = () -> new ItemStack(blockBreakData.getBlockData().worldBlockType());
-                        }
                         final ItemStack heldItem = blockBreakData.getBreaker().getInventory().getItemInMainHand();
                         if (!blockBreakModifier.requiresToolToDrop() || blockBreakModifier.hasToolType(heldItem.getType())) {
-                            itemStackSupplier = BlockBreakManager.this.leavesConfig.getItemSupplier(blockBreakData.getBlockData().id());
-                        } else {
-                            itemStackSupplier = null;
+                            if (blockBreakData.getBlockData() instanceof final LogData logData) {
+                                itemStackSupplier = BlockBreakManager.this.leavesConfig.getItemSupplier(logData.getCurrentId());
+                            } else {
+                                itemStackSupplier = BlockBreakManager.this.leavesConfig.getItemSupplier(blockBreakData.getBlockData().id());
+                            }
+                            if (itemStackSupplier == null) {
+                                itemStackSupplier = () -> new ItemStack(blockBreakData.getBlockData().worldBlockType());
+                            }
                         }
                         if (event.isDropItems() && itemStackSupplier != null) {
                             final World world = block.getWorld();

@@ -58,6 +58,7 @@ import org.bukkit.block.data.type.Leaves;
 import org.bukkit.block.data.type.Sapling;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -87,7 +88,7 @@ public class InteractionListener implements Listener {
         this.blockCache = plugin.getBlockCache();
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    @EventHandler(/*ignoreCancelled = true, */priority = EventPriority.HIGHEST)
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) {
             return;
@@ -97,6 +98,12 @@ public class InteractionListener implements Listener {
         if (!this.leavesConfig.isWorldWhitelisted(world)) return;
         final Block block = event.getClickedBlock();
         if (block == null) return;
+        if (Hooks.getCustomBlockIdAt(block.getLocation().clone()) == null &&
+                (event.useInteractedBlock() == Event.Result.DENY ||
+                        event.useItemInHand() == Event.Result.DENY)
+        ) {
+            return;
+        }
         final Position clickedPosition = Position.fromLocation(block.getLocation());
         final BlockData clickedBlockData = this.blockCache.getBlockData(clickedPosition);
         final ItemStack clickedWith = event.getItem();
@@ -133,10 +140,10 @@ public class InteractionListener implements Listener {
         final Axis axis = this.axisFromBlockFace(blockFace);
         final BlockData blockData = this.leavesConfig.getBlockData(clickedWith, axis);
         if (this.checkStripLog(player, block, clickedWith)) return;
-        if (
-                (block.getType().isInteractable() && Hooks.getCustomBlockIdAt(placeLocation.clone().subtract(0, 1, 0)) == null)
-                        && !player.isSneaking()
-        ) {
+        if ((
+                block.getType().isInteractable() &&
+                        Hooks.getCustomBlockIdAt(block.getLocation().clone()) == null
+        ) && !player.isSneaking()) {
             if (!Tag.CAVE_VINES.isTagged(block.getType())) {
                 return;
             }

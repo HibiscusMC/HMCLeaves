@@ -95,6 +95,7 @@ public class OraxenHook implements ItemHook {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onNoteblockPlace(OraxenNoteBlockPlaceEvent event) {
+        if (event.getMechanic() == null) return;
         final String id = event.getMechanic().getItemID();
         if (this.config.getItemSupplier(id) != null) {
             event.setCancelled(true);
@@ -103,6 +104,7 @@ public class OraxenHook implements ItemHook {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onNoteblockRemove(OraxenNoteBlockBreakEvent event) {
+        if (event.getMechanic() == null) return;
         final String id = event.getMechanic().getItemID();
         if (this.config.getItemSupplier(id) != null) {
             event.setCancelled(true);

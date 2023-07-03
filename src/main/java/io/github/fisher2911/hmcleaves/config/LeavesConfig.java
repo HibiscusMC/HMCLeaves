@@ -912,6 +912,7 @@ public class LeavesConfig {
     private static final String NOTE_PATH = "note";
     private static final String STRIPPED_NOTE_PATH = "stripped-note";
     private static final String STRIPPED_LOG_ID_PATH = "stripped-log-id";
+    private static final String STRIPPED_LOG_ITEM_PATH = "stripped-log";
     private static final String GENERATE_AXES_PATH = "generate-axes";
 
     private void loadLogsSection(FileConfiguration config) {
@@ -950,11 +951,20 @@ public class LeavesConfig {
                     itemId,
                     itemId
             );
-            final Supplier<ItemStack> strippedItemStackSupplier = this.loadItemStack(
-                    logsSection.getConfigurationSection(itemId),
-                    strippedLogId,
-                    strippedLogId
-            );
+            final Supplier<ItemStack> strippedItemStackSupplier;
+            if (logsSection.getConfigurationSection(itemId).getConfigurationSection(STRIPPED_LOG_ITEM_PATH) != null) {
+                strippedItemStackSupplier = this.loadItemStack(
+                        logsSection.getConfigurationSection(itemId).getConfigurationSection(STRIPPED_LOG_ITEM_PATH),
+                        strippedLogId,
+                        strippedLogId
+                );
+            } else {
+                strippedItemStackSupplier = this.loadItemStack(
+                        logsSection.getConfigurationSection(itemId),
+                        strippedLogId,
+                        strippedLogId
+                );
+            }
             final Set<BlockFace> supportableFaces = this.loadSupportableFaces(logsSection.getConfigurationSection(itemId), DEFAULT_BLOCK_SUPPORTABLE_FACES);
             this.itemSupplierMap.put(itemId, itemStackSupplier);
             this.itemSupplierMap.put(strippedLogId, strippedItemStackSupplier);
@@ -966,24 +976,40 @@ public class LeavesConfig {
                 this.blockSupportPredicateMap.put(itemId, predicate);
             }
             final BlockDataSound sound = this.loadBlockDataSound(logsSection.getConfigurationSection(itemId));
-            int nextNote = note;
-            Instrument nextInstrument = instrument;
-            int nextStrippedNote = strippedNote;
-            Instrument nextStrippedInstrument = strippedInstrument;
+            Integer nextNote = null;
+            Instrument nextInstrument = null;
+            Integer nextStrippedNote = null;
+            Instrument nextStrippedInstrument = null;
             for (Axis axis : Axis.values()) {
                 final String directionalId = itemId + "_" + axis.name().toLowerCase();
                 final String strippedDirectionalId = strippedLogId + "_" + axis.name().toLowerCase();
                 if (generateAxes) {
-                    nextNote = getNextNote(nextNote);
+                    if (nextNote != null) {
+                        nextNote = getNextNote(nextNote);
+                    } else {
+                        nextNote = note;
+                    }
                     state.setNote(nextNote);
                     if (nextNote == 0) {
-                        nextInstrument = getNextInstrument(nextInstrument);
+                        if (nextInstrument != null) {
+                            nextInstrument = getNextInstrument(nextInstrument);
+                        } else {
+                            nextInstrument = instrument;
+                        }
                         state.setInstrument(nextInstrument);
                     }
-                    nextStrippedNote = getNextNote(nextStrippedNote);
+                    if (nextStrippedNote != null) {
+                        nextStrippedNote = getNextNote(nextStrippedNote);
+                    } else {
+                        nextStrippedNote = strippedNote;
+                    }
                     strippedLogState.setNote(nextStrippedNote);
                     if (nextStrippedNote == 0) {
-                        nextStrippedInstrument = getNextInstrument(nextStrippedInstrument);
+                        if (nextStrippedInstrument != null) {
+                            nextStrippedInstrument = getNextInstrument(nextStrippedInstrument);
+                        } else {
+                            nextStrippedInstrument = strippedInstrument;
+                        }
                         strippedLogState.setInstrument(nextStrippedInstrument);
                     }
                 }

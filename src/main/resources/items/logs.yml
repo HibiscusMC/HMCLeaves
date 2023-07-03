@@ -3,6 +3,13 @@ logs:
     log-material: OAK_LOG
     stripped-log-material: STRIPPED_OAK_LOG
     stripped-log-id: test_stripped_log
+    stripped-log:
+      inventory-item:
+        material: PAPER
+        model-data: 1
+        name: "&5Test Stripped Log"
+        lore:
+          - "&aLine 1"
     material: PAPER
     model-data: 2
     name: "&5Test Log"
