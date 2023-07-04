@@ -23,7 +23,6 @@ package io.github.fisher2911.hmcleaves.data;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.cache.ChunkBlockCache;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
-import io.github.fisher2911.hmcleaves.util.Pair;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.jetbrains.annotations.Nullable;
@@ -134,18 +133,16 @@ public class LeafDatabase {
     private static final String DEFAULT_CHUNK_DATA_LAYERS_CHUNK_X_COLUMN = "chunk_x";
     private static final String DEFAULT_CHUNK_DATA_LAYERS_CHUNK_Z_COLUMN = "chunk_z";
     private static final String DEFAULT_CHUNK_DATA_LAYERS_Y_COLUMN = "y";
-    private static final String DEFAULT_CHUNK_DATA_LAYERS_DATA_COUNT_COLUMN = "data_count";
     private static final String CREATE_DEFAULT_CHUNK_DATA_LAYERS_TABLE_STATEMENT =
             "CREATE TABLE IF NOT EXISTS " + DEFAULT_CHUNK_DATA_LAYERS_TABLE_NAME + " (" +
                     DEFAULT_CHUNK_DATA_LAYERS_WORLD_UUID_COLUMN + " BINARY(16) NOT NULL, " +
                     DEFAULT_CHUNK_DATA_LAYERS_CHUNK_X_COLUMN + " INTEGER NOT NULL, " +
                     DEFAULT_CHUNK_DATA_LAYERS_CHUNK_Z_COLUMN + " INTEGER NOT NULL, " +
                     DEFAULT_CHUNK_DATA_LAYERS_Y_COLUMN + " INTEGER NOT NULL, " +
-                    DEFAULT_CHUNK_DATA_LAYERS_DATA_COUNT_COLUMN + " INTEGER NOT NULL, " +
                     "PRIMARY KEY (" + DEFAULT_CHUNK_DATA_LAYERS_WORLD_UUID_COLUMN + ", " + DEFAULT_CHUNK_DATA_LAYERS_CHUNK_X_COLUMN + ", " + DEFAULT_CHUNK_DATA_LAYERS_CHUNK_Z_COLUMN + ", " + DEFAULT_CHUNK_DATA_LAYERS_Y_COLUMN + ")" +
                     ");";
     private static final String GET_DEFAULT_CHUNK_DATA_LAYERS_STATEMENT =
-            "SELECT " + DEFAULT_CHUNK_DATA_LAYERS_Y_COLUMN + ", " + DEFAULT_CHUNK_DATA_LAYERS_DATA_COUNT_COLUMN + " FROM " + DEFAULT_CHUNK_DATA_LAYERS_TABLE_NAME + " WHERE " +
+            "SELECT " + DEFAULT_CHUNK_DATA_LAYERS_Y_COLUMN + " FROM " + DEFAULT_CHUNK_DATA_LAYERS_TABLE_NAME + " WHERE " +
                     DEFAULT_CHUNK_DATA_LAYERS_WORLD_UUID_COLUMN + " = ? AND " +
                     DEFAULT_CHUNK_DATA_LAYERS_CHUNK_X_COLUMN + " = ? AND " +
                     DEFAULT_CHUNK_DATA_LAYERS_CHUNK_Z_COLUMN + " = ?;";
@@ -154,8 +151,7 @@ public class LeafDatabase {
                     DEFAULT_CHUNK_DATA_LAYERS_WORLD_UUID_COLUMN + ", " +
                     DEFAULT_CHUNK_DATA_LAYERS_CHUNK_X_COLUMN + ", " +
                     DEFAULT_CHUNK_DATA_LAYERS_CHUNK_Z_COLUMN + ", " +
-                    DEFAULT_CHUNK_DATA_LAYERS_Y_COLUMN + ", " +
-                    DEFAULT_CHUNK_DATA_LAYERS_DATA_COUNT_COLUMN + ") VALUES (?, ?, ?, ?, ?);";
+                    DEFAULT_CHUNK_DATA_LAYERS_Y_COLUMN + ") VALUES (?, ?, ?, ?);";
 
     private static final String LEAVES_TABLE_NAME = "leaves";
     private static final String LEAVES_TABLE_WORLD_UUID_COLUMN = "world_uuid";
@@ -542,7 +538,7 @@ public class LeafDatabase {
         return blocks;
     }
 
-    public void saveDefaultDataLayers(ChunkPosition chunkPosition, Collection<Pair<Integer, Integer>> yAndDataCountPairs) throws SQLException {
+    public void saveDefaultDataLayers(ChunkPosition chunkPosition, Collection<Integer> yLayers) throws SQLException {
         final Connection connection = this.getConnection();
         if (connection == null) throw new IllegalStateException("Could not connect to database!");
         final int chunkX = chunkPosition.x();
@@ -550,12 +546,11 @@ public class LeafDatabase {
         final byte[] worldUUIDBytes = this.uuidToBytes(chunkPosition.world());
         this.connection.setAutoCommit(false);
         try (final PreparedStatement statement = connection.prepareStatement(INSERT_DEFAULT_CHUNK_DATA_LAYERS_STATEMENT)) {
-            for (var pair : yAndDataCountPairs) {
+            for (int y : yLayers) {
                 statement.setBytes(1, worldUUIDBytes);
                 statement.setInt(2, chunkX);
                 statement.setInt(3, chunkZ);
-                statement.setInt(4, pair.getFirst());
-                statement.setInt(5, pair.getSecond());
+                statement.setInt(4, y);
                 statement.addBatch();
             }
             statement.executeBatch();
@@ -565,8 +560,8 @@ public class LeafDatabase {
         connection.commit();
     }
 
-    public Collection<Pair<Integer, Integer>> getDefaultLayersInChunk(ChunkPosition chunkPosition) {
-        final List<Pair<Integer, Integer>> yAndDataCountPairs = new ArrayList<>();
+    public Collection<Integer> getDefaultLayersInChunk(ChunkPosition chunkPosition) {
+        final List<Integer> yLevels = new ArrayList<>();
         final Connection connection = this.getConnection();
         if (connection == null) throw new IllegalStateException("Could not connect to database!");
         final int chunkX = chunkPosition.x();
@@ -578,16 +573,13 @@ public class LeafDatabase {
             statement.setInt(3, chunkZ);
             try (final ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
-                    yAndDataCountPairs.add(Pair.of(
-                            resultSet.getInt(DEFAULT_CHUNK_DATA_LAYERS_Y_COLUMN),
-                            resultSet.getInt(DEFAULT_CHUNK_DATA_LAYERS_DATA_COUNT_COLUMN))
-                    );
+                    yLevels.add(resultSet.getInt(DEFAULT_CHUNK_DATA_LAYERS_Y_COLUMN));
                 }
             }
         } catch (SQLException e) {
             throw new IllegalStateException("Could not get default data layers in chunk " + chunkX + ", " + chunkZ + "!", e);
         }
-        return yAndDataCountPairs;
+        return yLevels;
     }
 
     private void saveLeafBlocksInChunk(ChunkBlockCache chunk) throws SQLException {

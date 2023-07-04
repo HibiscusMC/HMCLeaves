@@ -28,7 +28,6 @@ import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.LeafDatabase;
 import io.github.fisher2911.hmcleaves.packet.PacketUtils;
-import io.github.fisher2911.hmcleaves.util.Pair;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Bukkit;
@@ -111,7 +110,7 @@ public class WorldAndChunkLoadListener implements Listener {
     }
 
     private void loadNewChunkData(ChunkSnapshot chunkSnapshot, World world) {
-        final List<Pair<Integer, Integer>> yDataCount = new ArrayList<>();
+        final List<Integer> yLevels = new ArrayList<>();
         final Map<Position, Material> worldMaterials = new HashMap<>();
         for (int y = world.getMinHeight(); y < world.getMaxHeight(); y++) {
             int count = 0;
@@ -127,13 +126,13 @@ public class WorldAndChunkLoadListener implements Listener {
                 }
             }
             if (count == 0) continue;
-            yDataCount.add(Pair.of(y, count));
+            yLevels.add(y);
         }
         final ChunkPosition chunkPosition = ChunkPosition.at(world.getUID(), chunkSnapshot.getX(), chunkSnapshot.getZ());
         this.sendBlocksToPlayersAlreadyInChunk(world, chunkPosition.x(), chunkPosition.z(), worldMaterials);
         this.leafDatabase.doDatabaseWriteAsync(() -> {
             try {
-                this.leafDatabase.saveDefaultDataLayers(chunkPosition, yDataCount);
+                this.leafDatabase.saveDefaultDataLayers(chunkPosition, yLevels);
                 this.leafDatabase.setChunkLoaded(chunkPosition);
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -144,7 +143,7 @@ public class WorldAndChunkLoadListener implements Listener {
     private void loadChunkFromDatabase(ChunkPosition chunkPosition, ChunkSnapshot snapshot) {
 //        this.leafDatabase.doDatabaseReadAsync(() -> {
         final Map<Position, BlockData> chunkBlocks = this.leafDatabase.getBlocksInChunk(chunkPosition, this.leavesConfig);
-        final Collection<Pair<Integer, Integer>> layers = this.leafDatabase.getDefaultLayersInChunk(chunkPosition);
+        final Collection<Integer> layers = this.leafDatabase.getDefaultLayersInChunk(chunkPosition);
         ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
         boolean markClean = chunkBlockCache == null || chunkBlockCache.isClean();
         chunkBlocks.forEach(this.blockCache::addBlockData);
@@ -152,10 +151,7 @@ public class WorldAndChunkLoadListener implements Listener {
         if (!this.plugin.isEnabled()) return;
         final ChunkBlockCache finalChunkBlockCache = chunkBlockCache;
         final Map<Position, Material> worldMaterials = new HashMap<>();
-        for (var pair : layers) {
-            final int y = pair.getFirst();
-            final int count = pair.getSecond();
-            if (count == 0) continue;
+        for (int y : layers) {
             for (int x = 0; x < 16; x++) {
                 for (int z = 0; z < 16; z++) {
                     final Position position = Position.at(chunkPosition.world(), chunkPosition.x() * 16 + x, y, chunkPosition.z() * 16 + z);

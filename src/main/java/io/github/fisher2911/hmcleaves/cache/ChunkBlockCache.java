@@ -38,8 +38,6 @@ public class ChunkBlockCache {
     private boolean dirty;
     private boolean saving;
     private boolean safeToMarkClean;
-    // checks to make sure all default blocks have been found
-    private boolean sentFirstPacket;
 
     public ChunkBlockCache(ChunkPosition chunkPosition, Map<Position, BlockData> blockDataMap, Map<Position, BlockData> removedPositions) {
         this.chunkPosition = chunkPosition;
@@ -123,14 +121,6 @@ public class ChunkBlockCache {
     public void setSafeToMarkClean(boolean safeToMarkClean) {
         if (this.saving) return;
         this.safeToMarkClean = safeToMarkClean;
-    }
-
-    public boolean hasSentFirstPacket() {
-        return sentFirstPacket;
-    }
-
-    public void setSentFirstPacket(boolean sentFirstPacket) {
-        this.sentFirstPacket = sentFirstPacket;
     }
 
 }
