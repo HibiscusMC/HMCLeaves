@@ -105,7 +105,7 @@ public class WorldAndChunkLoadListener implements Listener {
                 this.loadNewChunkData(snapshot, world);
                 return;
             }
-            this.loadChunkFromDatabase(ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ()), snapshot);
+            this.loadChunkFromDatabase(ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ()), snapshot, worldUUID);
         });
     }
 
@@ -129,7 +129,7 @@ public class WorldAndChunkLoadListener implements Listener {
             yLevels.add(y);
         }
         final ChunkPosition chunkPosition = ChunkPosition.at(world.getUID(), chunkSnapshot.getX(), chunkSnapshot.getZ());
-        this.sendBlocksToPlayersAlreadyInChunk(world, chunkPosition.x(), chunkPosition.z(), worldMaterials);
+        this.sendBlocksToPlayersAlreadyInChunk(world.getUID(), chunkPosition.x(), chunkPosition.z(), worldMaterials);
         this.leafDatabase.doDatabaseWriteAsync(() -> {
             try {
                 this.leafDatabase.saveDefaultDataLayers(chunkPosition, yLevels);
@@ -140,7 +140,7 @@ public class WorldAndChunkLoadListener implements Listener {
         });
     }
 
-    private void loadChunkFromDatabase(ChunkPosition chunkPosition, ChunkSnapshot snapshot) {
+    private void loadChunkFromDatabase(ChunkPosition chunkPosition, ChunkSnapshot snapshot, UUID worldUUID) {
 //        this.leafDatabase.doDatabaseReadAsync(() -> {
         final Map<Position, BlockData> chunkBlocks = this.leafDatabase.getBlocksInChunk(chunkPosition, this.leavesConfig);
         final Collection<Integer> layers = this.leafDatabase.getDefaultLayersInChunk(chunkPosition);
@@ -166,50 +166,47 @@ public class WorldAndChunkLoadListener implements Listener {
             }
 
         }
-        Bukkit.getScheduler().runTask(this.plugin, () -> {
-            final World world = Bukkit.getWorld(chunkPosition.world());
-            if (world == null) return;
-            if (finalChunkBlockCache == null) return;
-            for (var entry : finalChunkBlockCache.getBlockDataMap().entrySet()) {
-                final Position position = entry.getKey();
-                final Location location = position.toLocation();
-                final Material material = world.getType(location);
-                worldMaterials.put(position, material);
-            }
-            Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
-                        this.sendBlocksToPlayersAlreadyInChunk(world, chunkPosition.x(), chunkPosition.z(), worldMaterials);
-                    }
-            );
-        });
-        if (chunkBlockCache == null || !markClean) return;
+        if (finalChunkBlockCache == null) return;
+        for (var entry : finalChunkBlockCache.getBlockDataMap().entrySet()) {
+            final Position position = entry.getKey();
+            final int positionInChunkX = position.x() & 15;
+            final int positionInChunkZ = position.z() & 15;
+            final Material material = snapshot.getBlockData(positionInChunkX, position.y(), positionInChunkZ).getMaterial();
+            worldMaterials.put(position, material);
+        }
+        this.sendBlocksToPlayersAlreadyInChunk(worldUUID, chunkPosition.x(), chunkPosition.z(), worldMaterials);
+        if (!markClean) return;
         chunkBlockCache.markClean();
 //        });
     }
 
-    private void sendBlocksToPlayersAlreadyInChunk(World world, int chunkX, int chunkZ, Map<Position, Material> worldMaterials) {
-        if (!world.isChunkLoaded(chunkX, chunkZ)) {
-            return;
-        }
-        final int renderDistance = Bukkit.getViewDistance();
-        final Collection<Player> playersThatCanSee = world.getPlayers()
-                .stream()
-                .filter(player -> {
-                    final Location location = player.getLocation();
-                    final Chunk chunk = location.getChunk();
-                    final int playerChunkX = chunk.getX();
-                    final int playerChunkZ = chunk.getZ();
-                    return Math.abs(playerChunkX - chunkX) <= renderDistance && Math.abs(playerChunkZ - chunkZ) <= renderDistance;
-                })
-                .collect(Collectors.toList());
-        final ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(ChunkPosition.at(world.getUID(), chunkX, chunkZ));
-        if (chunkBlockCache == null) return;
-        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
-            PacketUtils.sendMultiBlockChange(
-                    chunkBlockCache.getChunkPosition(),
-                    chunkBlockCache.getBlockDataMap(),
-                    worldMaterials,
-                    playersThatCanSee
-            );
+    private void sendBlocksToPlayersAlreadyInChunk(UUID worldUUID, int chunkX, int chunkZ, Map<Position, Material> worldMaterials) {
+        Bukkit.getScheduler().runTask(this.plugin, () -> {
+            final World world = Bukkit.getWorld(worldUUID);
+            if (!world.isChunkLoaded(chunkX, chunkZ)) {
+                return;
+            }
+            final int renderDistance = Bukkit.getViewDistance();
+            final Collection<Player> playersThatCanSee = world.getPlayers()
+                    .stream()
+                    .filter(player -> {
+                        final Location location = player.getLocation();
+                        final Chunk chunk = location.getChunk();
+                        final int playerChunkX = chunk.getX();
+                        final int playerChunkZ = chunk.getZ();
+                        return Math.abs(playerChunkX - chunkX) <= renderDistance && Math.abs(playerChunkZ - chunkZ) <= renderDistance;
+                    })
+                    .collect(Collectors.toList());
+            final ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(ChunkPosition.at(world.getUID(), chunkX, chunkZ));
+            if (chunkBlockCache == null) return;
+            Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
+                PacketUtils.sendMultiBlockChange(
+                        chunkBlockCache.getChunkPosition(),
+                        chunkBlockCache.getBlockDataMap(),
+                        worldMaterials,
+                        playersThatCanSee
+                );
+            });
         });
     }
 

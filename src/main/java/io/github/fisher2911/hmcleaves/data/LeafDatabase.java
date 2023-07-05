@@ -82,6 +82,10 @@ public class LeafDatabase {
     }
 
     public void doDatabaseWriteAsync(Runnable runnable) {
+        if (this.writeExecutor.isShutdown() || this.writeExecutor.isTerminated()) {
+            runnable.run();
+            return;
+        }
         this.writeExecutor.execute(() -> {
             try {
                 runnable.run();
