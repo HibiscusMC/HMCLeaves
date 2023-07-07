@@ -28,6 +28,7 @@ import io.github.fisher2911.hmcleaves.cache.WorldBlockCache;
 import io.github.fisher2911.hmcleaves.command.LeavesCommand;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.LeafDatabase;
+import io.github.fisher2911.hmcleaves.debug.Debugger;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.listener.InteractionListener;
 import io.github.fisher2911.hmcleaves.listener.LeafDropListener;
@@ -99,6 +100,7 @@ public class HMCLeaves extends JavaPlugin {
                 this.leafDatabase.saveBlocksInChunk(chunkBlockCache);
             }
         }
+        Debugger.getInstance().shutdown();
     }
 
     private void registerPacketListeners() {
@@ -130,6 +132,10 @@ public class HMCLeaves extends JavaPlugin {
 
     public BlockBreakManager getBlockBreakManager() {
         return blockBreakManager;
+    }
+
+    public boolean debug() {
+        return true;
     }
 
 }

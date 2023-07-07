@@ -27,6 +27,7 @@ import io.github.fisher2911.hmcleaves.cache.WorldBlockCache;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.LeafDatabase;
+import io.github.fisher2911.hmcleaves.debug.Debugger;
 import io.github.fisher2911.hmcleaves.packet.PacketUtils;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
@@ -100,6 +101,7 @@ public class WorldAndChunkLoadListener implements Listener {
         final UUID worldUUID = world.getUID();
         final ChunkPosition chunkPosition = ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ());
         final ChunkSnapshot snapshot = chunk.getChunkSnapshot();
+        Debugger.getInstance().logChunkLoadTaskStart(chunkPosition);
         this.leafDatabase.doDatabaseReadAsync(() -> {
             if (!(this.leafDatabase.isChunkLoaded(chunkPosition))) {
                 this.loadNewChunkData(snapshot, world);
@@ -151,6 +153,7 @@ public class WorldAndChunkLoadListener implements Listener {
         if (!this.plugin.isEnabled()) return;
         final ChunkBlockCache finalChunkBlockCache = chunkBlockCache;
         final Map<Position, Material> worldMaterials = new HashMap<>();
+        Debugger.getInstance().logChunkLayersLoad(chunkPosition, layers.size());
         for (int y : layers) {
             for (int x = 0; x < 16; x++) {
                 for (int z = 0; z < 16; z++) {
@@ -164,9 +167,9 @@ public class WorldAndChunkLoadListener implements Listener {
                     worldMaterials.put(position, bukkitBlockData.getMaterial());
                 }
             }
-
         }
         if (finalChunkBlockCache == null) return;
+        Debugger.getInstance().logChunkLoadEnd(chunkPosition, finalChunkBlockCache.getBlockDataMap().size());
         for (var entry : finalChunkBlockCache.getBlockDataMap().entrySet()) {
             final Position position = entry.getKey();
             final int positionInChunkX = position.x() & 15;
@@ -182,6 +185,7 @@ public class WorldAndChunkLoadListener implements Listener {
 
     private void sendBlocksToPlayersAlreadyInChunk(UUID worldUUID, int chunkX, int chunkZ, Map<Position, Material> worldMaterials) {
         Bukkit.getScheduler().runTask(this.plugin, () -> {
+            Debugger.getInstance().logChunkBlockSendStart(new ChunkPosition(worldUUID, chunkX, chunkZ));
             final World world = Bukkit.getWorld(worldUUID);
             if (!world.isChunkLoaded(chunkX, chunkZ)) {
                 return;
@@ -206,6 +210,7 @@ public class WorldAndChunkLoadListener implements Listener {
                         worldMaterials,
                         playersThatCanSee
                 );
+                Debugger.getInstance().logChunkBlockSendEnd(new ChunkPosition(worldUUID, chunkX, chunkZ));
             });
         });
     }

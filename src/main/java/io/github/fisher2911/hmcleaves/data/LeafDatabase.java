@@ -59,7 +59,7 @@ public class LeafDatabase {
         this.config = plugin.getLeavesConfig();
         this.databaseFilePath = this.plugin.getDataFolder().toPath().resolve("database").resolve("leaves.db");
         this.writeExecutor = Executors.newSingleThreadExecutor();
-        this.readExecutor = Executors.newFixedThreadPool(4);
+        this.readExecutor = Executors.newFixedThreadPool(/*5*/1);
     }
 
     @Nullable
@@ -501,6 +501,7 @@ public class LeafDatabase {
     }
 
     public List<Runnable> shutdownNow() {
+        this.readExecutor.shutdown();
         return this.writeExecutor.shutdownNow();
     }
 

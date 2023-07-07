@@ -256,24 +256,24 @@ public class LeavesPacketListener extends PacketListenerAbstract {
     }
 
     private void handleFallParticles(PacketSendEvent event) {
-        final WrapperPlayServerParticle packet = new WrapperPlayServerParticle(event);
-        final Particle particle = packet.getParticle();
-        if (particle.getType() != ParticleTypes.BLOCK) return;
-        if (!(event.getPlayer() instanceof final Player player)) return;
-        final Vector3d position = packet.getPosition();
-        final Vector3i below = position.subtract(0, 0.1, 0).toVector3i();
-        final World world = player.getWorld();
-        final BlockData blockData = this.blockCache.getBlockData(Position.at(
-                world.getUID(),
-                below.x,
-                below.y,
-                below.z
-        ));
-        if (!(blockData instanceof MineableData)) return;
-        final ParticleBlockStateData particleBlockStateData = new ParticleBlockStateData(
-                blockData.getNewState(null)
-        );
-        particle.setData(particleBlockStateData);
+//        final WrapperPlayServerParticle packet = new WrapperPlayServerParticle(event);
+//        final Particle particle = packet.getParticle();
+//        if (particle.getType() != ParticleTypes.BLOCK) return;
+//        if (!(event.getPlayer() instanceof final Player player)) return;
+//        final Vector3d position = packet.getPosition();
+//        final Vector3i below = position.subtract(0, 0.1, 0).toVector3i();
+//        final World world = player.getWorld();
+//        final BlockData blockData = this.blockCache.getBlockData(Position.at(
+//                world.getUID(),
+//                below.x,
+//                below.y,
+//                below.z
+//        ));
+//        if (!(blockData instanceof MineableData)) return;
+//        final ParticleBlockStateData particleBlockStateData = new ParticleBlockStateData(
+//                blockData.getNewState(null)
+//        );
+//        particle.setData(particleBlockStateData);
     }
 
 }
