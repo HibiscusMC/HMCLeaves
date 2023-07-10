@@ -32,6 +32,7 @@ import io.github.fisher2911.hmcleaves.debug.Debugger;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.listener.InteractionListener;
 import io.github.fisher2911.hmcleaves.listener.LeafDropListener;
+import io.github.fisher2911.hmcleaves.listener.PlayerJoinListener;
 import io.github.fisher2911.hmcleaves.listener.SoundListener;
 import io.github.fisher2911.hmcleaves.listener.WorldAndChunkLoadListener;
 import io.github.fisher2911.hmcleaves.packet.BlockBreakManager;
@@ -52,6 +53,7 @@ public class HMCLeaves extends JavaPlugin {
     private LeafDatabase leafDatabase;
     private BlockBreakManager blockBreakManager;
     private WorldAndChunkLoadListener worldAndChunkLoadListener;
+    private LeavesPacketListener leavesPacketListener;
 
     @Override
     public void onLoad() {
@@ -76,6 +78,7 @@ public class HMCLeaves extends JavaPlugin {
         this.blockBreakManager = new BlockBreakManager(new ConcurrentHashMap<>(), this);
         this.worldAndChunkLoadListener = new WorldAndChunkLoadListener(this);
         PacketEvents.getAPI().init();
+        this.leavesPacketListener = new LeavesPacketListener(this);
         this.registerPacketListeners();
         this.registerListeners();
         Hooks.load(this);
@@ -104,7 +107,7 @@ public class HMCLeaves extends JavaPlugin {
     }
 
     private void registerPacketListeners() {
-        PacketEvents.getAPI().getEventManager().registerListener(new LeavesPacketListener(this));
+        PacketEvents.getAPI().getEventManager().registerListener(this.leavesPacketListener);
     }
 
     private void registerListeners() {
@@ -113,25 +116,30 @@ public class HMCLeaves extends JavaPlugin {
                         new LeafDropListener(this),
                         this.worldAndChunkLoadListener,
                         new LeafAndLogEditListener(this),
-                        new SoundListener(this)
+                        new SoundListener(this),
+                        new PlayerJoinListener(this)
                 )
                 .forEach(listener -> getServer().getPluginManager().registerEvents(listener, this));
     }
 
     public LeavesConfig getLeavesConfig() {
-        return leavesConfig;
+        return this.leavesConfig;
     }
 
     public BlockCache getBlockCache() {
-        return blockCache;
+        return this.blockCache;
     }
 
     public LeafDatabase getLeafDatabase() {
-        return leafDatabase;
+        return this.leafDatabase;
     }
 
     public BlockBreakManager getBlockBreakManager() {
-        return blockBreakManager;
+        return this.blockBreakManager;
+    }
+
+    public LeavesPacketListener getLeavesPacketListener() {
+        return this.leavesPacketListener;
     }
 
     public boolean debug() {

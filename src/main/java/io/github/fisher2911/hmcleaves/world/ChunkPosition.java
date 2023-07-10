@@ -20,6 +20,7 @@
 
 package io.github.fisher2911.hmcleaves.world;
 
+import io.github.fisher2911.hmcleaves.util.ChunkUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -57,6 +58,14 @@ public record ChunkPosition(UUID world, int x, int z) {
         final World world = Bukkit.getWorld(this.world);
         if (world == null) throw new IllegalStateException("World " + this.world + " is not loaded!");
         return world.getChunkAt(this.x, this.z);
+    }
+
+    public ChunkPosition toLargeChunk() {
+        return new ChunkPosition(
+                this.world,
+                ChunkUtil.getLargeChunkCoordFromChunkCoord(this.x),
+                ChunkUtil.getLargeChunkCoordFromChunkCoord(this.z)
+        );
     }
 
     @Override

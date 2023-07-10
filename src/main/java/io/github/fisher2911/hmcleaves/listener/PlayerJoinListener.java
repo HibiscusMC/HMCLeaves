@@ -18,17 +18,27 @@
  *
  */
 
-package io.github.fisher2911.hmcleaves.util;
+package io.github.fisher2911.hmcleaves.listener;
 
-public class ChunkUtil {
+import io.github.fisher2911.hmcleaves.HMCLeaves;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 
-    public static int getCoordInChunk(int i) {
-        return i & 15;
+public class PlayerJoinListener implements Listener {
+
+    private final HMCLeaves plugin;
+
+    public PlayerJoinListener(HMCLeaves plugin) {
+        this.plugin = plugin;
     }
 
-    // large chunk means 528*528 instead of 16x16
-    public static int getLargeChunkCoordFromChunkCoord(int i) {
-        return i / 33;
+    // just in case the player quit is cancelled, forcing the player to stay on the server forever (free player retention)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        this.plugin.getLeavesPacketListener().removeSentChunks(event.getPlayer().getUniqueId());
     }
+
 
 }

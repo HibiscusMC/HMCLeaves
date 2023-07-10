@@ -31,6 +31,7 @@ import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -76,6 +77,22 @@ public class Debugger {
         if (!this.plugin.debug()) return;
         this.debug("sendChunkEnd: (" + chunkPos.x() + ", " + chunkPos.z() + ")");
     }
+
+    public void logTimeBetweenChunkLoadAndSend(ChunkPosition chunkPosition, LocalDateTime start, LocalDateTime end) {
+        if (!this.plugin.debug()) return;
+        this.debug("timeBetweenChunkLoadAndSend: (" + chunkPosition.x() + ", " + chunkPosition.z() + ") -> " + start.until(end, ChronoUnit.MILLIS) + "ms");
+    }
+
+    public void logMultiBlockSend(ChunkPosition chunkPosition, int playerCount, int blockCount, LocalDateTime time) {
+        if (!this.plugin.debug()) return;
+        this.debug("multiBlockSend: (" + chunkPosition.x() + ", " + chunkPosition.z() + ") -> " + playerCount + " -> " + blockCount + " -> " + TIME_FORMATTER.format(time) + "ms");
+    }
+
+    public void logChunkSend(ChunkPosition chunkPosition, LocalDateTime time) {
+        if (!this.plugin.debug()) return;
+        this.debug("chunkSend: (" + chunkPosition.x() + ", " + chunkPosition.z() + ") -> " + TIME_FORMATTER.format(time) + "ms");
+    }
+
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER_FILE_NAME = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss-SSS");

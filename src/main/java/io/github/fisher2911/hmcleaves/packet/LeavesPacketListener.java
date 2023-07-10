@@ -27,20 +27,17 @@ import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
-import com.github.retrooper.packetevents.protocol.particle.Particle;
-import com.github.retrooper.packetevents.protocol.particle.data.ParticleBlockStateData;
-import com.github.retrooper.packetevents.protocol.particle.type.ParticleTypes;
 import com.github.retrooper.packetevents.protocol.player.DiggingAction;
 import com.github.retrooper.packetevents.protocol.world.chunk.BaseChunk;
 import com.github.retrooper.packetevents.protocol.world.chunk.Column;
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
-import com.github.retrooper.packetevents.util.Vector3d;
 import com.github.retrooper.packetevents.util.Vector3i;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerDigging;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBlockChange;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerChunkData;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMultiBlockChange;
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerParticle;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.cache.BlockCache;
 import io.github.fisher2911.hmcleaves.cache.ChunkBlockCache;
@@ -58,7 +55,9 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
+import java.util.Collection;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class LeavesPacketListener extends PacketListenerAbstract {
 
@@ -66,6 +65,9 @@ public class LeavesPacketListener extends PacketListenerAbstract {
     private final BlockCache blockCache;
     private final BlockBreakManager blockBreakManager;
     private final HMCLeaves plugin;
+    private final Multimap<ChunkPosition, UUID> sentChunks;
+
+//    private final Multimap<ChunkPosition, ChunkPacket> chunkPackets;
 
     public LeavesPacketListener(PacketListenerPriority priority, HMCLeaves plugin) {
         super(priority);
@@ -73,6 +75,8 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         this.leavesConfig = this.plugin.getLeavesConfig();
         this.blockCache = this.plugin.getBlockCache();
         this.blockBreakManager = this.plugin.getBlockBreakManager();
+        this.sentChunks = Multimaps.newSetMultimap(new ConcurrentHashMap<>(), ConcurrentHashMap::newKeySet);
+//        this.chunkPackets = Multimaps.newSetMultimap(new ConcurrentHashMap<>(), ConcurrentHashMap::newKeySet);
     }
 
     public LeavesPacketListener(HMCLeaves plugin) {
@@ -80,7 +84,19 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         this.leavesConfig = this.plugin.getLeavesConfig();
         this.blockCache = this.plugin.getBlockCache();
         this.blockBreakManager = this.plugin.getBlockBreakManager();
+        this.sentChunks = Multimaps.newSetMultimap(new ConcurrentHashMap<>(), ConcurrentHashMap::newKeySet);
+//        this.chunkPackets = Multimaps.newSetMultimap(new ConcurrentHashMap<>(), ConcurrentHashMap::newKeySet);
     }
+
+//    private static record ChunkPacket(
+//            WrapperPlayServerChunkData chunkData,
+//            UUID player,
+//            LocalDateTime timeSent,
+//            UUID world,
+//            int heightAdjustment
+//    ) {
+//
+//    }
 
     private static final int HEIGHT_BELOW_ZERO = 64;
 
@@ -92,7 +108,7 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         if (packetType == PacketType.Play.Server.CHUNK_DATA) {
             final World world = player.getWorld();
             final int heightAdjustment = world.getMinHeight();
-            this.handleChunkSend(event, world.getUID(), heightAdjustment < 0 ? HEIGHT_BELOW_ZERO : 0);
+            this.handleChunkSend(event, world.getUID(), heightAdjustment < 0 ? HEIGHT_BELOW_ZERO : 0, player.getUniqueId());
             return;
         }
         if (packetType == PacketType.Play.Server.BLOCK_CHANGE) {
@@ -118,17 +134,31 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         }
     }
 
-    private void handleChunkSend(PacketSendEvent event, UUID world, int heightAdjustment) {
+    private void handleChunkSend(PacketSendEvent event, UUID world, int heightAdjustment, UUID player) {
         final WrapperPlayServerChunkData packet = new WrapperPlayServerChunkData(event);
         final Column column = packet.getColumn();
         final int chunkX = column.getX();
         final int chunkZ = column.getZ();
         final ChunkPosition chunkPos = ChunkPosition.at(world, chunkX, chunkZ);
+        this.sentChunks.put(chunkPos, player);
         ChunkBlockCache chunkCache = this.blockCache.getChunkBlockCache(chunkPos);
         if (chunkCache == null) {
-            chunkCache = this.blockCache.addChunkCache(chunkPos);
+//            this.chunkPackets.put(chunkPos, new ChunkPacket(packet, player, LocalDateTime.now(), world, heightAdjustment));
+//            event.setCancelled(true);
+            return;
+//            chunkCache = this.blockCache.addChunkCache(chunkPos);
         }
+        this.editChunkPacket(packet, world, heightAdjustment);
+    }
+
+    private void editChunkPacket(WrapperPlayServerChunkData packet, UUID world, int heightAdjustment) {
+        final Column column = packet.getColumn();
+        final int chunkX = column.getX();
+        final int chunkZ = column.getZ();
         final BaseChunk[] chunks = column.getChunks();
+        final ChunkPosition chunkPos = ChunkPosition.at(world, chunkX, chunkZ);
+        final ChunkBlockCache chunkCache = this.blockCache.getChunkBlockCache(chunkPos);
+        if (chunkCache == null) return;
         for (var entry : chunkCache.getBlockDataMap().entrySet()) {
             final var position = entry.getKey();
             final int chunkLevel = position.y() / 16 + heightAdjustment / 16;
@@ -148,6 +178,30 @@ public class LeavesPacketListener extends PacketListenerAbstract {
             );
         }
     }
+
+    public Collection<UUID> getPlayersChunkSentTo(ChunkPosition chunkPosition) {
+        return this.sentChunks.get(chunkPosition);
+    }
+
+    public void removeSentChunks(UUID playerUUID) {
+        this.sentChunks.values().remove(playerUUID);
+    }
+
+//    public void resendChunk(ChunkPosition chunkPos) {
+//        LocalDateTime timeSent = null;
+//        for (ChunkPacket chunkPacket : this.chunkPackets.get(chunkPos)) {
+//            if (chunkPacket == null) continue;
+//            this.editChunkPacket(chunkPacket.chunkData, chunkPacket.world, chunkPacket.heightAdjustment);
+//            final Player player = Bukkit.getPlayer(chunkPacket.player);
+//            if (player == null) continue;
+//            timeSent = chunkPacket.timeSent;
+//            PacketEvents.getAPI().getPlayerManager().sendPacket(player, chunkPacket.chunkData);
+//        }
+//        if (timeSent != null) {
+//            Debugger.getInstance().logTimeBetweenChunkLoadAndSend(chunkPos, timeSent, LocalDateTime.now());
+//        }
+//        this.chunkPackets.removeAll(chunkPos);
+//    }
 
     private void handleBlockChange(PacketSendEvent event, UUID world) {
         try {

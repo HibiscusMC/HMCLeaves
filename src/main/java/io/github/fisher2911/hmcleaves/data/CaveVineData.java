@@ -96,7 +96,7 @@ public record CaveVineData(
 
     @Override
     public boolean shouldSave() {
-        return !this.id().equals(LeavesConfig.getDefaultCaveVinesStringId(this.glowBerry()));
+        return !this.getCurrentId().equals(LeavesConfig.getDefaultCaveVinesStringId(this.glowBerry()));
     }
 
 }
