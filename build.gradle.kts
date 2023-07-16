@@ -24,7 +24,7 @@ plugins {
 }
 
 group = "io.github.fisher2911"
-version = "1.0.0"
+version = "1.0.1"
 
 repositories {
     mavenCentral()
@@ -34,6 +34,7 @@ repositories {
     maven("https://jitpack.io")
     maven("https://maven.enginehub.org/repo/")
     maven("https://repo.codemc.io/repository/maven-snapshots/")
+    maven("https://mvn.lumine.io/repository/maven-public/") { metadataSources { artifact() } }
 }
 
 dependencies {
@@ -45,14 +46,10 @@ dependencies {
     implementation("org.bstats:bstats-bukkit:3.0.0")
     compileOnly("com.sk89q.worldedit:worldedit-core:7.2.14-SNAPSHOT")
     compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.14-SNAPSHOT")
+    compileOnly("io.lumine:MythicCrucible:1.6.0-SNAPSHOT")
+    compileOnly("io.lumine:Mythic-Dist:5.2.1")
     implementation(platform("com.intellectualsites.bom:bom-1.18.x:1.19"))
-//    compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Core")
-//    compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Bukkit") { isTransitive = false }
     implementation("com.github.retrooper.packetevents:spigot:2.0.0-SNAPSHOT")
-    //
-//    implementation("com.github.retrooper.packetevents:spigot:23e0861192d5803bb72878a491833cbc7c6243a2")
-
-//    compileOnly("com.comphenix.protocol:ProtocolLib:5.0.0")
 }
 
 tasks {
