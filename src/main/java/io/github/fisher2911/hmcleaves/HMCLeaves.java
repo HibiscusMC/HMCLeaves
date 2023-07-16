@@ -31,14 +31,15 @@ import io.github.fisher2911.hmcleaves.data.LeafDatabase;
 import io.github.fisher2911.hmcleaves.debug.Debugger;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.listener.InteractionListener;
+import io.github.fisher2911.hmcleaves.listener.LeafAndLogEditListener;
 import io.github.fisher2911.hmcleaves.listener.LeafDropListener;
 import io.github.fisher2911.hmcleaves.listener.PlayerJoinListener;
 import io.github.fisher2911.hmcleaves.listener.SoundListener;
 import io.github.fisher2911.hmcleaves.listener.WorldAndChunkLoadListener;
 import io.github.fisher2911.hmcleaves.packet.BlockBreakManager;
-import io.github.fisher2911.hmcleaves.listener.LeafAndLogEditListener;
 import io.github.fisher2911.hmcleaves.packet.LeavesPacketListener;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
+import org.bstats.bukkit.Metrics;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -86,6 +87,8 @@ public class HMCLeaves extends JavaPlugin {
         this.leafDatabase.load();
         this.worldAndChunkLoadListener.loadDefaultWorlds();
         this.getCommand("hmcleaves").setExecutor(new LeavesCommand(this));
+        final int bStatsPluginId = 16900;
+        final Metrics metrics = new Metrics(this, bStatsPluginId);
     }
 
     public void reload() {

@@ -23,6 +23,7 @@ package io.github.fisher2911.hmcleaves.hook;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.data.SaplingData;
 import io.github.fisher2911.hmcleaves.hook.itemsadder.ItemsAdderHook;
+import io.github.fisher2911.hmcleaves.hook.mythiccrucible.MythicCrucibleHook;
 import io.github.fisher2911.hmcleaves.hook.oraxen.OraxenHook;
 import io.github.fisher2911.hmcleaves.hook.worldedit.WorldEditHook;
 import io.github.fisher2911.hmcleaves.world.Position;
@@ -49,6 +50,11 @@ public class Hooks {
         if (plugin.getServer().getPluginManager().getPlugin("ItemsAdder") != null) {
             plugin.getLogger().info("ItemsAdder found, loading hook");
             itemHook = new ItemsAdderHook(plugin);
+            plugin.getServer().getPluginManager().registerEvents(itemHook, plugin);
+        }
+        if (plugin.getServer().getPluginManager().getPlugin("MythicCrucible") != null) {
+            plugin.getLogger().info("MythicCrucible found, loading hook");
+            itemHook = new MythicCrucibleHook(plugin);
             plugin.getServer().getPluginManager().registerEvents(itemHook, plugin);
         }
         if (plugin.getServer().getPluginManager().getPlugin("WorldEdit") != null) {
