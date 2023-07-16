@@ -69,7 +69,7 @@ public class LeafDatabase {
         this.databaseFilePath = this.plugin.getDataFolder().toPath().resolve("database").resolve("leaves.db");
         this.writeExecutor = Executors.newSingleThreadExecutor();
         this.readExecutor = Executors.newFixedThreadPool(5);
-        this.possibleWorldDefaultLayers = new HashMap<>();
+        this.possibleWorldDefaultLayers = new ConcurrentHashMap<>();
         this.currentlyLoadingChunks = ConcurrentHashMap.newKeySet();
     }
 
