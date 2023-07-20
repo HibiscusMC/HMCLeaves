@@ -859,8 +859,13 @@ public class LeavesConfig {
             this.itemSupplierMap.put(itemId, itemStackSupplier);
             this.playerItemIds.add(itemId);
             final int stateId = leavesSection.getInt(itemId + "." + STATE_ID_PATH);
-            final WrappedBlockState state = getLeafById(stateId);
+            final WrappedBlockState byIdState = getLeafById(stateId);
             final Material leafMaterial = this.loadMaterial(leavesSection, itemId + "." + LEAF_MATERIAL_PATH, this.defaultLeafMaterial);
+            final WrappedBlockState state = WrappedBlockState.getDefaultState(
+                    SpigotConversionUtil.fromBukkitItemMaterial(leafMaterial).getPlacedType()
+            );
+            state.setDistance(byIdState.getDistance());
+            state.setPersistent(byIdState.isPersistent());
             final boolean worldPersistence = leavesSection.getBoolean(itemId + "." + WORLD_PERSISTENCE_PATH, state.isPersistent());
             final String modelPath = leavesSection.getString(itemId + "." + MODEL_PATH_PATH, null);
             final Set<BlockFace> supportableFaces = this.loadSupportableFaces(leavesSection.getConfigurationSection(itemId), DEFAULT_BLOCK_SUPPORTABLE_FACES);
