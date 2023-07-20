@@ -493,6 +493,7 @@ public class LeavesConfig {
     private static final String STRIPPED_LOG_MATERIAL_PATH = "stripped-log-material";
     private static final String STATE_ID_PATH = "state-id";
     private static final String STACK_LIMIT_PATH = "stack-limit";
+    private static final String SHOULD_GROW_BERRIES_PATH = "should-grow-berries";
     private static final String SAPLING_MATERIAL_PATH = "sapling-material";
 
     private static final String SAPLING_PATH = "sapling";
@@ -769,7 +770,8 @@ public class LeavesConfig {
                 null,
                 Integer.MAX_VALUE,
                 DEFAULT_CAVE_VINES_SUPPORTABLE_FACES,
-                null
+                null,
+                true
         );
         this.blockSupportPredicateMap.put(defaultCaveVinesStringId, DEFAULT_CAVE_VINES_PREDICATE);
         this.blockSupportPredicateMap.put(defaultCaveVinesStringIdWithBerries, DEFAULT_CAVE_VINES_PREDICATE);
@@ -1185,6 +1187,7 @@ public class LeavesConfig {
             final int stackLimit = caveVinesSection.getInt(itemId + "." + STACK_LIMIT_PATH, Integer.MAX_VALUE);
             final Set<BlockFace> supportableFaces = this.loadSupportableFaces(caveVinesSection.getConfigurationSection(itemId), DEFAULT_CAVE_VINES_SUPPORTABLE_FACES);
             final BlockDataSound sound = this.loadBlockDataSound(caveVinesSection.getConfigurationSection(itemId));
+            final boolean shouldGrowBerries = caveVinesSection.getBoolean(itemId + "." + SHOULD_GROW_BERRIES_PATH, true);
             final CaveVineData blockData = BlockData.caveVineData(
                     itemId,
                     withGlowBerryId,
@@ -1193,7 +1196,8 @@ public class LeavesConfig {
                     modelPath,
                     stackLimit,
                     supportableFaces,
-                    sound
+                    sound,
+                    shouldGrowBerries
             );
             final ConfigurationSection predicateSection = caveVinesSection.getConfigurationSection(itemId + "." + ALLOWED_SUPPORTABLE_BLOCKS);
             final Predicate<Block> placePredicate;

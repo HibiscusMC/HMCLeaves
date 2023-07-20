@@ -216,7 +216,8 @@ public interface BlockData {
             String modelPath,
             int stackLimit,
             Set<BlockFace> supportableFaces,
-            BlockDataSound blockDataSound
+            BlockDataSound blockDataSound,
+            boolean shouldGrowBerries
     ) {
         return new CaveVineData(
                 id,
@@ -226,7 +227,8 @@ public interface BlockData {
                 modelPath,
                 stackLimit,
                 supportableFaces,
-                blockDataSound
+                blockDataSound,
+                shouldGrowBerries
         );
     }
 

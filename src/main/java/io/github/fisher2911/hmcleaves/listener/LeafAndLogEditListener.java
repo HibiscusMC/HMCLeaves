@@ -360,6 +360,10 @@ public class LeafAndLogEditListener implements Listener {
         final Position position = Position.fromLocation(block.getLocation());
         final BlockData blockData = this.blockCache.getBlockData(position);
         if (!(blockData instanceof final CaveVineData data)) return;
+        if (!data.shouldGrowBerries()) {
+            event.setCancelled(true);
+            return;
+        }
         this.blockCache.addBlockData(position, data.withGlowBerry(true));
     }
 
