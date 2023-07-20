@@ -114,6 +114,10 @@ public class InteractionListener implements Listener {
         final Player player = event.getPlayer();
         if (clickedBlockData instanceof final CaveVineData caveVineData && caveVineData.glowBerry() && !player.isSneaking()) {
             if (!(block.getBlockData() instanceof final CaveVinesPlant caveVines)) return;
+            if (!caveVineData.shouldGrowBerries()) {
+                event.setCancelled(true);
+                return;
+            }
             this.blockCache.addBlockData(clickedPosition, caveVineData.withGlowBerry(!caveVines.isBerries()));
             return;
         }
