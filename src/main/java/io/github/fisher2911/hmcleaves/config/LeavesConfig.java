@@ -492,6 +492,7 @@ public class LeavesConfig {
     private static final String WORLD_PERSISTENCE_PATH = "world-persistence";
     private static final String STRIPPED_LOG_MATERIAL_PATH = "stripped-log-material";
     private static final String STATE_ID_PATH = "state-id";
+    private static final String TIPPED_STATE_ID_PATH = "tipped-state-id";
     private static final String STACK_LIMIT_PATH = "stack-limit";
     private static final String SHOULD_GROW_BERRIES_PATH = "should-grow-berries";
     private static final String SAPLING_MATERIAL_PATH = "sapling-material";
@@ -762,10 +763,12 @@ public class LeavesConfig {
 
         final String defaultCaveVinesStringId = getDefaultCaveVinesStringId(false);
         final String defaultCaveVinesStringIdWithBerries = getDefaultCaveVinesStringId(true);
+        final int defaultCaveVineSendId = getCaveVinesById(1).getGlobalId();
         final CaveVineData defaultCaveVineData = BlockData.caveVineData(
                 defaultCaveVinesStringId,
                 defaultCaveVinesStringIdWithBerries,
-                getCaveVinesById(1).getGlobalId(),
+                defaultCaveVineSendId,
+                defaultCaveVineSendId,
                 false,
                 null,
                 Integer.MAX_VALUE,
@@ -1188,10 +1191,17 @@ public class LeavesConfig {
             final Set<BlockFace> supportableFaces = this.loadSupportableFaces(caveVinesSection.getConfigurationSection(itemId), DEFAULT_CAVE_VINES_SUPPORTABLE_FACES);
             final BlockDataSound sound = this.loadBlockDataSound(caveVinesSection.getConfigurationSection(itemId));
             final boolean shouldGrowBerries = caveVinesSection.getBoolean(itemId + "." + SHOULD_GROW_BERRIES_PATH, true);
+            final int tippedStateId;
+            if (caveVinesSection.contains(itemId + "." + TIPPED_STATE_ID_PATH)) {
+                tippedStateId = caveVinesSection.getInt(itemId + "." + TIPPED_STATE_ID_PATH);
+            } else {
+                tippedStateId = stateId;
+            }
             final CaveVineData blockData = BlockData.caveVineData(
                     itemId,
                     withGlowBerryId,
                     getCaveVinesById(stateId).getGlobalId(),
+                    getCaveVinesById(tippedStateId).getGlobalId(),
                     false,
                     modelPath,
                     stackLimit,

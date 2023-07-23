@@ -35,6 +35,8 @@ public record CaveVineData(
         String id,
         String withGlowBerryId,
         int sendBlockId,
+        // if it's the last one in the stack, it will send this block id
+        int tippedSendBlockId,
         boolean glowBerry,
         String modelPath,
         int stackLimit,
@@ -48,6 +50,8 @@ public record CaveVineData(
         final WrappedBlockState state;
         if (worldMaterial == Material.CAVE_VINES_PLANT && LeavesConfig.getDefaultCaveVinesStringId(this.glowBerry).equals(this.id)) {
             state = StateTypes.CAVE_VINES_PLANT.createBlockState();
+        } else if (worldMaterial == Material.CAVE_VINES){
+            state = WrappedBlockState.getByGlobalId(this.tippedSendBlockId);
         } else {
             state = WrappedBlockState.getByGlobalId(this.sendBlockId);
         }
@@ -86,6 +90,7 @@ public record CaveVineData(
                 this.id,
                 this.withGlowBerryId,
                 this.sendBlockId,
+                this.tippedSendBlockId,
                 glowBerry,
                 this.modelPath,
                 this.stackLimit,
