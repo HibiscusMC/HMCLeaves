@@ -67,8 +67,6 @@ public class LeavesPacketListener extends PacketListenerAbstract {
     private final HMCLeaves plugin;
     private final Multimap<ChunkPosition, UUID> sentChunks;
 
-//    private final Multimap<ChunkPosition, ChunkPacket> chunkPackets;
-
     public LeavesPacketListener(PacketListenerPriority priority, HMCLeaves plugin) {
         super(priority);
         this.plugin = plugin;
@@ -76,7 +74,6 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         this.blockCache = this.plugin.getBlockCache();
         this.blockBreakManager = this.plugin.getBlockBreakManager();
         this.sentChunks = Multimaps.newSetMultimap(new ConcurrentHashMap<>(), ConcurrentHashMap::newKeySet);
-//        this.chunkPackets = Multimaps.newSetMultimap(new ConcurrentHashMap<>(), ConcurrentHashMap::newKeySet);
     }
 
     public LeavesPacketListener(HMCLeaves plugin) {
@@ -85,18 +82,7 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         this.blockCache = this.plugin.getBlockCache();
         this.blockBreakManager = this.plugin.getBlockBreakManager();
         this.sentChunks = Multimaps.newSetMultimap(new ConcurrentHashMap<>(), ConcurrentHashMap::newKeySet);
-//        this.chunkPackets = Multimaps.newSetMultimap(new ConcurrentHashMap<>(), ConcurrentHashMap::newKeySet);
     }
-
-//    private static record ChunkPacket(
-//            WrapperPlayServerChunkData chunkData,
-//            UUID player,
-//            LocalDateTime timeSent,
-//            UUID world,
-//            int heightAdjustment
-//    ) {
-//
-//    }
 
     private static final int HEIGHT_BELOW_ZERO = 64;
 
@@ -119,9 +105,6 @@ public class LeavesPacketListener extends PacketListenerAbstract {
             this.handleMultiBlockChange(event, player.getWorld().getUID());
             return;
         }
-        if (packetType == PacketType.Play.Server.PARTICLE) {
-            this.handleFallParticles(event);
-        }
     }
 
     @Override
@@ -142,12 +125,7 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         final ChunkPosition chunkPos = ChunkPosition.at(world, chunkX, chunkZ);
         this.sentChunks.put(chunkPos, player);
         ChunkBlockCache chunkCache = this.blockCache.getChunkBlockCache(chunkPos);
-        if (chunkCache == null) {
-//            this.chunkPackets.put(chunkPos, new ChunkPacket(packet, player, LocalDateTime.now(), world, heightAdjustment));
-//            event.setCancelled(true);
-            return;
-//            chunkCache = this.blockCache.addChunkCache(chunkPos);
-        }
+        if (chunkCache == null) return;
         this.editChunkPacket(packet, world, heightAdjustment);
     }
 
@@ -187,22 +165,6 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         this.sentChunks.values().remove(playerUUID);
     }
 
-//    public void resendChunk(ChunkPosition chunkPos) {
-//        LocalDateTime timeSent = null;
-//        for (ChunkPacket chunkPacket : this.chunkPackets.get(chunkPos)) {
-//            if (chunkPacket == null) continue;
-//            this.editChunkPacket(chunkPacket.chunkData, chunkPacket.world, chunkPacket.heightAdjustment);
-//            final Player player = Bukkit.getPlayer(chunkPacket.player);
-//            if (player == null) continue;
-//            timeSent = chunkPacket.timeSent;
-//            PacketEvents.getAPI().getPlayerManager().sendPacket(player, chunkPacket.chunkData);
-//        }
-//        if (timeSent != null) {
-//            Debugger.getInstance().logTimeBetweenChunkLoadAndSend(chunkPos, timeSent, LocalDateTime.now());
-//        }
-//        this.chunkPackets.removeAll(chunkPos);
-//    }
-
     private void handleBlockChange(PacketSendEvent event, UUID world) {
         try {
             final WrapperPlayServerBlockChange packet = new WrapperPlayServerBlockChange(event);
@@ -217,15 +179,9 @@ public class LeavesPacketListener extends PacketListenerAbstract {
             final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(packet.getBlockState()).getMaterial();
             if (blockData == BlockData.EMPTY) return;
             final WrappedBlockState sendState = blockData.getNewState(worldMaterial);
-//            final Material sendMaterial = SpigotConversionUtil.toBukkitBlockData(sendState).getMaterial();
-            if (!blockData.isWorldTypeSame(worldMaterial) /*worldMaterial != sendMaterial && blockData.worldBlockType() != worldMaterial*//*&& !worldMaterial.isAir()*/ && worldMaterial != Material.MOVING_PISTON) {
-//                Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
-//                    if (worldMaterial.isAir()) return;
-//                    if (!blockData.isWorldTypeSame(worldMaterial)) {
+            if (!blockData.isWorldTypeSame(worldMaterial) && worldMaterial != Material.MOVING_PISTON) {
                 this.blockCache.removeBlockData(position);
                 LeafDropUtil.addToDropPositions(this.blockCache, position, blockData);
-//                    }
-//                }, 1);
                 return;
             }
             final WrapperPlayServerBlockChange newPacket = new WrapperPlayServerBlockChange(
@@ -255,13 +211,8 @@ public class LeavesPacketListener extends PacketListenerAbstract {
                 final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(PacketUtils.getState(block)).getMaterial();
                 final WrappedBlockState sendState = blockData.getNewState(worldMaterial);
                 if (!blockData.isWorldTypeSame(worldMaterial) && worldMaterial != Material.MOVING_PISTON) {
-//                    if (worldMaterial.isAir()) continue;
-//                    Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
-//                        if (!blockData.isWorldTypeSame(worldMaterial)) {
                     this.blockCache.removeBlockData(position);
                     LeafDropUtil.addToDropPositions(this.blockCache, position, blockData);
-//                        }
-//                    }, 1);
                     continue;
                 }
                 block.setBlockState(sendState);
@@ -309,27 +260,6 @@ public class LeavesPacketListener extends PacketListenerAbstract {
                 PacketUtils.removeMiningFatigue(player);
             }
         }
-    }
-
-    private void handleFallParticles(PacketSendEvent event) {
-//        final WrapperPlayServerParticle packet = new WrapperPlayServerParticle(event);
-//        final Particle particle = packet.getParticle();
-//        if (particle.getType() != ParticleTypes.BLOCK) return;
-//        if (!(event.getPlayer() instanceof final Player player)) return;
-//        final Vector3d position = packet.getPosition();
-//        final Vector3i below = position.subtract(0, 0.1, 0).toVector3i();
-//        final World world = player.getWorld();
-//        final BlockData blockData = this.blockCache.getBlockData(Position.at(
-//                world.getUID(),
-//                below.x,
-//                below.y,
-//                below.z
-//        ));
-//        if (!(blockData instanceof MineableData)) return;
-//        final ParticleBlockStateData particleBlockStateData = new ParticleBlockStateData(
-//                blockData.getNewState(null)
-//        );
-//        particle.setData(particleBlockStateData);
     }
 
 }

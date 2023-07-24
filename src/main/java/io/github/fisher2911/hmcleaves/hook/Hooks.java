@@ -89,10 +89,6 @@ public class Hooks {
         worldEditHook.pasteSaplingSchematic(saplingData, position);
     }
 
-//    public static boolean hasOtherItemHook() {
-//        return !(itemHook instanceof HMCLeavesHook);
-//    }
-
     public static void transferTextures(File file) {
         if (itemHook != null) itemHook.transferTextures(file);
     }

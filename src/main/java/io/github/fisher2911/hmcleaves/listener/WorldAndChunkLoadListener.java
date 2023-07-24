@@ -72,12 +72,6 @@ public class WorldAndChunkLoadListener implements Listener {
             if (!this.leavesConfig.isWorldWhitelisted(world)) continue;
             for (Chunk chunk : world.getLoadedChunks()) {
                 this.loadChunk(chunk);
-//                final UUID worldUUID = world.getUID();
-//                if (!(PDCUtil.chunkHasLeafData(chunk.getPersistentDataContainer()))) {
-//                    this.loadNewChunkData(chunk);
-//                    continue;
-//                }
-//                this.loadChunkFromDatabase(ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ()));
             }
         }
     }
@@ -97,7 +91,6 @@ public class WorldAndChunkLoadListener implements Listener {
         final ChunkSnapshot snapshot = chunk.getChunkSnapshot();
         this.leafDatabase.doDatabaseReadAsync(() -> {
             if (!this.leafDatabase.isChunkLoaded(chunkPosition)) {
-//            if (layers == null) {
                 this.loadNewChunkData(snapshot, world);
                 return;
             }
@@ -137,7 +130,6 @@ public class WorldAndChunkLoadListener implements Listener {
     }
 
     private void loadChunkFromDatabase(ChunkPosition chunkPosition, ChunkSnapshot snapshot, UUID worldUUID) {
-//        this.leafDatabase.doDatabaseReadAsync(() -> {
         final Map<Position, BlockData> chunkBlocks = this.leafDatabase.getBlocksInChunk(chunkPosition, this.leavesConfig);
         ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
         boolean markClean = chunkBlockCache == null || chunkBlockCache.isClean();
@@ -148,7 +140,6 @@ public class WorldAndChunkLoadListener implements Listener {
         final Collection<Integer> layers = this.leafDatabase.getPossibleWorldDefaultLayers(chunkPosition);
         if (!this.plugin.isEnabled()) return;
         final Map<Position, Material> worldMaterials = new HashMap<>();
-//        Debugger.getInstance().logChunkLayersLoad(chunkPosition, layers.size());
         for (int y : layers) {
             for (int x = 0; x < 16; x++) {
                 for (int z = 0; z < 16; z++) {
@@ -175,7 +166,6 @@ public class WorldAndChunkLoadListener implements Listener {
         this.sendBlocksToPlayersAlreadyInChunk(chunkPosition, worldMaterials);
         if (!markClean) return;
         chunkBlockCache.markClean();
-//        });
     }
 
     private void sendBlocksToPlayersAlreadyInChunk(ChunkPosition chunkPosition, Map<Position, Material> worldMaterials) {
@@ -192,35 +182,6 @@ public class WorldAndChunkLoadListener implements Listener {
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList())
         );
-
-//        Bukkit.getScheduler().runTask(this.plugin, () -> {
-//            final World world = Bukkit.getWorld(worldUUID);
-//            if (!world.isChunkLoaded(chunkX, chunkZ)) {
-//                return;
-//            }
-//            final int renderDistance = Bukkit.getViewDistance();
-//            final Collection<Player> playersThatCanSee = world.getPlayers()
-//                    .stream()
-//                    .filter(player -> {
-//                        final Location location = player.getLocation();
-//                        final Chunk chunk = location.getChunk();
-//                        final int playerChunkX = chunk.getX();
-//                        final int playerChunkZ = chunk.getZ();
-//                        return Math.abs(playerChunkX - chunkX) <= renderDistance && Math.abs(playerChunkZ - chunkZ) <= renderDistance;
-//                    })
-//                    .collect(Collectors.toList());
-//            final ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(ChunkPosition.at(world.getUID(), chunkX, chunkZ));
-//            if (chunkBlockCache == null) return;
-//            Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
-////                this.plugin.getLeavesPacketListener().resendChunk(ChunkPosition.at(worldUUID, chunkX, chunkZ));
-//                PacketUtils.sendMultiBlockChange(
-//                        chunkBlockCache.getChunkPosition(),
-//                        chunkBlockCache.getBlockDataMap(),
-//                        worldMaterials,
-//                        playersThatCanSee
-//                );
-//            });
-//        });
     }
 
     @EventHandler
@@ -240,17 +201,8 @@ public class WorldAndChunkLoadListener implements Listener {
     public void onWorldLoad(WorldLoadEvent event) {
         final World world = event.getWorld();
         if (!this.leavesConfig.isWorldWhitelisted(world)) return;
-        final UUID worldUUID = world.getUID();
         for (Chunk chunk : world.getLoadedChunks()) {
             this.loadChunk(chunk);
-//            final ChunkPosition chunkPosition = ChunkPosition.at(worldUUID, chunk.getX(), chunk.getZ());
-//            this.leafDatabase.doDatabaseReadAsync(() -> {
-//                final Map<Position, BlockData> chunkBlocks = this.leafDatabase.getBlocksInChunk(chunkPosition, this.leavesConfig);
-//                chunkBlocks.forEach(this.blockCache::addBlockData);
-//                final ChunkBlockCache chunkBlockCache = this.blockCache.getChunkBlockCache(chunkPosition);
-//                if (chunkBlockCache == null) return;
-//                chunkBlockCache.markClean();
-//            });
         }
     }
 

@@ -64,7 +64,6 @@ public record AgeableData(
             state = WrappedBlockState.getByGlobalId(this.sendBlockId);
         }
         return state;
-//        return WrappedBlockState.getByGlobalId(this.sendBlockId);
     }
 
     public int getAge() {

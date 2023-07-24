@@ -56,12 +56,4 @@ public class PDCUtil {
         itemStack.setItemMeta(itemMeta);
     }
 
-//    public static boolean chunkHasLeafData(PersistentDataContainer container) {
-//        return Objects.equals(container.get(HAS_LEAF_DATA_KEY, PersistentDataType.BYTE), (byte) PLUGIN.getLeavesConfig().getChunkVersion());
-//    }
-//
-//    public static void setChunkHasLeafData(PersistentDataContainer container) {
-//        container.set(HAS_LEAF_DATA_KEY, PersistentDataType.BYTE, (byte) PLUGIN.getLeavesConfig().getChunkVersion());
-//    }
-
 }

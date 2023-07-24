@@ -222,6 +222,10 @@ public class InteractionListener implements Listener {
             placedBlock.setBlockData(caveVinesPlant, true);
             return;
         }
+        if (LeavesConfig.AGEABLE_MATERIALS.contains(blockData.worldBlockType())) {
+            placedBlock.setType(Material.AIR);
+            placedBlock.setType(blockData.worldBlockType());
+        }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)

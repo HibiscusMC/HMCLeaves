@@ -1368,7 +1368,7 @@ public class LeavesConfig {
                     itemId,
                     ageableMaterial,
                     getAgeableById(ageableMaterial, stateId).getGlobalId(),
-                    tippedStateId,
+                    getAgeableById(ageableMaterial, tippedStateId).getGlobalId(),
                     modelPath,
                     placeSound,
                     worldTypeSamePredicate,
@@ -1445,7 +1445,6 @@ public class LeavesConfig {
         try {
             material = Material.valueOf(materialStr.toUpperCase());
         } catch (NullPointerException | IllegalArgumentException e) {
-//            throw new IllegalStateException("Material not found for " + materialStr + " item.");
             material = Material.AIR;
         }
         final int amount = section.getInt(AMOUNT_PATH, 1);

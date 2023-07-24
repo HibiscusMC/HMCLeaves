@@ -129,7 +129,6 @@ public class LeafDatabase {
                 e.printStackTrace();
             }
         });
-//        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, runnable);
     }
 
     private static final String LOADED_CHUNKS_TABLE_NAME = "loaded_chunks";
@@ -177,18 +176,11 @@ public class LeafDatabase {
                     DEFAULT_CHUNK_DATA_LAYERS_LARGE_CHUNK_Z_COLUMN + ", "
                     + DEFAULT_CHUNK_DATA_LAYERS_Y_COLUMN + ")" +
                     ");";
-    //    private static final String CREATE_DEFAULT_CHUNK_DATA_LAYERS_INDEX_STATEMENT =
-//            "CREATE INDEX IF NOT EXISTS " + DEFAULT_CHUNK_DATA_LAYERS_TABLE_NAME + "_index ON " + DEFAULT_CHUNK_DATA_LAYERS_TABLE_NAME + " (" +
-//                    DEFAULT_CHUNK_DATA_LAYERS_WORLD_UUID_COLUMN + ", " +
-//                    DEFAULT_CHUNK_DATA_LAYERS_CHUNK_X_COLUMN + ", " +
-//                    DEFAULT_CHUNK_DATA_LAYERS_CHUNK_Z_COLUMN + ");";
     private static final String GET_DEFAULT_CHUNK_DATA_LAYERS_STATEMENT =
             "SELECT " + DEFAULT_CHUNK_DATA_LAYERS_Y_COLUMN + " FROM " + DEFAULT_CHUNK_DATA_LAYERS_TABLE_NAME + " WHERE " +
                     DEFAULT_CHUNK_DATA_LAYERS_WORLD_UUID_COLUMN + " = ? AND " +
                     DEFAULT_CHUNK_DATA_LAYERS_LARGE_CHUNK_X_COLUMN + " = ? AND " +
                     DEFAULT_CHUNK_DATA_LAYERS_LARGE_CHUNK_Z_COLUMN + " = ?;";
-    //                    DEFAULT_CHUNK_DATA_LAYERS_CHUNK_X_COLUMN + " = ? AND " +
-//                    DEFAULT_CHUNK_DATA_LAYERS_CHUNK_Z_COLUMN + " = ?;";
     private static final String INSERT_DEFAULT_CHUNK_DATA_LAYERS_STATEMENT =
             "INSERT OR REPLACE INTO " + DEFAULT_CHUNK_DATA_LAYERS_TABLE_NAME + " (" +
                     DEFAULT_CHUNK_DATA_LAYERS_WORLD_UUID_COLUMN + ", " +
@@ -465,11 +457,6 @@ public class LeafDatabase {
         } catch (SQLException e) {
             throw new IllegalStateException("Could not create tables!", e);
         }
-//        try (final PreparedStatement statement = connection.prepareStatement(CREATE_DEFAULT_CHUNK_DATA_LAYERS_INDEX_STATEMENT)) {
-//            statement.execute();
-//        } catch (SQLException e) {
-//            throw new IllegalStateException("Could not create tables!", e);
-//        }
         try (final PreparedStatement statement = connection.prepareStatement(CREATE_LOADED_CHUNKS_TABLE_STATEMENT)) {
             statement.execute();
         } catch (SQLException e) {
@@ -579,13 +566,11 @@ public class LeafDatabase {
 
     public Map<Position, BlockData> getBlocksInChunk(ChunkPosition chunkPosition, LeavesConfig config) {
         final Map<Position, BlockData> blocks = new HashMap<>();
-//        Debugger.getInstance().logChunkLoadTaskStart(chunkPosition);
         blocks.putAll(this.getLeafBlocksInChunk(chunkPosition, config));
         blocks.putAll(this.getLogBlocksInChunk(chunkPosition, config));
         blocks.putAll(this.getSaplingBlocksInChunk(chunkPosition, config));
         blocks.putAll(this.getCaveVineBlocksInChunk(chunkPosition, config));
         blocks.putAll(this.getAgeableBlocksInChunk(chunkPosition, config));
-//        Debugger.getInstance().logChunkLoadEnd(chunkPosition, blocks.size());
         return blocks;
     }
 

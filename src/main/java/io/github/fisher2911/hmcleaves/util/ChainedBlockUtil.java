@@ -116,11 +116,6 @@ public class ChainedBlockUtil {
             if (blockData != BlockData.EMPTY) {
                 LeafDropUtil.addToDropPositions(blockCache, position, blockData);
             }
-//            iterated.setType(blockData.breakReplacement(), false);
-//            final ItemStack itemStack = leavesConfig.getItemStack(blockData.id());
-//            if (itemStack != null) {
-//                world.dropItem(location.clone().add(0.5, 0, 0.5), itemStack);
-//            }
             iterated = iterated.getRelative(iterationFace);
         }
     }

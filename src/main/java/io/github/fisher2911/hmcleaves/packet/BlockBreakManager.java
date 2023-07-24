@@ -81,7 +81,6 @@ public class BlockBreakManager {
                 player.getInventory().getItemInMainHand(),
                 mineableData.blockBreakModifier()
         );
-//        final int period = (int) Math.ceil(blockBreakTime / (double) BlockBreakData.MAX_DAMAGE);
         final BlockBreakData blockBreakData = new BlockBreakData(
                 RANDOM.nextInt(10_000, 20_000),
                 mineableData,
@@ -168,7 +167,6 @@ public class BlockBreakManager {
                     );
                     final double percentageToAdd = (double) blockBreakTime / updatedBlockBreakTime;
                     blockBreakData.addBreakTimeProgress(percentageToAdd);
-//                        blockBreakData.addBreakTimeProgress(period);
                     blockBreakData.send(blockBreakData.getPosition());
                 }, 1, 1);
     }
@@ -227,10 +225,6 @@ public class BlockBreakManager {
         map.put(Material.SHEARS, 2);
         return map;
     }
-
-//    public void setBlockBreakData(UUID uuid, BlockBreakData blockBreakData) {
-//        this.blockBreakDataMap.put(uuid, blockBreakData);
-//    }
 
     private static class BlockBreakData {
 
