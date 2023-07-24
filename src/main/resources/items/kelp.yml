@@ -6,3 +6,4 @@ kelp:
     lore:
       - "&aLine 1"
     state-id: 1
+    tipped-state-id: 2

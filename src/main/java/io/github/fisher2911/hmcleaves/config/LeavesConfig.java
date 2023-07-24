@@ -842,10 +842,12 @@ public class LeavesConfig {
             Material breakReplacement
     ) {
         final String defaultStringId = getDefaultAgeableStringId(ageableMaterial);
+        final int defaultSendId = getAgeableById(ageableMaterial, 0).getGlobalId();
         final var defaultData = BlockData.ageableData(
                 defaultStringId,
                 ageableMaterial,
-                getAgeableById(ageableMaterial, 0).getGlobalId(),
+                defaultSendId,
+                defaultSendId,
                 null,
                 placeSound,
                 worldTypeSamePredicate,
@@ -1345,6 +1347,12 @@ public class LeavesConfig {
                     itemId
             );
             final int stateId = config.getInt(itemId + "." + STATE_ID_PATH);
+            final int tippedStateId;
+            if (config.contains(itemId + "." + TIPPED_STATE_ID_PATH)) {
+                tippedStateId = config.getInt(itemId + "." + TIPPED_STATE_ID_PATH);
+            } else {
+                tippedStateId = stateId;
+            }
             final String modelPath = config.getString(itemId + "." + MODEL_PATH_PATH);
             final int stackLimit = config.getInt(itemId + "." + STACK_LIMIT_PATH, Integer.MAX_VALUE);
             final var state = getAgeableById(ageableMaterial, stateId);
@@ -1359,7 +1367,8 @@ public class LeavesConfig {
             final var data = BlockData.ageableData(
                     itemId,
                     ageableMaterial,
-                    state.getGlobalId(),
+                    getAgeableById(ageableMaterial, stateId).getGlobalId(),
+                    tippedStateId,
                     modelPath,
                     placeSound,
                     worldTypeSamePredicate,

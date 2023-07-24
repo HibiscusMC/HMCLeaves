@@ -35,6 +35,7 @@ public record AgeableData(
         String id,
         Material realBlockType,
         int sendBlockId,
+        int tippedSendBlockId,
         String modelPath,
         Sound placeSound,
         Predicate<Material> worldTypeSamePredicate,
@@ -45,11 +46,20 @@ public record AgeableData(
         @Nullable BlockDataSound blockDataSound
 ) implements BlockData, LimitedStacking {
 
+    private static final Set<Material> TIP_MATERIALS = Set.of(
+            Material.CAVE_VINES,
+            Material.KELP,
+            Material.TWISTING_VINES,
+            Material.WEEPING_VINES
+    );
+
     @Override
     public WrappedBlockState getNewState(@Nullable Material worldMaterial) {
         final WrappedBlockState state;
         if (worldMaterial == this.defaultLowerMaterial && LeavesConfig.getDefaultAgeableStringId(this.realBlockType).equals(this.id)) {
             state = SpigotConversionUtil.fromBukkitBlockData(this.defaultLowerMaterial.createBlockData());
+        } else if (TIP_MATERIALS.contains(worldMaterial)) {
+            state = WrappedBlockState.getByGlobalId(this.tippedSendBlockId);
         } else {
             state = WrappedBlockState.getByGlobalId(this.sendBlockId);
         }

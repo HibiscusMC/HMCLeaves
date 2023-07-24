@@ -275,8 +275,10 @@ public class LeafAndLogEditListener implements Listener {
         final Block block = event.getBlock();
         if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
         final Position position = Position.fromLocation(block.getLocation());
-        this.blockCache.removeBlockData(position);
+        final BlockData blockData = this.blockCache.removeBlockData(position);
         ChainedBlockUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
+        if (blockData == BlockData.EMPTY) return;
+        this.blockCache.addToDropPositions(position, blockData);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
@@ -286,11 +288,10 @@ public class LeafAndLogEditListener implements Listener {
         final Position position = Position.fromLocation(block.getLocation());
         final BlockData blockData = this.blockCache.getBlockData(position);
         ChainedBlockUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
-        if (!(blockData instanceof SaplingData)) return;
-        // delay so that saplings can be dropped properly
-        Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
-            this.blockCache.removeBlockData(position);
-        }, 1);
+//        if (!(blockData instanceof SaplingData)) return;
+        this.blockCache.removeBlockData(position);
+        if (blockData == BlockData.EMPTY) return;
+        this.blockCache.addToDropPositions(position, blockData);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
