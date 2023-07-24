@@ -84,10 +84,17 @@ public class BlockCache {
         worldBlockCache.addToDropPositions(position, blockData);
     }
 
-    public BlockData removeFromDropPositions(Position position) {
+    public @NotNull BlockData removeFromDropPositions(Position position) {
         final WorldBlockCache worldBlockCache = this.getWorldBlockCache(position.world());
         if (worldBlockCache == null) return BlockData.EMPTY;
         return worldBlockCache.removeFromDropPositions(position);
+    }
+
+    
+    public @NotNull BlockData getDataAtDropPosition(Position position) {
+        final WorldBlockCache worldBlockCache = this.getWorldBlockCache(position.world());
+        if (worldBlockCache == null) return BlockData.EMPTY;
+        return worldBlockCache.getDataAtDropPosition(position);
     }
 
     @Nullable

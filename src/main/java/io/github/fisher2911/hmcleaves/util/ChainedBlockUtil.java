@@ -114,7 +114,7 @@ public class ChainedBlockUtil {
             final Position position = Position.fromLocation(location);
             final BlockData blockData = blockCache.removeBlockData(position);
             if (blockData != BlockData.EMPTY) {
-                blockCache.addToDropPositions(position, blockData);
+                LeafDropUtil.addToDropPositions(blockCache, position, blockData);
             }
 //            iterated.setType(blockData.breakReplacement(), false);
 //            final ItemStack itemStack = leavesConfig.getItemStack(blockData.id());

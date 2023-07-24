@@ -105,17 +105,23 @@ public class WorldBlockCache {
         return Collections.unmodifiableMap(this.blockCacheMap);
     }
 
-
     public void addToDropPositions(Position position, BlockData blockData) {
         final ChunkBlockCache chunkBlockCache = this.getChunkBlockCache(position);
         if (chunkBlockCache == null) return;
         chunkBlockCache.addToDropPositions(position, blockData);
     }
 
-    public BlockData removeFromDropPositions(Position position) {
+    public @NotNull BlockData removeFromDropPositions(Position position) {
         final ChunkBlockCache chunkBlockCache = this.getChunkBlockCache(position);
         if (chunkBlockCache == null) return BlockData.EMPTY;
         return chunkBlockCache.removeFromDropPositions(position);
+    }
+
+    @NotNull
+    public BlockData getDataAtDropPosition(Position position) {
+        final ChunkBlockCache chunkBlockCache = this.getChunkBlockCache(position);
+        if (chunkBlockCache == null) return BlockData.EMPTY;
+        return chunkBlockCache.getDataAtDropPosition(position);
     }
 
     public void clearAll(Consumer<ChunkBlockCache> consumer) {

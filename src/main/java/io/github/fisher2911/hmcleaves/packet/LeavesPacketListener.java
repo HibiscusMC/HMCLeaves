@@ -46,6 +46,7 @@ import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.MineableData;
 import io.github.fisher2911.hmcleaves.util.ChunkUtil;
 import io.github.fisher2911.hmcleaves.util.ItemUtil;
+import io.github.fisher2911.hmcleaves.util.LeafDropUtil;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
@@ -222,7 +223,7 @@ public class LeavesPacketListener extends PacketListenerAbstract {
 //                    if (worldMaterial.isAir()) return;
 //                    if (!blockData.isWorldTypeSame(worldMaterial)) {
                 this.blockCache.removeBlockData(position);
-                this.blockCache.addToDropPositions(position, blockData);
+                LeafDropUtil.addToDropPositions(this.blockCache, position, blockData);
 //                    }
 //                }, 1);
                 return;
@@ -258,7 +259,7 @@ public class LeavesPacketListener extends PacketListenerAbstract {
 //                    Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
 //                        if (!blockData.isWorldTypeSame(worldMaterial)) {
                     this.blockCache.removeBlockData(position);
-                    this.blockCache.addToDropPositions(position, blockData);
+                    LeafDropUtil.addToDropPositions(this.blockCache, position, blockData);
 //                        }
 //                    }, 1);
                     continue;

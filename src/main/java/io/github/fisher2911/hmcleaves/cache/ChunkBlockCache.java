@@ -21,10 +21,8 @@
 package io.github.fisher2911.hmcleaves.cache;
 
 import io.github.fisher2911.hmcleaves.data.BlockData;
-import io.github.fisher2911.hmcleaves.data.CaveVineData;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
-import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
 
@@ -87,17 +85,16 @@ public class ChunkBlockCache {
         return Collections.unmodifiableMap(this.blockDataMap);
     }
 
-//    @Unmodifiable
-//    public Map<Position, BlockData> getRemovedPositions() {
-//        return Collections.unmodifiableMap(this.removedPositions);
-//    }
-
     public void addToDropPositions(Position position, BlockData blockData) {
         this.toDropPositions.put(position, blockData);
     }
 
     @NotNull
-    public BlockData removeFromDropPositions(Position position) {
+    public BlockData getDataAtDropPosition(Position position) {
+        return this.toDropPositions.getOrDefault(position, BlockData.EMPTY);
+    }
+
+    public @NotNull BlockData removeFromDropPositions(Position position) {
         final BlockData data = this.toDropPositions.remove(position);
         if (data == null) return BlockData.EMPTY;
         return data;

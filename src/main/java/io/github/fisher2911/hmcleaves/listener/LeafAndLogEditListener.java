@@ -34,6 +34,7 @@ import io.github.fisher2911.hmcleaves.data.SaplingData;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import io.github.fisher2911.hmcleaves.packet.PacketUtils;
 import io.github.fisher2911.hmcleaves.util.ChainedBlockUtil;
+import io.github.fisher2911.hmcleaves.util.LeafDropUtil;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -86,7 +87,7 @@ public class LeafAndLogEditListener implements Listener {
         // delay so that saplings can be replaced
         final BlockData blockData = this.blockCache.removeBlockData(position);
         if (blockData == BlockData.EMPTY) return;
-        this.blockCache.addToDropPositions(position, blockData);
+        LeafDropUtil.addToDropPositions(this.blockCache, position, blockData);
 //        Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
 //            PacketUtils.sendBlock(Material.AIR, position, Bukkit.getOnlinePlayers());
 //        }, 1);
@@ -123,7 +124,7 @@ public class LeafAndLogEditListener implements Listener {
             if (blockData instanceof LeafData) {
                 runnables.add(() -> {
                     this.blockCache.removeBlockData(originalPosition);
-                    this.blockCache.addToDropPositions(originalPosition, blockData);
+                    LeafDropUtil.addToDropPositions(this.blockCache, originalPosition, blockData);
                 });
                 continue;
             }
@@ -278,7 +279,7 @@ public class LeafAndLogEditListener implements Listener {
         final BlockData blockData = this.blockCache.removeBlockData(position);
         ChainedBlockUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
         if (blockData == BlockData.EMPTY) return;
-        this.blockCache.addToDropPositions(position, blockData);
+        LeafDropUtil.addToDropPositions(this.blockCache, position, blockData);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
@@ -291,7 +292,7 @@ public class LeafAndLogEditListener implements Listener {
 //        if (!(blockData instanceof SaplingData)) return;
         this.blockCache.removeBlockData(position);
         if (blockData == BlockData.EMPTY) return;
-        this.blockCache.addToDropPositions(position, blockData);
+        LeafDropUtil.addToDropPositions(this.blockCache, position, blockData);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
