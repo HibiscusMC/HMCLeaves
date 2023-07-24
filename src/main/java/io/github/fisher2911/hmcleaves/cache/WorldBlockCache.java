@@ -76,7 +76,12 @@ public class WorldBlockCache {
     }
 
     private ChunkBlockCache createChunkBlockCache(Position position) {
-        final ChunkBlockCache chunkBlockCache = new ChunkBlockCache(position.getChunkPosition(), new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
+        final ChunkBlockCache chunkBlockCache = new ChunkBlockCache(
+                position.getChunkPosition(),
+                new ConcurrentHashMap<>(),
+                new ConcurrentHashMap<>(),
+                new ConcurrentHashMap<>()
+        );
         this.blockCacheMap.put(position.getChunkPosition(), chunkBlockCache);
         return chunkBlockCache;
     }
@@ -100,6 +105,19 @@ public class WorldBlockCache {
         return Collections.unmodifiableMap(this.blockCacheMap);
     }
 
+
+    public void addToDropPositions(Position position, BlockData blockData) {
+        final ChunkBlockCache chunkBlockCache = this.getChunkBlockCache(position);
+        if (chunkBlockCache == null) return;
+        chunkBlockCache.addToDropPositions(position, blockData);
+    }
+
+    public BlockData removeFromDropPositions(Position position) {
+        final ChunkBlockCache chunkBlockCache = this.getChunkBlockCache(position);
+        if (chunkBlockCache == null) return BlockData.EMPTY;
+        return chunkBlockCache.removeFromDropPositions(position);
+    }
+
     public void clearAll(Consumer<ChunkBlockCache> consumer) {
         this.blockCacheMap.entrySet().removeIf(entry -> {
             consumer.accept(entry.getValue());
@@ -108,7 +126,12 @@ public class WorldBlockCache {
     }
 
     public ChunkBlockCache addChunkCache(ChunkPosition chunkPosition) {
-        final ChunkBlockCache chunkBlockCache = new ChunkBlockCache(chunkPosition, new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
+        final ChunkBlockCache chunkBlockCache = new ChunkBlockCache(
+                chunkPosition,
+                new ConcurrentHashMap<>(),
+                new ConcurrentHashMap<>(),
+                new ConcurrentHashMap<>()
+        );
         final ChunkBlockCache previous = this.blockCacheMap.putIfAbsent(chunkPosition, chunkBlockCache);
         if (previous != null) return previous;
         return chunkBlockCache;

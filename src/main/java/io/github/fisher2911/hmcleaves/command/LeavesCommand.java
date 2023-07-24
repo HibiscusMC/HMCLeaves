@@ -65,6 +65,14 @@ public class LeavesCommand implements TabExecutor {
             sender.sendMessage(ChatColor.RED + "/hmcleaves give <id>");
             return true;
         }
+        if (args.length == 0) {
+            return true;
+        }
+        if (sender.hasPermission(RELOAD_PERMISSION) && args[0].equalsIgnoreCase(RELOAD_ARG)) {
+            this.plugin.reload();
+            sender.sendMessage(ChatColor.GREEN + "Reloaded config.");
+            return true;
+        }
         if (!(sender instanceof final Player player)) {
             sender.sendMessage(ChatColor.RED + "Only players can use this command.");
             return true;
@@ -78,11 +86,6 @@ public class LeavesCommand implements TabExecutor {
             PDCUtil.setItemId(debugTool, LeavesConfig.DEBUG_TOOL_ID);
             player.getInventory().addItem(debugTool);
             player.sendMessage(ChatColor.GREEN + "Debug Tool added to your inventory.");
-            return true;
-        }
-        if (sender.hasPermission(RELOAD_PERMISSION) && args[0].equalsIgnoreCase(RELOAD_ARG)) {
-            this.plugin.reload();
-            sender.sendMessage(ChatColor.GREEN + "Reloaded config.");
             return true;
         }
         if (sender.hasPermission(ITEM_PERMISSION) && args[0].equalsIgnoreCase(GIVE_ARG)) {

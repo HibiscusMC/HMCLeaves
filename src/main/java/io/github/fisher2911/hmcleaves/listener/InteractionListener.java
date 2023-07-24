@@ -161,7 +161,6 @@ public class InteractionListener implements Listener {
             event.setCancelled(true);
             return;
         }
-//        Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
         final Block placedBlock = placeLocation.getBlock();
         final BlockState previousState = placedBlock.getState();
         placedBlock.setType(blockData.worldBlockType(), false);
@@ -218,11 +217,11 @@ public class InteractionListener implements Listener {
             return;
         }
         if (blockData instanceof final CaveVineData caveVineData && placedBlock.getBlockData() instanceof final CaveVinesPlant caveVinesPlant) {
+            placedBlock.setType(Material.AIR);
             caveVinesPlant.setBerries(caveVineData.glowBerry());
             placedBlock.setBlockData(caveVinesPlant, true);
             return;
         }
-//        }, 1);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
@@ -230,6 +229,10 @@ public class InteractionListener implements Listener {
         if (event instanceof HMCLeavesBlockDataPlaceEvent) return;
         final Block block = event.getBlock();
         if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
+        if (
+                LeavesConfig.SHEAR_STOPS_GROWING_MATERIALS.contains(block.getType()) &&
+                        event.getItemInHand().getType() == Material.SHEARS
+        ) return;
         final Material material = block.getType();
         final Position position = Position.fromLocation(block.getLocation());
         final ItemStack itemInHand = event.getItemInHand();
@@ -294,6 +297,7 @@ public class InteractionListener implements Listener {
                 return;
             }
             this.blockCache.addBlockData(position, blockData);
+            return;
         }
         if (LeavesConfig.AGEABLE_MATERIALS.contains(material)) {
             final BlockData blockData;
@@ -424,18 +428,18 @@ public class InteractionListener implements Listener {
             return true;
         }
         if (blockData instanceof final LeafData leafData && clicked.getBlockData() instanceof final Leaves leaves) {
-            player.sendMessage("Display distance: " + leafData.displayDistance() + " Display persistence: " + leafData.displayPersistence() + " " +
+            player.sendMessage(leafData.id() + " Display distance: " + leafData.displayDistance() + " Display persistence: " + leafData.displayPersistence() + " " +
                     "server distance: " + leaves.getDistance() + " server persistence: " + leaves.isPersistent() + " waterlogged: " + leafData.waterlogged());
             return true;
         }
         if (blockData instanceof final CaveVineData caveVineData && clicked.getBlockData() instanceof final CaveVinesPlant caveVinesPlant) {
-            player.sendMessage("Display berries: " + caveVineData.glowBerry() + " server berries: " + caveVinesPlant.isBerries() + " "
+            player.sendMessage(caveVineData.id() + " worldMaterial: " + clicked.getType() + " Display berries: " + caveVineData.glowBerry() + " server berries: " + caveVinesPlant.isBerries() + " "
                     + "display age: " + caveVineData.getNewState(null).getAge() + " server age: " +
                     ((caveVinesPlant instanceof final CaveVines caveVines) ? caveVines.getAge() : "no age"));
             return true;
         }
         if (blockData instanceof final AgeableData ageableData) {
-            player.sendMessage("Display age: " + ageableData.getAge() + " server age: " +
+            player.sendMessage(blockData.id() + " Display age: " + ageableData.getAge() + " server age: " +
                     ((clicked.getBlockData()) instanceof final Ageable ageable ? ageable.getAge() : "no age"));
             return true;
         }
@@ -443,7 +447,7 @@ public class InteractionListener implements Listener {
             player.sendMessage("The fake block data was not found: " + clicked.getType());
             return true;
         }
-        player.sendMessage("The fake block data does not match the real block: " + blockData.getClass().getSimpleName());
+        player.sendMessage("The fake block data does not match the real block: " + blockData.getClass().getSimpleName() + " world block: " + clicked.getType());
         return true;
     }
 

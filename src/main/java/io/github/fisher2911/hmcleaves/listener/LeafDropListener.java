@@ -24,8 +24,10 @@ import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.world.Position;
+import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.type.CaveVines;
 import org.bukkit.block.data.type.CaveVinesPlant;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.block.data.type.Sapling;
@@ -54,10 +56,8 @@ public class LeafDropListener implements Listener {
         final Block block = event.getBlock();
         if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
         final Position position = Position.fromLocation(block.getLocation());
-        final BlockData data = this.plugin.getBlockCache().removeBlockData(position);
-        if (data == BlockData.EMPTY) {
-            return;
-        }
+        final BlockData data = this.plugin.getBlockCache().removeFromDropPositions(position);
+        if (data == BlockData.EMPTY) return;
         final String id = data.id();
         for (Item item : event.getItems()) {
             final ItemStack itemStack = item.getItemStack();
@@ -98,7 +98,7 @@ public class LeafDropListener implements Listener {
         final Item item = event.getEntity();
         if (block.getBlockData() instanceof Sapling) {
             if (!Tag.SAPLINGS.isTagged(item.getItemStack().getType())) return;
-            final BlockData blockData = this.plugin.getBlockCache().removeBlockData(position);
+            final BlockData blockData = this.plugin.getBlockCache().removeFromDropPositions(position);
             final Supplier<ItemStack> supplier = this.leavesConfig.getItemSupplier(blockData.id());
             if (supplier == null) return;
             final ItemStack saplingItem = supplier.get();
@@ -106,13 +106,13 @@ public class LeafDropListener implements Listener {
             this.transferItemData(item.getItemStack(), saplingItem);
             return;
         }
-        if (block.getBlockData() instanceof CaveVinesPlant && !Tag.CAVE_VINES.isTagged(item.getItemStack().getType())) {
+        if ((block.getBlockData() instanceof CaveVinesPlant || block.getBlockData() instanceof CaveVines) && item.getItemStack().getType() != Material.GLOW_BERRIES) {
             return;
         }
-        final BlockData blockData = this.plugin.getBlockCache().removeBlockData(position);
+        final BlockData blockData = this.plugin.getBlockCache().removeFromDropPositions(position);
         if (blockData == BlockData.EMPTY) return;
         final String id = blockData.id();
-        if (!(block.getBlockData() instanceof final Leaves leaves)) {
+        if (!(block.getBlockData() instanceof Leaves)) {
             final ItemStack itemStack = this.leavesConfig.getItemStack(id);
             if (itemStack == null) return;
             this.transferItemData(item.getItemStack(), itemStack);

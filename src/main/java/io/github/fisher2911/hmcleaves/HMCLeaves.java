@@ -68,7 +68,7 @@ public class HMCLeaves extends JavaPlugin {
     public void onEnable() {
         this.leavesConfig = new LeavesConfig(
                 this,
-                new HashMap<>(),
+                new ConcurrentHashMap<>(),
                 new HashMap<>(),
                 new HashMap<>(),
                 new HashMap<>(),

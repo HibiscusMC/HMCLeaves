@@ -28,10 +28,10 @@ import io.github.fisher2911.hmcleaves.data.CaveVineData;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -45,10 +45,16 @@ public class ChainedBlockUtil {
         final Material brokenMaterial = broken.getType();
         final Material belowMaterial = below.getType();
         final Material aboveMaterial = above.getType();
-//        if (Tag.CAVE_VINES.isTagged(broken.getType()) || Tag.CAVE_VINES.isTagged(broken.getRelative(BlockFace.DOWN).getType())) {
-////            handleCaveVinesDestroy(broken, blockCache, leavesConfig);
-//            return;
-//        }
+        if (Tag.CAVE_VINES.isTagged(broken.getType()) || Tag.CAVE_VINES.isTagged(broken.getRelative(BlockFace.DOWN).getType())) {
+            handleBlockDestroy(
+                    broken,
+                    blockCache,
+                    BlockFace.UP,
+                    Tag.CAVE_VINES::isTagged,
+                    leavesConfig
+            );
+            return;
+        }
         if (brokenMaterial == Material.SUGAR_CANE || aboveMaterial == Material.SUGAR_CANE) {
             handleBlockDestroy(
                     broken,
@@ -105,12 +111,14 @@ public class ChainedBlockUtil {
         Block iterated = broken.getRelative(iterationFace);
         while (materialPredicate.test(iterated.getType())) {
             final Location location = iterated.getLocation();
-            final BlockData blockData = blockCache.removeBlockData(Position.fromLocation(location));
-            iterated.setType(blockData.breakReplacement(), false);
-            final ItemStack itemStack = leavesConfig.getItemStack(blockData.id());
-            if (itemStack != null) {
-                world.dropItem(location.clone().add(0.5, 0, 0.5), itemStack);
-            }
+            final Position position = Position.fromLocation(location);
+            final BlockData blockData = blockCache.removeBlockData(position);
+            blockCache.addToDropPositions(position, blockData);
+//            iterated.setType(blockData.breakReplacement(), false);
+//            final ItemStack itemStack = leavesConfig.getItemStack(blockData.id());
+//            if (itemStack != null) {
+//                world.dropItem(location.clone().add(0.5, 0, 0.5), itemStack);
+//            }
             iterated = iterated.getRelative(iterationFace);
         }
     }

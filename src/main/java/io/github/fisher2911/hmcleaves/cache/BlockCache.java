@@ -78,6 +78,18 @@ public class BlockCache {
         return worldBlockCache.removeBlockData(position);
     }
 
+    public void addToDropPositions(Position position, BlockData blockData) {
+        final WorldBlockCache worldBlockCache = this.getWorldBlockCache(position.world());
+        if (worldBlockCache == null) return;
+        worldBlockCache.addToDropPositions(position, blockData);
+    }
+
+    public BlockData removeFromDropPositions(Position position) {
+        final WorldBlockCache worldBlockCache = this.getWorldBlockCache(position.world());
+        if (worldBlockCache == null) return BlockData.EMPTY;
+        return worldBlockCache.removeFromDropPositions(position);
+    }
+
     @Nullable
     public ChunkBlockCache getChunkBlockCache(Position position) {
         return this.getChunkBlockCache(position.getChunkPosition());

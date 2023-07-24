@@ -21,8 +21,10 @@
 package io.github.fisher2911.hmcleaves.cache;
 
 import io.github.fisher2911.hmcleaves.data.BlockData;
+import io.github.fisher2911.hmcleaves.data.CaveVineData;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
+import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
 
@@ -35,14 +37,22 @@ public class ChunkBlockCache {
     private final ChunkPosition chunkPosition;
     private final Map<Position, BlockData> blockDataMap;
     private final Map<Position, BlockData> removedPositions;
+    private final Map<Position, BlockData> toDropPositions;
     private boolean dirty;
     private boolean saving;
     private boolean safeToMarkClean;
 
-    public ChunkBlockCache(ChunkPosition chunkPosition, Map<Position, BlockData> blockDataMap, Map<Position, BlockData> removedPositions) {
+    public ChunkBlockCache(
+            ChunkPosition chunkPosition,
+            Map<Position, BlockData> blockDataMap,
+            Map<Position, BlockData> removedPositions,
+            Map<Position, BlockData> toDropPositions
+
+    ) {
         this.chunkPosition = chunkPosition;
         this.blockDataMap = blockDataMap;
         this.removedPositions = removedPositions;
+        this.toDropPositions = toDropPositions;
         this.dirty = false;
         this.saving = false;
         this.safeToMarkClean = true;
@@ -81,6 +91,21 @@ public class ChunkBlockCache {
 //    public Map<Position, BlockData> getRemovedPositions() {
 //        return Collections.unmodifiableMap(this.removedPositions);
 //    }
+
+    public void addToDropPositions(Position position, BlockData blockData) {
+        this.toDropPositions.put(position, blockData);
+    }
+
+    @NotNull
+    public BlockData removeFromDropPositions(Position position) {
+        final BlockData data = this.toDropPositions.remove(position);
+        if (data == null) return BlockData.EMPTY;
+        return data;
+    }
+
+    public void clearToDropPositions() {
+        this.toDropPositions.clear();
+    }
 
     public void clearRemovedPositions(Function<Map.Entry<Position, BlockData>, Boolean> function) {
         this.removedPositions.entrySet().removeIf(function::apply);

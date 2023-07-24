@@ -84,10 +84,12 @@ public class LeafAndLogEditListener implements Listener {
         final Position position = Position.fromLocation(block.getLocation());
         ChainedBlockUtil.handleBlockBreak(block, this.blockCache, this.leavesConfig);
         // delay so that saplings can be replaced
-        Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
-            this.blockCache.removeBlockData(position);
-            PacketUtils.sendBlock(Material.AIR, position, Bukkit.getOnlinePlayers());
-        }, 1);
+        final BlockData blockData = this.blockCache.removeBlockData(position);
+        if (blockData == BlockData.EMPTY) return;
+        this.blockCache.addToDropPositions(position, blockData);
+//        Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
+//            PacketUtils.sendBlock(Material.AIR, position, Bukkit.getOnlinePlayers());
+//        }, 1);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
@@ -119,7 +121,10 @@ public class LeafAndLogEditListener implements Listener {
             // leaves get destroyed by pistons
             if (blockData == BlockData.EMPTY) continue;
             if (blockData instanceof LeafData) {
-                this.blockCache.removeBlockData(originalPosition);
+                runnables.add(() -> {
+                    this.blockCache.removeBlockData(originalPosition);
+                    this.blockCache.addToDropPositions(originalPosition, blockData);
+                });
                 continue;
             }
             if (!(blockData instanceof final LogData logData)) continue;
@@ -225,7 +230,6 @@ public class LeafAndLogEditListener implements Listener {
                 final BlockData blockData = this.blockCache.getBlockData(relativePosition);
                 if (blockData == BlockData.EMPTY) continue;
                 adjacent.put(position, new AdjacentInfo(relativePosition, blockData, block.getRelative(face).getType()));
-//                adjacent.put(position, Pair.of(relativePosition, blockData));
             }
         }
         return adjacent;

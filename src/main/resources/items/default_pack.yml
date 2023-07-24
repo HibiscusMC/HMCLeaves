@@ -2,7 +2,7 @@ leaves:
   "palm_leaves":
     world-persistence: false
     leaf-material: OAK_LEAVES
-    state-id: 1
+    state-id: 2
     sapling: test_sapling
     leaf-drop-replacement: palm_leaves
     model-path: "palm_leaves"
@@ -10,7 +10,7 @@ leaves:
   "aspen_leaves":
     world-persistence: false
     leaf-material: OAK_LEAVES
-    state-id: 2
+    state-id: 3
     sapling: test_sapling
     leaf-drop-replacement: aspen_leaves
     model-path: "aspen_leaves"
@@ -18,7 +18,7 @@ leaves:
   "pine_leaves":
     world-persistence: false
     leaf-material: OAK_LEAVES
-    state-id: 3
+    state-id: 4
     sapling: test_sapling
     leaf-drop-replacement: pine_leaves
     model-path: "pine_leaves"

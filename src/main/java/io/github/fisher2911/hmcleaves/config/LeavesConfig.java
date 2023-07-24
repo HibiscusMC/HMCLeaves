@@ -100,6 +100,13 @@ public class LeavesConfig {
             Material.WEEPING_VINES_PLANT
     );
 
+    public static final Set<Material> SHEAR_STOPS_GROWING_MATERIALS = Set.of(
+            Material.KELP,
+            Material.CAVE_VINES,
+            Material.TWISTING_VINES,
+            Material.WEEPING_VINES
+    );
+
 
     private static WrappedBlockState getLeafById(int id) {
         if (id < 0) {
