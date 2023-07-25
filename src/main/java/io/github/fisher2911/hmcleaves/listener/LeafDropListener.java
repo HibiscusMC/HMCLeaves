@@ -25,7 +25,6 @@ import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.data.CaveVineData;
 import io.github.fisher2911.hmcleaves.world.Position;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
