@@ -9,3 +9,4 @@ cave-vines:
     state-id: 2
     tipped-state-id: 3
     should-grow-berries: true
+    glow_berry: ruby_ore

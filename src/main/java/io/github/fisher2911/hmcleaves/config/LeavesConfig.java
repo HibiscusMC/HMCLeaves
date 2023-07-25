@@ -781,7 +781,8 @@ public class LeavesConfig {
                 Integer.MAX_VALUE,
                 DEFAULT_CAVE_VINES_SUPPORTABLE_FACES,
                 null,
-                true
+                true,
+                null
         );
         this.blockSupportPredicateMap.put(defaultCaveVinesStringId, DEFAULT_CAVE_VINES_PREDICATE);
         this.blockSupportPredicateMap.put(defaultCaveVinesStringIdWithBerries, DEFAULT_CAVE_VINES_PREDICATE);
@@ -1167,6 +1168,7 @@ public class LeavesConfig {
     }
 
     private static final String WITH_GLOW_BERRY_ID_PATH = "with-glow-berry-id";
+    private static final String GLOW_BERRY_ITEM_PATH = "glow_berry";
     private static final Predicate<Block> DEFAULT_CAVE_VINES_PREDICATE = block ->
             block.getType().isSolid() || Tag.CAVE_VINES.isTagged(block.getType());
     private static final Set<BlockFace> DEFAULT_CAVE_VINES_SUPPORTABLE_FACES = Set.of(BlockFace.UP);
@@ -1201,6 +1203,19 @@ public class LeavesConfig {
             final BlockDataSound sound = this.loadBlockDataSound(caveVinesSection.getConfigurationSection(itemId));
             final boolean shouldGrowBerries = caveVinesSection.getBoolean(itemId + "." + SHOULD_GROW_BERRIES_PATH, true);
             final int tippedStateId;
+            final ConfigurationSection glowBerryItemSection = caveVinesSection.getConfigurationSection(itemId + "." + GLOW_BERRY_ITEM_PATH);
+            final Supplier<ItemStack> glowBerryItemSupplier;
+            if (glowBerryItemSection == null) {
+                final String glowBerryItemId = caveVinesSection.getString(itemId + "." + GLOW_BERRY_ITEM_PATH);
+                if (glowBerryItemId == null) {
+                    glowBerryItemSupplier = null;
+                } else {
+                    glowBerryItemSupplier = () -> Hooks.getItem(glowBerryItemId);
+                }
+            } else {
+                glowBerryItemSupplier = this.loadItemStack(glowBerryItemSection, itemId, itemId);
+            }
+
             if (caveVinesSection.contains(itemId + "." + TIPPED_STATE_ID_PATH)) {
                 tippedStateId = caveVinesSection.getInt(itemId + "." + TIPPED_STATE_ID_PATH);
             } else {
@@ -1216,7 +1231,8 @@ public class LeavesConfig {
                     stackLimit,
                     supportableFaces,
                     sound,
-                    shouldGrowBerries
+                    shouldGrowBerries,
+                    glowBerryItemSupplier
             );
             final ConfigurationSection predicateSection = caveVinesSection.getConfigurationSection(itemId + "." + ALLOWED_SUPPORTABLE_BLOCKS);
             final Predicate<Block> placePredicate;

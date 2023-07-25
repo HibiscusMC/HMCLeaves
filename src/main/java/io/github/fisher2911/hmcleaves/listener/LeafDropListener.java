@@ -23,7 +23,9 @@ package io.github.fisher2911.hmcleaves.listener;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
+import io.github.fisher2911.hmcleaves.data.CaveVineData;
 import io.github.fisher2911.hmcleaves.world.Position;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
@@ -37,6 +39,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
+import org.bukkit.event.player.PlayerHarvestBlockEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.function.Supplier;
@@ -79,6 +82,14 @@ public class LeafDropListener implements Listener {
                 final ItemStack sapling = saplingSupplier.get();
                 if (sapling == null) continue;
                 this.transferItemData(itemStack, sapling);
+                continue;
+            }
+            if (itemStack.getType() == Material.GLOW_BERRIES && data instanceof final CaveVineData caveVineData) {
+                final Supplier<ItemStack> glowBerrySupplier = caveVineData.getBerryItem();
+                if (glowBerrySupplier == null) continue;
+                final ItemStack glowBerry = glowBerrySupplier.get();
+                if (glowBerry == null) continue;
+                this.transferItemData(itemStack, glowBerry);
                 continue;
             }
             if (itemStack.getType() == data.worldBlockType()) {
@@ -134,6 +145,25 @@ public class LeafDropListener implements Listener {
             if (sapling == null) return;
             this.transferItemData(itemStack, sapling);
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onCaveVineDropBerry(PlayerHarvestBlockEvent event) {
+        final Block block = event.getHarvestedBlock();
+        final Position position = Position.fromLocation(block.getLocation());
+        final BlockData blockData = this.plugin.getBlockCache().getBlockData(position);
+        if (blockData == BlockData.EMPTY) return;
+        if (!(blockData instanceof final CaveVineData caveVineData)) return;
+        event.getItemsHarvested().replaceAll(itemStack -> {
+            if (itemStack.getType() != Material.GLOW_BERRIES) return itemStack;
+            final Supplier<ItemStack> glowBerrySupplier = caveVineData.getBerryItem();
+            if (glowBerrySupplier == null) return itemStack;
+            final int amount = itemStack.getAmount();
+            final ItemStack glowBerry = glowBerrySupplier.get();
+            if (glowBerry == null) return itemStack;
+            glowBerry.setAmount(amount);
+            return glowBerry;
+        });
     }
 
     private void transferItemData(ItemStack original, ItemStack toTransfer) {

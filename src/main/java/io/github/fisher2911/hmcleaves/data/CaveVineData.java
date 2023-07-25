@@ -27,9 +27,11 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.Tag;
 import org.bukkit.block.BlockFace;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
+import java.util.function.Supplier;
 
 public record CaveVineData(
         String id,
@@ -42,7 +44,8 @@ public record CaveVineData(
         int stackLimit,
         Set<BlockFace> supportableFaces,
         @Nullable BlockDataSound blockDataSound,
-        boolean shouldGrowBerries
+        boolean shouldGrowBerries,
+        @Nullable Supplier<ItemStack> berryItemSupplier
 ) implements BlockData, LimitedStacking {
 
     @Override
@@ -96,7 +99,8 @@ public record CaveVineData(
                 this.stackLimit,
                 this.supportableFaces,
                 this.blockDataSound,
-                this.shouldGrowBerries
+                this.shouldGrowBerries,
+                this.berryItemSupplier
         );
     }
 
@@ -113,6 +117,10 @@ public record CaveVineData(
     @Override
     public boolean shouldSave() {
         return !this.getCurrentId().equals(LeavesConfig.getDefaultCaveVinesStringId(this.glowBerry()));
+    }
+
+    public @Nullable Supplier<ItemStack> getBerryItem() {
+        return this.berryItemSupplier;
     }
 
 }

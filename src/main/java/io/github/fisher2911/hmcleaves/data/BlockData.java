@@ -26,11 +26,13 @@ import org.bukkit.Axis;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.block.BlockFace;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public interface BlockData {
 
@@ -218,7 +220,8 @@ public interface BlockData {
             int stackLimit,
             Set<BlockFace> supportableFaces,
             BlockDataSound blockDataSound,
-            boolean shouldGrowBerries
+            boolean shouldGrowBerries,
+            @Nullable Supplier<ItemStack> berryItemSupplier
     ) {
         return new CaveVineData(
                 id,
@@ -230,7 +233,8 @@ public interface BlockData {
                 stackLimit,
                 supportableFaces,
                 blockDataSound,
-                shouldGrowBerries
+                shouldGrowBerries,
+                berryItemSupplier
         );
     }
 
