@@ -21,6 +21,8 @@
 package io.github.fisher2911.hmcleaves.listener;
 
 import io.github.fisher2911.hmcleaves.HMCLeaves;
+import io.github.fisher2911.hmcleaves.api.event.HMCLeavesBlockDataBreakEvent;
+import io.github.fisher2911.hmcleaves.api.event.HMCLeavesBlockDataPlaceEvent;
 import io.github.fisher2911.hmcleaves.cache.BlockCache;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.AgeableData;
@@ -31,7 +33,6 @@ import io.github.fisher2911.hmcleaves.data.LogData;
 import io.github.fisher2911.hmcleaves.data.MineableData;
 import io.github.fisher2911.hmcleaves.data.SaplingData;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
-import io.github.fisher2911.hmcleaves.packet.BlockBreakManager;
 import io.github.fisher2911.hmcleaves.packet.PacketUtils;
 import io.github.fisher2911.hmcleaves.util.ChainedBlockUtil;
 import io.github.fisher2911.hmcleaves.util.ItemUtil;
@@ -71,7 +72,6 @@ import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffectType;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Set;
@@ -324,7 +324,7 @@ public class InteractionListener implements Listener {
      */
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onBlockBreak(BlockBreakEvent event) {
-        if (event instanceof BlockBreakManager.LeavesBlockBreakEvent) return;
+        if (event instanceof HMCLeavesBlockDataBreakEvent) return;
         if (!this.leavesConfig.isWorldWhitelisted(event.getBlock().getWorld())) return;
         ChainedBlockUtil.handleBlockBreak(event.getBlock(), this.blockCache, this.leavesConfig);
         final Player player = event.getPlayer();
@@ -337,6 +337,14 @@ public class InteractionListener implements Listener {
             if (itemStack == null) return;
             event.setDropItems(false);
             final World world = event.getBlock().getWorld();
+            final HMCLeavesBlockDataBreakEvent breakEvent = new HMCLeavesBlockDataBreakEvent(
+                    event.getBlock(), player, saplingData
+            );
+            Bukkit.getPluginManager().callEvent(breakEvent);
+            if (breakEvent.isCancelled()) {
+                event.setCancelled(true);
+                return;
+            }
             this.blockCache.removeBlockData(position);
             Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
                 world.dropItem(location.clone().add(0.5, 0, 0.5), itemStack);
@@ -349,6 +357,13 @@ public class InteractionListener implements Listener {
             Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> PacketUtils.sendMiningFatigue(player));
         }
         if (!(blockData instanceof final MineableData mineableData) || mineableData.blockBreakModifier() == null) {
+            final HMCLeavesBlockDataBreakEvent breakEvent = new HMCLeavesBlockDataBreakEvent(
+                    event.getBlock(), player, blockData
+            );
+            Bukkit.getPluginManager().callEvent(breakEvent);
+            if (breakEvent.isCancelled()) {
+                event.setCancelled(true);
+            };
             return;
         }
         event.setCancelled(true);
@@ -511,26 +526,6 @@ public class InteractionListener implements Listener {
         return blockState.getBlockData() instanceof Levelled levelled &&
                 levelled.getLevel() == 0 &&
                 levelled.getMaterial() == Material.WATER;
-    }
-
-    private static class HMCLeavesBlockDataPlaceEvent extends BlockPlaceEvent {
-
-        private final BlockData blockData;
-
-        public HMCLeavesBlockDataPlaceEvent(
-                @NotNull Block placedBlock,
-                @NotNull BlockState replacedBlockState,
-                @NotNull Block placedAgainst,
-                @NotNull ItemStack itemInHand,
-                @NotNull Player thePlayer,
-                boolean canBuild,
-                @NotNull EquipmentSlot hand,
-                BlockData blockData
-        ) {
-            super(placedBlock, replacedBlockState, placedAgainst, itemInHand, thePlayer, canBuild, hand);
-            this.blockData = blockData;
-        }
-
     }
 
 }

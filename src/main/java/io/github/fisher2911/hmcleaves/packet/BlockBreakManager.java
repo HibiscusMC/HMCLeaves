@@ -21,6 +21,7 @@
 package io.github.fisher2911.hmcleaves.packet;
 
 import io.github.fisher2911.hmcleaves.HMCLeaves;
+import io.github.fisher2911.hmcleaves.api.event.HMCLeavesBlockDataBreakEvent;
 import io.github.fisher2911.hmcleaves.cache.BlockCache;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
@@ -34,12 +35,10 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
-import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -113,23 +112,25 @@ public class BlockBreakManager {
                     final Player player = blockBreakData.getBreaker();
                     if (blockBreakData.isBroken()) {
                         final Block block = blockBreakData.getPosition().toLocation().getBlock();
-                        final LeavesBlockBreakEvent event = new LeavesBlockBreakEvent(block, player);
+                        final HMCLeavesBlockDataBreakEvent event = new HMCLeavesBlockDataBreakEvent(block, player, blockBreakData.getBlockData());
                         Bukkit.getPluginManager().callEvent(event);
                         if (event.isCancelled()) {
                             blockBreakData.resetProgress();
                             return;
                         }
-                        PacketUtils.sendBlockBreakAnimation(
-                                blockBreakData.getBreaker(),
-                                blockBreakData.getPosition().toLocation(),
-                                blockBreakData.getEntityId(),
-                                (byte) -1
-                        );
-                        PacketUtils.sendBlockBroken(
-                                player,
-                                blockBreakData.getPosition(),
-                                blockBreakData.getBlockData().sendBlockId()
-                        );
+                        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
+                            PacketUtils.sendBlockBreakAnimation(
+                                    blockBreakData.getBreaker(),
+                                    blockBreakData.getPosition().toLocation(),
+                                    blockBreakData.getEntityId(),
+                                    (byte) -1
+                            );
+                            PacketUtils.sendBlockBroken(
+                                    player,
+                                    blockBreakData.getPosition(),
+                                    blockBreakData.getBlockData().sendBlockId()
+                            );
+                        });
                         BlockBreakManager.this.blockCache.removeBlockData(blockBreakData.getPosition());
                         block.setType(Material.AIR);
                         Supplier<ItemStack> itemStackSupplier = null;
@@ -309,14 +310,6 @@ public class BlockBreakManager {
 
         public void resetProgress() {
             this.breakTimeProgress = 0;
-        }
-
-    }
-
-    public static class LeavesBlockBreakEvent extends BlockBreakEvent {
-
-        public LeavesBlockBreakEvent(@NotNull Block theBlock, @NotNull Player player) {
-            super(theBlock, player);
         }
 
     }
