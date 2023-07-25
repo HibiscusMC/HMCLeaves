@@ -1,5 +1,5 @@
 name: HMCLeaves
-version: "1.0.4"
+version: "1.0.5"
 main: io.github.fisher2911.hmcleaves.HMCLeaves
 softdepend: [ Oraxen, ItemsAdder, MythicCrucible, WorldEdit, FastAsyncWorldEdit, ProtocolLib, ProtocolSupport, ViaVersion, ViaBackwards, ViaRewind, Geyser-Spigot ]
 api-version: 1.18
