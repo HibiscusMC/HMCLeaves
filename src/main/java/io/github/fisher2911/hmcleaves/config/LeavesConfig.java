@@ -467,7 +467,9 @@ public class LeavesConfig {
 
     @Nullable
     public Supplier<ItemStack> getSapling(String id) {
-        return this.saplingItemSupplierMap.get(id);
+        final Supplier<ItemStack> supplier = this.saplingItemSupplierMap.get(id);
+        if (supplier != null) return supplier;
+        return this.itemSupplierMap.get(id);
     }
 
     @Nullable
