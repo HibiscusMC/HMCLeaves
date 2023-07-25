@@ -23,7 +23,6 @@ package io.github.fisher2911.hmcleaves.data;
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.Tag;
@@ -49,7 +48,7 @@ public record CaveVineData(
     @Override
     public WrappedBlockState getNewState(@Nullable Material worldMaterial) {
         final WrappedBlockState state;
-        if (worldMaterial == Material.CAVE_VINES_PLANT && LeavesConfig.getDefaultCaveVinesStringId(this.glowBerry).equals(this.id)) {
+        if (worldMaterial == Material.CAVE_VINES_PLANT && LeavesConfig.getDefaultCaveVinesStringId(this.glowBerry).equals(this.getCurrentId())) {
             state = StateTypes.CAVE_VINES_PLANT.createBlockState();
         } else if (worldMaterial == Material.CAVE_VINES){
             state = WrappedBlockState.getByGlobalId(this.tippedSendBlockId);
