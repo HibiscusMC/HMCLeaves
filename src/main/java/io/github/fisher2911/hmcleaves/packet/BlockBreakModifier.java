@@ -21,18 +21,29 @@
 package io.github.fisher2911.hmcleaves.packet;
 
 import org.bukkit.Material;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.Set;
 
 public record BlockBreakModifier(
-        int hardness,
+        double hardness,
         boolean requiresToolToDrop,
-        Set<ToolType> toolTypes
+        Set<ToolType> toolTypes,
+        Set<Enchantment> requiredEnchantments
 ) {
 
     public boolean hasToolType(Material material) {
         for (ToolType toolType : this.toolTypes) {
             if (toolType.isType(material)) return true;
+        }
+        return false;
+    }
+
+    public boolean hasEnchantment(ItemStack itemStack) {
+        if (this.requiredEnchantments.isEmpty()) return true;
+        for (Enchantment enchantment : this.requiredEnchantments) {
+            if (itemStack.containsEnchantment(enchantment)) return true;
         }
         return false;
     }

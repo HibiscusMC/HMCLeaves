@@ -71,7 +71,12 @@ public class BlockBreakManager {
     }
 
     private static final int LOG_HARDNESS = 2;
-    public static final BlockBreakModifier LOG_BREAK_MODIFIER = new BlockBreakModifier(LOG_HARDNESS, false, Set.of(BlockBreakModifier.ToolType.AXE));
+    public static final BlockBreakModifier LOG_BREAK_MODIFIER = new BlockBreakModifier(
+            LOG_HARDNESS,
+            false,
+            Set.of(BlockBreakModifier.ToolType.AXE),
+            Set.of()
+    );
 
     public <T extends MineableData & BlockData> void startBlockBreak(Player player, Position position, T mineableData) {
         if (mineableData.blockBreakModifier() == null) return;
@@ -136,7 +141,7 @@ public class BlockBreakManager {
                         Supplier<ItemStack> itemStackSupplier = null;
                         final BlockBreakModifier blockBreakModifier = blockBreakData.getBlockData().blockBreakModifier();
                         final ItemStack heldItem = blockBreakData.getBreaker().getInventory().getItemInMainHand();
-                        if (!blockBreakModifier.requiresToolToDrop() || blockBreakModifier.hasToolType(heldItem.getType())) {
+                        if (blockBreakModifier.hasEnchantment(heldItem) && !blockBreakModifier.requiresToolToDrop() || blockBreakModifier.hasToolType(heldItem.getType())) {
                             if (blockBreakData.getBlockData() instanceof final LogData logData) {
                                 itemStackSupplier = BlockBreakManager.this.leavesConfig.getItemSupplier(logData.getCurrentId());
                             } else {

@@ -23,6 +23,47 @@ leaves:
     leaf-drop-replacement: pine_leaves
     model-path: "pine_leaves"
 
+  ## The glass blocks use azalea leaves to prevent biome colormap tinting.
+
+  "decorated_glass":
+    world-persistence: false
+    leaf-material: AZALEA_LEAVES
+    state-id: 1
+    leaf-drop-replacement: decorated_glass
+    model-path: "decorated_glass"
+    sapling: glass_1
+    block-break-modifier:
+      hardness: 0.3
+      requires-tool-to-drop: false
+      required-enchantments-to-drop:
+        - "silk_touch"
+
+  "framed_glass":
+    world-persistence: false
+    leaf-material: AZALEA_LEAVES
+    state-id: 2
+    leaf-drop-replacement: framed_glass
+    model-path: "framed_glass"
+    sapling: glass_2
+    block-break-modifier:
+      hardness: 0.3
+      requires-tool-to-drop: false
+      required-enchantments-to-drop:
+        - "silk_touch"
+
+  "cubed_glass":
+    world-persistence: false
+    leaf-material: AZALEA_LEAVES
+    state-id: 3
+    leaf-drop-replacement: cubed_glass
+    model-path: "cubed_glass"
+    sapling: glass_3
+    block-break-modifier:
+      hardness: 0.3
+      requires-tool-to-drop: false
+      required-enchantments-to-drop:
+        - "silk_touch"
+
 logs:
   palm_log:
     log-material: OAK_LOG
@@ -63,7 +104,7 @@ saplings:
       materials:
         - DIRT
         - GRASS_BLOCK
-        
+
   aspen_sapling:
     sapling-material: BIRCH_SAPLING
     stage: 1

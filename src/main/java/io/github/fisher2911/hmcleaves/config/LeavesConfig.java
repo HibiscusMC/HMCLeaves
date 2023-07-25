@@ -53,6 +53,7 @@ import org.bukkit.block.data.type.CaveVinesPlant;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.Nullable;
@@ -1510,6 +1511,7 @@ public class LeavesConfig {
     private static final String HARDNESS_PATH = "hardness";
     private static final String TOOL_TYPES_PATH = "tool-types";
     private static final String REQUIRES_TOOL_TO_DROP_PATH = "requires-tool-to-drop";
+    private static final String REQUIRED_ENCHANTMENTS_TO_DROP_PATH = "required-enchantments-to-drop";
 
     @Nullable
     private BlockBreakModifier loadBlockBreakModifier(ConfigurationSection section) {
@@ -1520,7 +1522,7 @@ public class LeavesConfig {
         if (blockBreakModifierSection == null) {
             return null;
         }
-        final int hardness = blockBreakModifierSection.getInt(HARDNESS_PATH, 1);
+        final double hardness = blockBreakModifierSection.getDouble(HARDNESS_PATH, 1);
         final boolean requiresToolToDrop = blockBreakModifierSection.getBoolean(REQUIRES_TOOL_TO_DROP_PATH, false);
         final Set<BlockBreakModifier.ToolType> toolTypes = blockBreakModifierSection.getStringList(TOOL_TYPES_PATH)
                 .stream()
@@ -1533,7 +1535,18 @@ public class LeavesConfig {
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toUnmodifiableSet());
-        return new BlockBreakModifier(hardness, requiresToolToDrop, toolTypes);
+        final Set<Enchantment> requiredEnchantmentsToDrop = blockBreakModifierSection.getStringList(REQUIRED_ENCHANTMENTS_TO_DROP_PATH)
+                .stream()
+                .map(s -> {
+                    try {
+                        return Enchantment.getByKey(NamespacedKey.minecraft(s.toLowerCase()));
+                    } catch (IllegalArgumentException e) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toUnmodifiableSet());
+        return new BlockBreakModifier(hardness, requiresToolToDrop, toolTypes, requiredEnchantmentsToDrop);
     }
 
     private static final String STEP_SOUND_PATH = "step-sound";
