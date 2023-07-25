@@ -357,9 +357,17 @@ public class LeafAndLogEditListener implements Listener {
     public void onBlockFertilize(BlockFertilizeEvent event) {
         final Block block = event.getBlock();
         if (!this.leavesConfig.isWorldWhitelisted(block.getWorld())) return;
-        if (!(block.getBlockData() instanceof CaveVinesPlant)) return;
         final Position position = Position.fromLocation(block.getLocation());
         final BlockData blockData = this.blockCache.getBlockData(position);
+        if (blockData instanceof AgeableData ageableData) {
+            event.getBlocks().forEach(b -> {
+                if (LeavesConfig.AGEABLE_MATERIALS.contains(b.getType())) {
+                    this.blockCache.addBlockData(Position.fromLocation(b.getLocation()), ageableData);
+                }
+            });
+            return;
+        }
+        if (!(block.getBlockData() instanceof CaveVinesPlant)) return;
         if (!(blockData instanceof final CaveVineData data)) return;
         if (!data.shouldGrowBerries()) {
             event.setCancelled(true);
