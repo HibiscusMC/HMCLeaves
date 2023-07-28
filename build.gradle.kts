@@ -39,7 +39,7 @@ repositories {
 
 dependencies {
     compileOnly("org.spigotmc:spigot-api:1.18.1-R0.1-SNAPSHOT")
-    compileOnly("com.github.oraxen:oraxen:-SNAPSHOT")
+    compileOnly("com.github.oraxen:oraxen:1.159.0")
     compileOnly("com.github.LoneDev6:api-itemsadder:3.0.0")
     compileOnly("org.xerial:sqlite-jdbc:3.39.2.0")
     implementation("com.zaxxer:HikariCP:3.3.0")
