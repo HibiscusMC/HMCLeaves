@@ -43,6 +43,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
 import org.bukkit.Tag;
 import org.bukkit.World;
@@ -57,6 +58,7 @@ import org.bukkit.block.data.type.CaveVines;
 import org.bukkit.block.data.type.CaveVinesPlant;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.block.data.type.Sapling;
+import org.bukkit.block.data.type.Snow;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -124,7 +126,7 @@ public class InteractionListener implements Listener {
         if (clickedWith == null) return;
         final Location placeLocation;
         final BlockFace blockFace = event.getBlockFace();
-        if (block.getType() == Material.GRASS) {
+        if (this.isReplaceable(block.getBlockData())) {
             placeLocation = block.getLocation();
         } else {
             placeLocation = block.getRelative(blockFace).getLocation();
@@ -134,16 +136,13 @@ public class InteractionListener implements Listener {
         }
         final Material placeLocationType = placeLocation.getBlock().getType();
 
-        if (!placeLocationType.isAir() &&
-                placeLocationType != Material.GRASS &&
-                placeLocationType != Material.WATER &&
-                placeLocationType != Material.LAVA
-        ) {
+        if (this.checkStripLog(player, block, clickedWith)) return;
+
+        if (!this.isReplaceable(placeLocation.getBlock().getBlockData())) {
             return;
         }
         final Axis axis = this.axisFromBlockFace(blockFace);
         final BlockData blockData = this.leavesConfig.getBlockData(clickedWith, axis);
-        if (this.checkStripLog(player, block, clickedWith)) return;
         if ((
                 block.getType().isInteractable() &&
                         Hooks.getCustomBlockIdAt(block.getLocation().clone()) == null
@@ -226,6 +225,25 @@ public class InteractionListener implements Listener {
             placedBlock.setType(Material.AIR);
             placedBlock.setType(blockData.worldBlockType());
         }
+    }
+
+    private boolean isReplaceable(org.bukkit.block.data.BlockData blockData) {
+        final Material material = blockData.getMaterial();
+        if (material == Material.SNOW) {
+            if (blockData instanceof final Snow snow) {
+                return snow.getLayers() == 1;
+            }
+        }
+        final Tag<Material> replaceableTag = Bukkit.getTag("blocks", NamespacedKey.minecraft("replaceable"), Material.class);
+        if (replaceableTag != null) {
+            if (replaceableTag.isTagged(material)) {
+                return true;
+            }
+        }
+        return material.isAir() ||
+                material == Material.WATER ||
+                material == Material.LAVA ||
+                Tag.REPLACEABLE_PLANTS.isTagged(material);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
@@ -363,7 +381,8 @@ public class InteractionListener implements Listener {
             Bukkit.getPluginManager().callEvent(breakEvent);
             if (breakEvent.isCancelled()) {
                 event.setCancelled(true);
-            };
+            }
+            ;
             return;
         }
         event.setCancelled(true);

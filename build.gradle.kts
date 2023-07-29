@@ -24,7 +24,7 @@ plugins {
 }
 
 group = "io.github.fisher2911"
-version = "1.0.5"
+version = "1.0.6"
 
 repositories {
     mavenCentral()
@@ -35,6 +35,7 @@ repositories {
     maven("https://maven.enginehub.org/repo/")
     maven("https://repo.codemc.io/repository/maven-snapshots/")
     maven("https://mvn.lumine.io/repository/maven-public/") { metadataSources { artifact() } }
+    maven("https://repo.xenondevs.xyz/releases")
 }
 
 dependencies {
@@ -42,12 +43,13 @@ dependencies {
     compileOnly("com.github.oraxen:oraxen:1.159.0")
     compileOnly("com.github.LoneDev6:api-itemsadder:3.0.0")
     compileOnly("org.xerial:sqlite-jdbc:3.39.2.0")
-    implementation("com.zaxxer:HikariCP:3.3.0")
-    implementation("org.bstats:bstats-bukkit:3.0.0")
     compileOnly("com.sk89q.worldedit:worldedit-core:7.2.14-SNAPSHOT")
     compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.14-SNAPSHOT")
     compileOnly("io.lumine:MythicCrucible:1.6.0-SNAPSHOT")
     compileOnly("io.lumine:Mythic-Dist:5.2.1")
+    compileOnly("xyz.xenondevs.nova:nova-api:0.14.7")
+    implementation("com.zaxxer:HikariCP:3.3.0")
+    implementation("org.bstats:bstats-bukkit:3.0.0")
     implementation(platform("com.intellectualsites.bom:bom-1.18.x:1.19"))
     implementation("com.github.retrooper.packetevents:spigot:2.0.0-SNAPSHOT")
 }
