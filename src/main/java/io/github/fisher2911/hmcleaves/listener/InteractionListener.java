@@ -227,6 +227,10 @@ public class InteractionListener implements Listener {
         }
     }
 
+    private static final Tag<Material> REPLACEABLE_PLANTS_TAG = Bukkit.getTag("blocks", NamespacedKey.minecraft("replaceable_plants"), Material.class);
+    private static final Tag<Material> REPLACEABLE_TAG = Bukkit.getTag("blocks", NamespacedKey.minecraft("replaceable"), Material.class);
+
+
     private boolean isReplaceable(org.bukkit.block.data.BlockData blockData) {
         final Material material = blockData.getMaterial();
         if (material == Material.SNOW) {
@@ -234,16 +238,19 @@ public class InteractionListener implements Listener {
                 return snow.getLayers() == 1;
             }
         }
-        final Tag<Material> replaceableTag = Bukkit.getTag("blocks", NamespacedKey.minecraft("replaceable"), Material.class);
-        if (replaceableTag != null) {
-            if (replaceableTag.isTagged(material)) {
+        if (REPLACEABLE_PLANTS_TAG != null) {
+            if (REPLACEABLE_TAG.isTagged(material)) {
+                return true;
+            }
+        }
+        if (REPLACEABLE_TAG != null) {
+            if (REPLACEABLE_PLANTS_TAG.isTagged(material)) {
                 return true;
             }
         }
         return material.isAir() ||
                 material == Material.WATER ||
-                material == Material.LAVA ||
-                Tag.REPLACEABLE_PLANTS.isTagged(material);
+                material == Material.LAVA;
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
