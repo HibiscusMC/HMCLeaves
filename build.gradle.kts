@@ -24,10 +24,13 @@ plugins {
 }
 
 group = "io.github.fisher2911"
-version = "1.0.7"
+version = "1.1.0"
 
 repositories {
     mavenCentral()
+    maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://oss.sonatype.org/content/groups/public/")
+    maven("https://s01.oss.sonatype.org/content/repositories/snapshots/")
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     maven("https://oss.sonatype.org/content/repositories/snapshots")
     maven("https://oss.sonatype.org/content/repositories/central")
@@ -39,19 +42,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly("org.spigotmc:spigot-api:1.18.1-R0.1-SNAPSHOT")
-    compileOnly("com.github.oraxen:oraxen:1.159.0")
-    compileOnly("com.github.LoneDev6:api-itemsadder:3.0.0")
-    compileOnly("org.xerial:sqlite-jdbc:3.39.2.0")
-    compileOnly("com.sk89q.worldedit:worldedit-core:7.2.14-SNAPSHOT")
-    compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.14-SNAPSHOT")
-    compileOnly("io.lumine:MythicCrucible:1.6.0-SNAPSHOT")
-    compileOnly("io.lumine:Mythic-Dist:5.2.1")
-    compileOnly("xyz.xenondevs.nova:nova-api:0.14.7")
-    implementation("com.zaxxer:HikariCP:3.3.0")
-    implementation("org.bstats:bstats-bukkit:3.0.0")
-    implementation(platform("com.intellectualsites.bom:bom-1.18.x:1.19"))
-    implementation("com.github.retrooper.packetevents:spigot:2.0.0-SNAPSHOT")
+    implementation(project(path = ":v1_20", configuration = "reobf"))
+    implementation(project(path = ":common"))
 }
 
 tasks {
@@ -65,13 +57,17 @@ tasks {
     }
 
     shadowJar {
+
+//        dependsOn(":v1_20")
+        mergeServiceFiles()
+
         relocate("com.github.retrooper.packetevents", "io.github.fisher2911.hmcleaves.packetevents.api")
         relocate("io.github.retrooper.packetevents", "io.github.fisher2911.hmcleaves.packetevents.impl")
         relocate("net.kyori", "io.github.fisher2911.hmcleaves.packetevents.kyori")
         relocate("org.bstats", "io.github.fisher2911.hmcleaves.bstats")
         relocate("com.zaxxer.hikari", "io.github.fisher2911.hmcleaves.hikari")
 
-        archiveFileName.set("HMCLeaves-${version}.jar")
+        archiveFileName.set("${project.name}-${project.version}.jar")
 
         dependencies {
             exclude(dependency("org.yaml:snakeyaml"))
