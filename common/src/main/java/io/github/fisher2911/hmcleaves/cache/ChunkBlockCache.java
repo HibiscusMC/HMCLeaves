@@ -20,6 +20,8 @@
 
 package io.github.fisher2911.hmcleaves.cache;
 
+import io.github.fisher2911.common.metadata.Metadata;
+import io.github.fisher2911.common.metadata.Metadatable;
 import io.github.fisher2911.hmcleaves.data.BlockData;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
@@ -30,12 +32,13 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 
-public class ChunkBlockCache {
+public class ChunkBlockCache implements Metadatable {
 
     private final ChunkPosition chunkPosition;
     private final Map<Position, BlockData> blockDataMap;
     private final Map<Position, BlockData> removedPositions;
     private final Map<Position, BlockData> toDropPositions;
+    private final Metadata metadata = Metadata.mutableEmpty();
     private boolean dirty;
     private boolean saving;
     private boolean safeToMarkClean;
@@ -143,6 +146,12 @@ public class ChunkBlockCache {
     public void setSafeToMarkClean(boolean safeToMarkClean) {
         if (this.saving) return;
         this.safeToMarkClean = safeToMarkClean;
+    }
+
+    @NotNull
+    @Override
+    public Metadata getMetadata() {
+        return this.metadata;
     }
 
 }

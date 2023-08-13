@@ -24,7 +24,7 @@ plugins {
 }
 
 group = "io.github.fisher2911"
-version = "1.1.0"
+version = "1.1.1"
 
 repositories {
     mavenCentral()
@@ -39,6 +39,7 @@ repositories {
     maven("https://repo.codemc.io/repository/maven-snapshots/")
     maven("https://mvn.lumine.io/repository/maven-public/") { metadataSources { artifact() } }
     maven("https://repo.xenondevs.xyz/releases")
+    maven("https://repo.hibiscusmc.com/snapshots")
 }
 
 dependencies {
@@ -66,6 +67,7 @@ tasks {
         relocate("net.kyori", "io.github.fisher2911.hmcleaves.packetevents.kyori")
         relocate("org.bstats", "io.github.fisher2911.hmcleaves.bstats")
         relocate("com.zaxxer.hikari", "io.github.fisher2911.hmcleaves.hikari")
+        relocate("io.github.Fisher2911.fisherLib.common", "io.github.fisher2911.hmcleaves.fisherLib.common")
 
         archiveFileName.set("${project.name}-${project.version}.jar")
 

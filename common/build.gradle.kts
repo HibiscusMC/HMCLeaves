@@ -23,7 +23,7 @@ plugins {
 }
 
 group = "io.github.fisher2911"
-version = "1.1.0"
+version = "1.1.1"
 
 repositories {
     mavenCentral()
@@ -35,6 +35,7 @@ repositories {
     maven("https://repo.codemc.io/repository/maven-snapshots/")
     maven("https://mvn.lumine.io/repository/maven-public/") { metadataSources { artifact() } }
     maven("https://repo.xenondevs.xyz/releases")
+    maven("https://repo.hibiscusmc.com/snapshots")
 }
 
 dependencies {
@@ -51,4 +52,5 @@ dependencies {
     implementation("org.bstats:bstats-bukkit:3.0.0")
     implementation(platform("com.intellectualsites.bom:bom-1.18.x:1.19"))
     implementation("com.github.retrooper.packetevents:spigot:2.0.0-SNAPSHOT")
+    implementation("io.github.fisher2911.FisherLib:common:1.0.3-beta")
 }
