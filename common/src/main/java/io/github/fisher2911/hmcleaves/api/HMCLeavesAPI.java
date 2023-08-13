@@ -22,13 +22,16 @@ package io.github.fisher2911.hmcleaves.api;
 
 import io.github.fisher2911.hmcleaves.HMCLeaves;
 import io.github.fisher2911.hmcleaves.cache.BlockCache;
+import io.github.fisher2911.hmcleaves.cache.ChunkBlockCache;
 import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.BlockData;
+import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class HMCLeavesAPI {
 
@@ -157,6 +160,14 @@ public class HMCLeavesAPI {
 
     public boolean isWorldWhitelistEnabled() {
         return this.config.isUseWorldWhitelist();
+    }
+
+    public @Nullable ChunkBlockCache getChunkBlockCache(ChunkPosition chunkPosition) {
+        return this.blockCache.getChunkBlockCache(chunkPosition);
+    }
+
+    public @Nullable ChunkBlockCache getChunkBlockCache(Position position) {
+        return this.getChunkBlockCache(position.getChunkPosition());
     }
 
 }
