@@ -44,6 +44,11 @@ repositories {
 
 dependencies {
     implementation(project(path = ":v1_20", configuration = "reobf"))
+    implementation(project(path = ":v1_19", configuration = "reobf"))
+    implementation(project(path = ":v1_19_3", configuration = "reobf"))
+    implementation(project(path = ":v1_19_4", configuration = "reobf"))
+    implementation(project(path = ":v1_18_2", configuration = "reobf"))
+    implementation(project(path = ":v1_18", configuration = "reobf"))
     implementation(project(path = ":common"))
 }
 
@@ -66,8 +71,7 @@ tasks {
         relocate("io.github.retrooper.packetevents", "io.github.fisher2911.hmcleaves.packetevents.impl")
         relocate("net.kyori", "io.github.fisher2911.hmcleaves.packetevents.kyori")
         relocate("org.bstats", "io.github.fisher2911.hmcleaves.bstats")
-        relocate("com.zaxxer.hikari", "io.github.fisher2911.hmcleaves.hikari")
-        relocate("io.github.Fisher2911.fisherLib.common", "io.github.fisher2911.hmcleaves.fisherLib.common")
+         relocate("io.github.Fisher2911.fisherLib.common", "io.github.fisher2911.hmcleaves.fisherLib.common")
 
         archiveFileName.set("${project.name}-${project.version}.jar")
 

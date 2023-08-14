@@ -83,7 +83,9 @@ public class HMCLeaves extends JavaPlugin {
             } else if (version.contains("1.18")) {
                 this.createFeatureHandler("v1_18");
             }
-            if (version.contains("1.19.3")) {
+            if (version.contains("1.19.4")) {
+                this.createFeatureHandler("v1_19_4");
+            } else if (version.contains("1.19.3")) {
                 this.createFeatureHandler("v1_19_3");
             } else if (version.contains("1.19")) {
                 this.createFeatureHandler("v1_19");
@@ -112,6 +114,7 @@ public class HMCLeaves extends JavaPlugin {
         this.registerPacketListeners();
         this.registerListeners();
         Hooks.load(this);
+        this.leavesConfig.load();
         this.leafDatabase.load();
         Bukkit.getScheduler().runTaskLater(this, () -> this.worldAndChunkLoadListener.loadDefaultWorlds(), 20);
         this.getCommand("hmcleaves").setExecutor(new LeavesCommand(this));

@@ -68,7 +68,7 @@ public class OraxenHook implements ItemHook {
 
     @EventHandler
     public void onItemsLoad(OraxenItemsLoadedEvent event) {
-        this.plugin.getLeavesConfig().load();
+        this.plugin.getLeavesConfig().reload();
     }
 
     @Override

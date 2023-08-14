@@ -49,7 +49,7 @@ public class ItemsAdderHook implements ItemHook {
 
     @EventHandler
     public void onItemsLoad(ItemsAdderLoadDataEvent event) {
-        this.plugin.getLeavesConfig().load();
+        this.plugin.getLeavesConfig().reload();
     }
 
     @Override
