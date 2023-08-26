@@ -647,9 +647,6 @@ public class LeavesConfig {
             final WrappedBlockState state = blockData.getNewState(blockData.worldBlockType());
             if (state == null) continue;
             final org.bukkit.block.data.BlockData bukkitBlockData = SpigotConversionUtil.toBukkitBlockData(state);
-            if (bukkitBlockData.getMaterial() == Material.NOTE_BLOCK) {
-                System.out.println("adding: " + bukkitBlockData.getAsString() + " - " + blockData.id());
-            }
             this.blockDataMapByBukkitBlockDataString.put(bukkitBlockData.getAsString(), blockData);
         }
     }

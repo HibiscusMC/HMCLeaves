@@ -154,7 +154,6 @@ public class FeatureHandler extends io.github.fisher2911.hmcleaves.nms.FeatureHa
                         this.config,
                         this.blockCache
                 ));
-                System.out.println("registering: " + name + " " + featureId);
                 this.featureWritableRegistry.register(
                         ResourceKey.create(
                                 Registry.FEATURE_REGISTRY, new ResourceLocation(featureId)
