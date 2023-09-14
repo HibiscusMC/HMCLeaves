@@ -62,10 +62,6 @@ public class HMCLeaves extends JavaPlugin {
 
     @Override
     public void onLoad() {
-        final PacketEventsAPI<Plugin> api = SpigotPacketEventsBuilder.build(this);
-        api.getSettings().checkForUpdates(false);
-        PacketEvents.setAPI(api);
-        PacketEvents.getAPI().load();
         this.leavesConfig = new LeavesConfig(
                 this,
                 new ConcurrentHashMap<>(),
@@ -106,10 +102,14 @@ public class HMCLeaves extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        final PacketEventsAPI<Plugin> api = SpigotPacketEventsBuilder.build(this);
+        api.getSettings().checkForUpdates(false);
+        PacketEvents.setAPI(api);
+        PacketEvents.getAPI().load();
+        PacketEvents.getAPI().init();
         this.leafDatabase = new LeafDatabase(this);
         this.blockBreakManager = new BlockBreakManager(new ConcurrentHashMap<>(), this);
         this.worldAndChunkLoadListener = new WorldAndChunkLoadListener(this);
-        PacketEvents.getAPI().init();
         this.leavesPacketListener = new LeavesPacketListener(this);
         this.registerPacketListeners();
         this.registerListeners();

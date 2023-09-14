@@ -52,6 +52,8 @@ import java.util.Optional;
 
 public class PacketUtils {
 
+    private static final int HEIGHT_BELOW_ZERO = 64;
+
     public static WrappedBlockState getState(WrapperPlayServerMultiBlockChange.EncodedBlock block) {
         return block.getBlockState(PacketEvents.getAPI().getServerManager().getVersion().toClientVersion());
     }
@@ -152,7 +154,7 @@ public class PacketUtils {
             final Position position = entry.getKey();
             final BlockData blockData = entry.getValue();
             int chunkY = position.y() / 16;
-            if (position.y() < 0 && chunkY == 0) chunkY = -1;
+            if (position.y() < 0/* && chunkY == 0*/) chunkY -= 1;
             yToBlocksMap.put(chunkY, Pair.of(position, blockData));
         }
         for (Player player : players) {

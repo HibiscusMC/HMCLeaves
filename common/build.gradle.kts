@@ -23,7 +23,7 @@ plugins {
 }
 
 group = "io.github.fisher2911"
-version = "1.1.1"
+version = "1.1.2"
 
 repositories {
     mavenCentral()
@@ -51,6 +51,6 @@ dependencies {
     implementation("com.zaxxer:HikariCP:3.3.0")
     implementation("org.bstats:bstats-bukkit:3.0.0")
     implementation(platform("com.intellectualsites.bom:bom-1.18.x:1.19"))
-    implementation("com.github.retrooper.packetevents:spigot:2.0.0-SNAPSHOT")
+    implementation("com.github.retrooper.packetevents:spigot:2.0.2")
     implementation("io.github.fisher2911.FisherLib:common:1.0.3-beta")
 }

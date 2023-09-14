@@ -140,10 +140,13 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         for (var entry : chunkCache.getBlockDataMap().entrySet()) {
             final var position = entry.getKey();
             final int chunkLevel = position.y() / 16 + heightAdjustment / 16;
-            final BaseChunk chunk = chunks[position.y() < 0 ? chunkLevel - 1 : chunkLevel];
+            final int accessChunkLevel = position.y() < 0 ? chunkLevel - 1 : chunkLevel;
+            final BaseChunk chunk = chunks[accessChunkLevel];
+//            System.out.println("chunkLevel: " + accessChunkLevel + " y: " + position.y());
             final var blockData = entry.getValue();
             final int actualX = ChunkUtil.getCoordInChunk(position.x());
             final int actualY = Math.abs(ChunkUtil.getCoordInChunk(position.y()));
+//            System.out.println("actualY: " + actualY);
             final int actualZ = ChunkUtil.getCoordInChunk(position.z());
             final var actualState = chunk.get(actualX, actualY, actualZ);
             final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(actualState).getMaterial();
