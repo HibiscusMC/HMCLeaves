@@ -195,7 +195,7 @@ public class BlockBreakManager {
             speedMultiplier *= Math.pow(0.3, Math.min(miningFatigue.getAmplifier(), 4));
         }
         final ItemStack helmet = player.getInventory().getHelmet();
-        if (player.isInWater()) {
+        if (player.isUnderWater()) {
             if (helmet == null || helmet.getEnchantmentLevel(Enchantment.WATER_WORKER) <= 0) {
                 speedMultiplier /= 5;
             }
