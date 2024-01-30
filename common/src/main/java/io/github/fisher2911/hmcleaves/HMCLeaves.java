@@ -86,7 +86,9 @@ public class HMCLeaves extends JavaPlugin {
             } else if (version.contains("1.19")) {
                 this.createFeatureHandler("v1_19");
             }
-            if (version.contains("1.20")) {
+            if (version.contains("1.20.4") || version.contains("1.20.3")) {
+                this.createFeatureHandler("v1_20_3");
+            } else if (version.contains("1.20")) {
                 this.createFeatureHandler("v1_20");
             }
         } catch (Exception e) {

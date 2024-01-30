@@ -43,6 +43,7 @@ repositories {
 }
 
 dependencies {
+    implementation(project(path = ":v1_20_3", configuration = "reobf"))
     implementation(project(path = ":v1_20", configuration = "reobf"))
     implementation(project(path = ":v1_19", configuration = "reobf"))
     implementation(project(path = ":v1_19_3", configuration = "reobf"))
