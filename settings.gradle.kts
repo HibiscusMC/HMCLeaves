@@ -21,6 +21,7 @@
 rootProject.name = "HMCLeaves"
 include(
     "common",
+    "v1_20_3",
     "v1_20",
     "v1_19_4",
     "v1_19_3",
