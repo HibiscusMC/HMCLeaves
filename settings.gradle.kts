@@ -1,3 +1,6 @@
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.5.0"
+}
 /*
  *
  *  *     HMCLeaves
@@ -20,13 +23,7 @@
 
 rootProject.name = "HMCLeaves"
 include(
-    "common",
-    "v1_20",
-    "v1_19_4",
-    "v1_19_3",
-    "v1_19",
-    "v1_18_2",
-    "v1_18"
+    "common"
 )
 
 dependencyResolutionManagement {
@@ -46,3 +43,4 @@ dependencyResolutionManagement {
         maven("https://repo.hibiscusmc.com/snapshots")
     }
 }
+include("common")
