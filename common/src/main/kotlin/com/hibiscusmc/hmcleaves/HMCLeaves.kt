@@ -1,9 +1,11 @@
 package com.hibiscusmc.hmcleaves
 
 import com.github.retrooper.packetevents.PacketEvents
+import com.hibiscusmc.hmcleaves.command.HMCLeavesCommand
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.database.LeavesDatabase
 import com.hibiscusmc.hmcleaves.database.UnsavedLeavesDatabase
+import com.hibiscusmc.hmcleaves.listener.BlockListener
 import com.hibiscusmc.hmcleaves.listener.BukkitListeners
 import com.hibiscusmc.hmcleaves.packet.PacketListener
 import com.hibiscusmc.hmcleaves.world.WorldManager
@@ -20,6 +22,7 @@ class HMCLeaves : JavaPlugin() {
         PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this))
         PacketEvents.getAPI().settings.reEncodeByDefault(true)
             .checkForUpdates(false)
+            .debug(true)
             .bStats(true)
         PacketEvents.getAPI().load()
     }
@@ -28,10 +31,27 @@ class HMCLeaves : JavaPlugin() {
         logger.info("Enabling HMCLeaves")
         this.leavesConfig.load()
 
+        val registeredListeners = mutableSetOf<BlockListener<*>>()
+
+        this.leavesConfig.getAllBlockData().values.forEach {data ->
+            data.listeners.values.forEach inner@{ listener ->
+                if (!registeredListeners.add(listener))  {
+                    return@inner
+                }
+                this.server.pluginManager.registerEvents(listener, this)
+            }
+        }
+
         this.server.pluginManager.registerEvents(BukkitListeners(this), this)
 
         PacketEvents.getAPI().eventManager.registerListener(PacketListener(this))
         PacketEvents.getAPI().init()
+
+        this.registerCommands()
+    }
+
+    private fun registerCommands() {
+        this.getCommand("hmcleaves")?.setExecutor(HMCLeavesCommand(this))
     }
 
     override fun onDisable() {

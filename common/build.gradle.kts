@@ -78,4 +78,14 @@ bukkit {
         "ViaRewind",
         "Geyser-Spigot"
         )
+
+    commands {
+        register("hmcleaves") {
+            description = "HMCleaves command"
+            aliases = listOf("leaves")
+            permission = "hmcleaves.command"
+            usage = "/hmcleaves ..."
+        }
+        // ...
+    }
 }

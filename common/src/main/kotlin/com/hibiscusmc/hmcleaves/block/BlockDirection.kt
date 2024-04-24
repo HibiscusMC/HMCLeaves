@@ -1,4 +1,4 @@
-package com.hibiscusmc.hmcleaves.world
+package com.hibiscusmc.hmcleaves.block
 
 enum class BlockDirection(
     val xOffset: Int,

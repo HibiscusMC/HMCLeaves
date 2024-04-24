@@ -1,7 +1,9 @@
-package com.hibiscusmc.hmcleaves.world
+package com.hibiscusmc.hmcleaves.block
 
 import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
+import com.hibiscusmc.hmcleaves.world.LeavesChunk
+import com.hibiscusmc.hmcleaves.world.PositionInChunk
 import org.bukkit.ChunkSnapshot
 import org.bukkit.World
 import org.bukkit.plugin.java.JavaPlugin
@@ -51,7 +53,7 @@ fun findBlockGroupsInChunk(
                 usedBlocks[x][z][y - minHeight] = true
                 val block = chunk.getBlockData(x, y, z)
                 val data = config.getDefaultBLockData(block.material) ?: continue
-                leavesChunk[pos] = data
+                leavesChunk.setIfNull(pos, data)
                 val group = BlockGroup(worldUUID, x, y, z, x, y, z)
                 findConnectedBlocks(
                     config,
@@ -90,7 +92,7 @@ private fun findConnectedBlocks(
         used[x][z][y - minHeight] = true
         val block = chunk.getBlockData(x, y, z)
         val data = config.getDefaultBLockData(block.material) ?: continue
-        leavesChunk[relative] = data
+        leavesChunk.setIfNull(relative, data)
         group.add(relative)
         findConnectedBlocks(
             config,

@@ -1,8 +1,10 @@
 package com.hibiscusmc.hmcleaves.world
 
+import com.hibiscusmc.hmcleaves.block.BlockDirection
+import com.hibiscusmc.hmcleaves.util.getChunkPosition
 import java.util.*
 
-class Position(val world: UUID, val x: Int, val y: Int, val z: Int) {
+data class Position(val world: UUID, val x: Int, val y: Int, val z: Int) {
 
 
     private val hash = calculateHash()
@@ -23,17 +25,17 @@ class Position(val world: UUID, val x: Int, val y: Int, val z: Int) {
     fun toPositionInChunk(): PositionInChunk {
         return PositionInChunk(
             this.world,
-            convertCoordinateToCoordinateInChunk(this.x),
+            convertCoordToCoordInChunk(this.x),
             this.y,
-            convertCoordinateToCoordinateInChunk(this.z)
+            convertCoordToCoordInChunk(this.z)
         )
     }
 
     fun getChunkPosition(): ChunkPosition {
         return ChunkPosition(
             this.world,
-            x / 16,
-            z / 16
+            convertCoordToChunkCoord(this.x),
+            convertCoordToChunkCoord(this.z)
         )
     }
 
@@ -69,7 +71,7 @@ class Position(val world: UUID, val x: Int, val y: Int, val z: Int) {
 /**
  * x, y, and z are relative
  */
-class PositionInChunk(val world: UUID, val x: Int, val y: Int, val z: Int) {
+data class PositionInChunk(val world: UUID, val x: Int, val y: Int, val z: Int) {
 
     init {
         if (x < 0 || x > 15) throw IllegalStateException("Invalid x in PositionInChunk: $x")
@@ -121,7 +123,7 @@ class PositionInChunk(val world: UUID, val x: Int, val y: Int, val z: Int) {
 
 }
 
-class ChunkPosition(val world: UUID, val x: Int, val z: Int) {
+data class ChunkPosition(val world: UUID, val x: Int, val z: Int) {
 
     private var hash = calculateHash()
 
@@ -151,6 +153,10 @@ class ChunkPosition(val world: UUID, val x: Int, val z: Int) {
 
 }
 
-fun convertCoordinateToCoordinateInChunk(value: Int): Int {
+fun convertCoordToCoordInChunk(value: Int): Int {
     return value and 15;
+}
+
+fun convertCoordToChunkCoord(value: Int): Int {
+    return value shr 4
 }

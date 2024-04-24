@@ -1,0 +1,15 @@
+blocks:
+  aspen_leaves:
+    type: leaves
+    world-material: oak_leaves
+    visual-material: oak_leaves
+    properties:
+      distance: 3
+      persistent: true
+  aspen_log:
+    type: log
+    world-material: oak_log
+    visual-material: note_block
+    properties:
+      instrument: flute
+      note: 5

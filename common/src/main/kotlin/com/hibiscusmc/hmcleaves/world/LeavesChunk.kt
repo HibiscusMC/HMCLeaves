@@ -1,11 +1,13 @@
 package com.hibiscusmc.hmcleaves.world
 
+import com.hibiscusmc.hmcleaves.block.BlockData
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 class LeavesChunk(
     private val position: ChunkPosition,
     val world: UUID = position.world,
-    private val blocks: MutableMap<PositionInChunk, BlockData?> = hashMapOf(),
+    private val blocks: MutableMap<PositionInChunk, BlockData?> = ConcurrentHashMap(),
     private var dirty: Boolean = false,
     private var loaded: Boolean = false
 ) {
@@ -15,8 +17,17 @@ class LeavesChunk(
         this.dirty = true
     }
 
+    fun setIfNull(position: PositionInChunk, data: BlockData) {
+        this.blocks.putIfAbsent(position, data)
+        this.dirty = true
+    }
+
     operator fun get(position: PositionInChunk) : BlockData? {
         return this.blocks[position]
+    }
+
+    fun remove(position: PositionInChunk) : BlockData? {
+        return this.blocks.remove(position)
     }
 
     fun getBlocks(): Map<PositionInChunk, BlockData?> {

@@ -3,7 +3,7 @@ package com.hibiscusmc.hmcleaves.database
 import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
-import com.hibiscusmc.hmcleaves.world.findBlockGroupsInChunk
+import com.hibiscusmc.hmcleaves.block.findBlockGroupsInChunk
 import org.bukkit.ChunkSnapshot
 import org.bukkit.World
 import java.util.concurrent.Executor

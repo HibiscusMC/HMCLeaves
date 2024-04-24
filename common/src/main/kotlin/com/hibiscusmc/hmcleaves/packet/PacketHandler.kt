@@ -9,6 +9,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBl
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerChunkData
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMultiBlockChange
 import com.hibiscusmc.hmcleaves.HMCLeaves
+import com.hibiscusmc.hmcleaves.block.BlockType
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.util.toChunkPosition
 import com.hibiscusmc.hmcleaves.util.toPosition
@@ -34,10 +35,12 @@ class PacketListener(
                 handleChunkSend(event, player.world)
                 return
             }
+
             PacketType.Play.Server.MULTI_BLOCK_CHANGE -> {
                 handleMultiBlockChange(event, player.world)
                 return
             }
+
             PacketType.Play.Server.BLOCK_CHANGE -> {
                 handleSingeBlockChange(event, player.world)
             }
@@ -73,14 +76,16 @@ class PacketListener(
             val chunk = chunks[chunkLevel]
             val data = entry.value ?: continue
             val actualX = position.x
-            val actualY = abs(convertCoordinateToCoordinateInChunk(position.y))
+            val actualY = abs(convertCoordToCoordInChunk(position.y))
             val actualZ = position.z
+            val state = data.applyPropertiesToState(chunk.get(actualX, actualY, actualZ))
+
             chunk.set(
                 PacketEvents.getAPI().serverManager.version.toClientVersion(),
                 actualX,
                 actualY,
                 actualZ,
-                data.getBlockDataGlobalId()
+                state.globalId
             )
         }
     }
@@ -100,7 +105,11 @@ class PacketListener(
         for (block in blocks) {
             val position = Position(worldUUID, block.x, block.y, block.z).toPositionInChunk()
             val data = leavesChunk[position] ?: continue
-            block.setBlockState(data.getPacketState())
+            val state =
+                data.applyPropertiesToState(
+                    block.getBlockState(PacketEvents.getAPI().serverManager.version.toClientVersion())
+                )
+            block.setBlockState(state)
         }
     }
 
@@ -117,9 +126,18 @@ class PacketListener(
         val data = leavesChunk[position.toPositionInChunk()] ?: return
         event.isCancelled = true
 
+        val state = data.applyPropertiesToState(packet.blockState)
+
+        if (data.blockType == BlockType.LEAVES) {
+            plugin.logger.info("Leaves: " +
+                    "(${position.x}, ${position.y}, ${position.z}) " +
+                    "(${position.toPositionInChunk().x} ${position.toPositionInChunk().y}, ${position.toPositionInChunk().z}) " +
+                    "${state.distance}, ${state.isPersistent}")
+        }
+
         val newPacket = WrapperPlayServerBlockChange(
             packet.blockPosition,
-            data.getBlockDataGlobalId()
+            state.globalId
         )
         PacketEvents.getAPI().playerManager.sendPacketSilently(event.player, newPacket);
     }
