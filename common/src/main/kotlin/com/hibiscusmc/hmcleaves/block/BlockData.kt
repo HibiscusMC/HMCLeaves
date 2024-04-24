@@ -5,12 +5,15 @@ import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState
 import com.github.retrooper.packetevents.protocol.world.states.enums.Instrument
 import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes
 import com.hibiscusmc.hmcleaves.HMCLeaves
-import com.hibiscusmc.hmcleaves.listener.BlockListener
-import com.hibiscusmc.hmcleaves.listener.LeavesDecayListener
+import com.hibiscusmc.hmcleaves.listener.*
 import com.hibiscusmc.hmcleaves.pdc.PDCUtil
+import com.hibiscusmc.hmcleaves.world.LeavesChunk
+import com.hibiscusmc.hmcleaves.world.PositionInChunk
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
 import org.bukkit.Material
 import org.bukkit.event.Event
+import org.bukkit.event.block.BlockPistonExtendEvent
+import org.bukkit.event.block.BlockPistonRetractEvent
 import org.bukkit.event.block.LeavesDecayEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
@@ -84,7 +87,7 @@ class BlockData(
     private val worldMaterial: Material,
     val blockType: BlockType,
     val properties: Map<Property<*>, *>,
-    val listeners: Map<Class<out Event>, BlockListener<*>>,
+    private val listeners: Map<Class<out Event>, BlockListener<*>>,
     val placementRule: PlacementRule,
     private val packetState: WrappedBlockState = run {
         val state = WrappedBlockState.getDefaultState(
@@ -100,10 +103,6 @@ class BlockData(
     }
 ) {
 
-    private fun createPacketState(material: Material) {
-
-    }
-
     companion object {
         fun createLeaves(
             id: String,
@@ -118,7 +117,9 @@ class BlockData(
                 BlockType.LEAVES,
                 properties,
                 mapOf(
-                    LeavesDecayEvent::class.java to LeavesDecayListener
+                    LeavesDecayEvent::class.java to LeavesDecayListener,
+                    BlockPistonExtendEvent::class.java to LeavesPistonExtendListener,
+                    BlockPistonRetractEvent::class.java to LeavesPistonRetractListener,
                 ),
                 PlacementRule.Companion.ALLOW
             )
@@ -145,6 +146,15 @@ class BlockData(
 
     }
 
+    fun listen(
+        event: Event,
+        position: PositionInChunk,
+        leavesChunk: LeavesChunk
+    ) : ListenResult {
+        val listener = this.listeners[event::class.java] ?: return ListenResult.PASS_THROUGH
+        return listener.listen(event, position, this, leavesChunk)
+    }
+
     // todo
     fun createItem(): ItemStack {
         val item = ItemStack(worldMaterial)
@@ -155,7 +165,7 @@ class BlockData(
         return item
     }
 
-    fun applyPropertiesToState(originalState: WrappedBlockState) : WrappedBlockState {
+    fun applyPropertiesToState(originalState: WrappedBlockState): WrappedBlockState {
         if (originalState.type != this.packetState.type) {
             return this.packetState.clone()
         }

@@ -31,17 +31,6 @@ class HMCLeaves : JavaPlugin() {
         logger.info("Enabling HMCLeaves")
         this.leavesConfig.load()
 
-        val registeredListeners = mutableSetOf<BlockListener<*>>()
-
-        this.leavesConfig.getAllBlockData().values.forEach {data ->
-            data.listeners.values.forEach inner@{ listener ->
-                if (!registeredListeners.add(listener))  {
-                    return@inner
-                }
-                this.server.pluginManager.registerEvents(listener, this)
-            }
-        }
-
         this.server.pluginManager.registerEvents(BukkitListeners(this), this)
 
         PacketEvents.getAPI().eventManager.registerListener(PacketListener(this))

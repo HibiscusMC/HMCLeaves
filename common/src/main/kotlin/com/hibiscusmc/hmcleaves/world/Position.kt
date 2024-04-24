@@ -2,6 +2,8 @@ package com.hibiscusmc.hmcleaves.world
 
 import com.hibiscusmc.hmcleaves.block.BlockDirection
 import com.hibiscusmc.hmcleaves.util.getChunkPosition
+import com.hibiscusmc.hmcleaves.util.toBlockDirection
+import org.bukkit.block.BlockFace
 import java.util.*
 
 data class Position(val world: UUID, val x: Int, val y: Int, val z: Int) {
@@ -20,6 +22,10 @@ data class Position(val world: UUID, val x: Int, val y: Int, val z: Int) {
             this.y + direction.yOffset,
             this.z + direction.zOffset
         )
+    }
+
+    fun relative(direction: BlockFace, minHeight: Int, maxHeight: Int): Position? {
+        return this.relative(direction.toBlockDirection() ?: return null, minHeight, maxHeight)
     }
 
     fun toPositionInChunk(): PositionInChunk {
@@ -93,6 +99,10 @@ data class PositionInChunk(val world: UUID, val x: Int, val y: Int, val z: Int) 
             newY,
             newZ
         )
+    }
+
+    fun relative(direction: BlockFace, minHeight: Int, maxHeight: Int): PositionInChunk? {
+        return this.relative(direction.toBlockDirection() ?: return null, minHeight, maxHeight)
     }
 
     private fun calculateHash(): Int {

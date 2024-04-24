@@ -1,8 +1,11 @@
 package com.hibiscusmc.hmcleaves.util
 
 import com.github.retrooper.packetevents.util.Vector3i
+import com.hibiscusmc.hmcleaves.block.BlockDirection
+import com.hibiscusmc.hmcleaves.block.BlockDirection.*
 import com.hibiscusmc.hmcleaves.world.*
 import org.bukkit.block.Block
+import org.bukkit.block.BlockFace
 import java.util.UUID
 
 fun Vector3i.toChunkPosition(world: UUID): ChunkPosition {
@@ -28,4 +31,17 @@ fun Block.getPositionInChunk(): PositionInChunk {
         this.y,
         convertCoordToCoordInChunk(this.z)
     )
+}
+
+fun BlockFace.toBlockDirection(): BlockDirection? {
+    return when (this) {
+        BlockFace.NORTH -> NORTH
+        BlockFace.EAST -> EAST
+        BlockFace.SOUTH -> SOUTH
+        BlockFace.WEST -> WEST
+        BlockFace.UP -> UP
+        BlockFace.DOWN -> DOWN
+        else -> null
+    }
+
 }
