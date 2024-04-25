@@ -13,3 +13,40 @@ blocks:
     properties:
       instrument: flute
       note: 5
+    item:
+      material: PAPER
+      name: "<red>Aspen Log"
+      model-data: 1
+  aspen_log_x:
+    type: log
+    world-material: oak_log
+    visual-material: note_block
+    properties:
+      instrument: flute
+      note: 6
+    item:
+      material: PAPER
+      name: "<red>Aspen Log (x)"
+      model-data: 2
+  aspen_log_y:
+    type: log
+    world-material: oak_log
+    visual-material: note_block
+    properties:
+      instrument: flute
+      note: 7
+    item:
+      material: PAPER
+      name: "<red>Aspen Log (y)"
+      model-data: 3
+  aspen_log_z:
+    type: log
+    world-material: oak_log
+    visual-material: note_block
+    properties:
+      instrument: flute
+      note: 8
+    item:
+      material: PAPER
+      name: "<red>Aspen Log (z)"
+      model-data: 4

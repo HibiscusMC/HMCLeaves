@@ -1,9 +1,12 @@
 package com.hibiscusmc.hmcleaves.util
 
 import com.github.retrooper.packetevents.util.Vector3i
+import com.hibiscusmc.hmcleaves.block.BlockAxis
 import com.hibiscusmc.hmcleaves.block.BlockDirection
 import com.hibiscusmc.hmcleaves.block.BlockDirection.*
 import com.hibiscusmc.hmcleaves.world.*
+import net.kyori.adventure.text.Component
+import org.bukkit.Axis
 import org.bukkit.block.Block
 import org.bukkit.block.BlockFace
 import java.util.UUID
@@ -43,5 +46,24 @@ fun BlockFace.toBlockDirection(): BlockDirection? {
         BlockFace.DOWN -> DOWN
         else -> null
     }
+}
 
+fun Axis.asBlockAxis(): BlockAxis {
+    return when(this) {
+         Axis.X -> BlockAxis.X
+        Axis.Y -> BlockAxis.Y
+        Axis.Z -> BlockAxis.Z
+    }
+}
+
+fun Position.toVector3i(): Vector3i {
+    return Vector3i(this.x, this.y, this.z)
+}
+
+fun String.parseToComponent(): Component {
+    return MINI_MESAGE.deserialize(this)
+}
+
+fun String.parseAsAdventure(): String {
+    return ADVENTURE_SERIALIZER.serialize(this.parseToComponent())
 }

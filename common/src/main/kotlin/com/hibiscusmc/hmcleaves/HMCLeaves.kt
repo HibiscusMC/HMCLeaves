@@ -8,6 +8,7 @@ import com.hibiscusmc.hmcleaves.database.UnsavedLeavesDatabase
 import com.hibiscusmc.hmcleaves.listener.BlockListener
 import com.hibiscusmc.hmcleaves.listener.BukkitListeners
 import com.hibiscusmc.hmcleaves.packet.PacketListener
+import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakManager
 import com.hibiscusmc.hmcleaves.world.WorldManager
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder
 import org.bukkit.plugin.java.JavaPlugin
@@ -17,6 +18,7 @@ class HMCLeaves : JavaPlugin() {
     private val leavesConfig = LeavesConfig(this)
     private val worldManager = WorldManager()
     private val database = UnsavedLeavesDatabase(this)
+    private val blockBreakManager = BlockBreakManager(plugin = this)
 
     override fun onLoad() {
         PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this))
@@ -52,4 +54,6 @@ class HMCLeaves : JavaPlugin() {
     fun getWorldManager() = this.worldManager
 
     fun getDatabase(): LeavesDatabase = this.database
+
+    fun getBlockBreakManager() = this.blockBreakManager
 }

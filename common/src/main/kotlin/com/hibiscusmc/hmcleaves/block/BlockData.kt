@@ -3,17 +3,26 @@ package com.hibiscusmc.hmcleaves.block
 import com.github.retrooper.packetevents.PacketEvents
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState
 import com.github.retrooper.packetevents.protocol.world.states.enums.Instrument
-import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes
 import com.hibiscusmc.hmcleaves.HMCLeaves
+import com.hibiscusmc.hmcleaves.config.LeavesConfig
+import com.hibiscusmc.hmcleaves.item.BlockDrops
+import com.hibiscusmc.hmcleaves.item.ItemSupplier
+import com.hibiscusmc.hmcleaves.item.LogDropReplacement
+import com.hibiscusmc.hmcleaves.item.SingleBlockDropReplacement
 import com.hibiscusmc.hmcleaves.listener.*
+import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakManager
+import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakModifier
 import com.hibiscusmc.hmcleaves.pdc.PDCUtil
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
 import com.hibiscusmc.hmcleaves.world.PositionInChunk
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
 import org.bukkit.Material
+import org.bukkit.entity.Item
 import org.bukkit.event.Event
+import org.bukkit.event.block.BlockDropItemEvent
 import org.bukkit.event.block.BlockPistonExtendEvent
 import org.bukkit.event.block.BlockPistonRetractEvent
+import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.block.LeavesDecayEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
@@ -50,10 +59,10 @@ sealed class Property<T>(val key: String, val converter: (String) -> T) {
     companion object {
         private val PROPERTY_KEYS by lazy {
             hashMapOf(
-                Property.DISTANCE.key to Property.DISTANCE,
-                Property.PERSISTENT.key to Property.PERSISTENT,
-                Property.INSTRUMENT.key to Property.INSTRUMENT,
-                Property.NOTE.key to Property.NOTE
+                DISTANCE.key to DISTANCE,
+                PERSISTENT.key to PERSISTENT,
+                INSTRUMENT.key to INSTRUMENT,
+                NOTE.key to NOTE
             )
         }
 
@@ -66,29 +75,39 @@ sealed class Property<T>(val key: String, val converter: (String) -> T) {
 }
 
 enum class BlockType(
+    val defaultBlockDrops: BlockDrops,
     val blockSupplier: (
         id: String,
         visualMaterial: Material,
         worldMaterial: Material,
-        properties: Map<Property<*>, *>
+        properties: Map<Property<*>, *>,
+        itemSupplier: ItemSupplier,
+        blockDrops: BlockDrops
     ) -> BlockData
 ) {
-    LEAVES({ id, visualMaterial, worldMaterial, properties ->
-        BlockData.createLeaves(id, visualMaterial, worldMaterial, properties)
-    }),
-    LOG({ id, visualMaterial, worldMaterial, properties ->
-        BlockData.createLog(id, visualMaterial, worldMaterial, properties)
-    })
+    LEAVES(
+        SingleBlockDropReplacement(),
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops ->
+            BlockData.createLeaves(id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops)
+        }),
+    LOG(
+        LogDropReplacement(),
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops ->
+            BlockData.createLog(id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops)
+        })
 }
 
 class BlockData(
     val id: String,
-    private val visualMaterial: Material,
-    private val worldMaterial: Material,
+    val visualMaterial: Material,
+    val worldMaterial: Material,
     val blockType: BlockType,
     val properties: Map<Property<*>, *>,
+    private val itemSupplier: ItemSupplier,
+    private val blockDrops: BlockDrops,
     private val listeners: Map<Class<out Event>, BlockListener<*>>,
-    val placementRule: PlacementRule,
+    val placeableInEntities: Boolean = false,
+    val blockBreakModifier: BlockBreakModifier? = null,
     private val packetState: WrappedBlockState = run {
         val state = WrappedBlockState.getDefaultState(
             PacketEvents.getAPI().serverManager.version.toClientVersion(),
@@ -108,7 +127,9 @@ class BlockData(
             id: String,
             visualMaterial: Material,
             worldMaterial: Material,
-            properties: Map<Property<*>, *>
+            properties: Map<Property<*>, *>,
+            itemSupplier: ItemSupplier,
+            blockDrops: BlockDrops
         ): BlockData {
             return BlockData(
                 id,
@@ -116,12 +137,13 @@ class BlockData(
                 worldMaterial,
                 BlockType.LEAVES,
                 properties,
-                mapOf(
+                itemSupplier,
+                blockDrops,
+                hashMapOf(
                     LeavesDecayEvent::class.java to LeavesDecayListener,
                     BlockPistonExtendEvent::class.java to LeavesPistonExtendListener,
                     BlockPistonRetractEvent::class.java to LeavesPistonRetractListener,
-                ),
-                PlacementRule.Companion.ALLOW
+                )
             )
         }
 
@@ -129,7 +151,9 @@ class BlockData(
             id: String,
             visualMaterial: Material,
             worldMaterial: Material,
-            properties: Map<Property<*>, *>
+            properties: Map<Property<*>, *>,
+            itemSupplier: ItemSupplier,
+            blockDrops: BlockDrops
         ): BlockData {
             return BlockData(
                 id,
@@ -137,10 +161,12 @@ class BlockData(
                 worldMaterial,
                 BlockType.LOG,
                 properties,
-                mapOf(
-//                    BlockPlaceEvent::class.java to LeavesPlaceListener
+                itemSupplier,
+                blockDrops,
+                hashMapOf(
+                    BlockPlaceEvent::class.java to LogPlaceListener
                 ),
-                PlacementRule.Companion.ALLOW
+                blockBreakModifier = BlockBreakManager.LOG_BREAK_MODIFIER
             )
         }
 
@@ -149,20 +175,24 @@ class BlockData(
     fun listen(
         event: Event,
         position: PositionInChunk,
-        leavesChunk: LeavesChunk
-    ) : ListenResult {
-        val listener = this.listeners[event::class.java] ?: return ListenResult.PASS_THROUGH
-        return listener.listen(event, position, this, leavesChunk)
+        leavesChunk: LeavesChunk,
+        config: LeavesConfig
+    ): ListenResult {
+        val listener = this.listeners[event::class.java] ?:
+        return ListenResult(this, ListenResultType.PASS_THROUGH)
+        return listener.listen(event, position, this, leavesChunk, config)
     }
 
-    // todo
-    fun createItem(): ItemStack {
-        val item = ItemStack(worldMaterial)
-        PDCUtil.setItemId(item, this.id)
-        val meta = item.itemMeta ?: return item
-        meta.setDisplayName(id)
-        item.setItemMeta(meta)
-        return item
+    fun createItem(): ItemStack? {
+        return this.itemSupplier.createItem()
+    }
+
+    fun replaceDrops(config: LeavesConfig, items: MutableList<Item>) {
+        this.blockDrops.replaceItems(config, this, items)
+    }
+
+    fun getDrops(config: LeavesConfig): List<ItemStack> {
+        return this.blockDrops.getDrops(config, this)
     }
 
     fun applyPropertiesToState(originalState: WrappedBlockState): WrappedBlockState {
@@ -175,6 +205,10 @@ class BlockData(
             property.applyToState(originalState, value)
         }
         return originalState
+    }
+
+    fun getBlockGlobalId(): Int {
+        return this.packetState.globalId
     }
 
     inline operator fun <reified T> get(property: Property<T>): T? {

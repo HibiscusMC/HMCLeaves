@@ -1,5 +1,6 @@
 package com.hibiscusmc.hmcleaves.world
 
+import com.hibiscusmc.hmcleaves.block.BlockData
 import java.util.UUID
 
 class WorldManager(
@@ -12,6 +13,12 @@ class WorldManager(
 
     fun getOrAdd(world: UUID, supplier: (key: UUID) -> LeavesWorld = { LeavesWorld(it) }): LeavesWorld {
         return this.worlds.computeIfAbsent(world, supplier)
+    }
+
+    operator fun get(position: Position): BlockData? {
+        return this.worlds[position.world]
+            ?.get(position.getChunkPosition())
+            ?.get(position.toPositionInChunk())
     }
 
 }

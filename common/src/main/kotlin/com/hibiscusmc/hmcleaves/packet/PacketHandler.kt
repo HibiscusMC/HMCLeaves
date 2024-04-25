@@ -5,19 +5,32 @@ import com.github.retrooper.packetevents.event.PacketListenerAbstract
 import com.github.retrooper.packetevents.event.PacketReceiveEvent
 import com.github.retrooper.packetevents.event.PacketSendEvent
 import com.github.retrooper.packetevents.protocol.packettype.PacketType
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBlockChange
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerChunkData
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMultiBlockChange
+import com.github.retrooper.packetevents.protocol.player.DiggingAction
+import com.github.retrooper.packetevents.protocol.potion.PotionTypes
+import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState
+import com.github.retrooper.packetevents.util.Vector3i
+import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerDigging
+import com.github.retrooper.packetevents.wrapper.play.server.*
 import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.block.BlockType
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
+import com.hibiscusmc.hmcleaves.packet.wrapper.WrapperPlayServerWorldEvent
 import com.hibiscusmc.hmcleaves.util.toChunkPosition
 import com.hibiscusmc.hmcleaves.util.toPosition
-import com.hibiscusmc.hmcleaves.world.*
+import com.hibiscusmc.hmcleaves.util.toVector3i
+import com.hibiscusmc.hmcleaves.world.ChunkPosition
+import com.hibiscusmc.hmcleaves.world.Position
+import com.hibiscusmc.hmcleaves.world.WorldManager
+import com.hibiscusmc.hmcleaves.world.convertCoordToCoordInChunk
+import io.github.retrooper.packetevents.util.SpigotConversionUtil
+import org.bukkit.GameMode
+import org.bukkit.Material
 import org.bukkit.World
+import org.bukkit.block.data.BlockData
 import org.bukkit.entity.Player
 import java.util.*
 import kotlin.math.abs
+
 
 class PacketListener(
     private val plugin: HMCLeaves,
@@ -48,7 +61,11 @@ class PacketListener(
     }
 
     override fun onPacketReceive(event: PacketReceiveEvent) {
-
+        val player = event.player as? Player ?: return
+        val packetType = event.packetType
+        if (packetType == PacketType.Play.Client.PLAYER_DIGGING) {
+            handlePlayerDigging(event, player.world.uid);
+        }
     }
 
     private fun handleChunkSend(
@@ -129,10 +146,12 @@ class PacketListener(
         val state = data.applyPropertiesToState(packet.blockState)
 
         if (data.blockType == BlockType.LEAVES) {
-            plugin.logger.info("Leaves: " +
-                    "(${position.x}, ${position.y}, ${position.z}) " +
-                    "(${position.toPositionInChunk().x} ${position.toPositionInChunk().y}, ${position.toPositionInChunk().z}) " +
-                    "${state.distance}, ${state.isPersistent}")
+            plugin.logger.info(
+                "Leaves: " +
+                        "(${position.x}, ${position.y}, ${position.z}) " +
+                        "(${position.toPositionInChunk().x} ${position.toPositionInChunk().y}, ${position.toPositionInChunk().z}) " +
+                        "${state.distance}, ${state.isPersistent}"
+            )
         }
 
         val newPacket = WrapperPlayServerBlockChange(
@@ -142,4 +161,110 @@ class PacketListener(
         PacketEvents.getAPI().playerManager.sendPacketSilently(event.player, newPacket);
     }
 
+    private fun handlePlayerDigging(event: PacketReceiveEvent, world: UUID) {
+        val packet = WrapperPlayClientPlayerDigging(event)
+        val player = event.player as? Player ?: return
+        if (player.gameMode == GameMode.CREATIVE) return
+        val diggingAction = packet.action
+        val blockPosition = packet.blockPosition
+        val position = Position(
+            world,
+            blockPosition.getX(),
+            blockPosition.getY(),
+            blockPosition.getZ()
+        )
+        val worldManager = this.plugin.getWorldManager()
+        val blockData = worldManager[position] ?: return
+        if (blockData.blockBreakModifier == null) return
+        val blockBreakManager = this.plugin.getBlockBreakManager()
+
+        if (diggingAction == DiggingAction.START_DIGGING) {
+            sendMiningFatigue(player)
+            blockBreakManager.startBlockBreak(
+                player,
+                position,
+                blockData
+            )
+            return
+        }
+//        val heldMaterial = player.inventory.itemInMainHand.type
+        if (diggingAction == DiggingAction.CANCELLED_DIGGING) {
+            blockBreakManager.cancelBlockBreak(player)
+//            if (!ItemUtil.isQuickMiningTool(heldMaterial)) {
+                removeMiningFatigue(player)
+//            }
+            return
+        }
+        if (diggingAction == DiggingAction.FINISHED_DIGGING) {
+            blockBreakManager.cancelBlockBreak(player)
+//            if (!ItemUtil.isQuickMiningTool(heldMaterial)) {
+                removeMiningFatigue(player)
+//            }
+        }
+    }
+
+}
+
+
+fun sendSingleBlockChange(
+    position: Position,
+    blockData: BlockData,
+    player: Player
+) {
+    val id = WrappedBlockState.getDefaultState(
+        PacketEvents.getAPI().serverManager.version.toClientVersion(),
+        SpigotConversionUtil.fromBukkitBlockData(blockData).type
+    ).globalId
+    val packet = WrapperPlayServerBlockChange(position.toVector3i(), id)
+    PacketEvents.getAPI().playerManager.sendPacketSilently(player, packet);
+}
+
+fun sendBlockBreakAnimation(player: Player, position: Position, entityId: Int, damage: Byte) {
+    val packet = WrapperPlayServerBlockBreakAnimation(
+        entityId,
+        position.toVector3i(),
+        damage
+    )
+    PacketEvents.getAPI().playerManager.sendPacket(
+        player,
+        packet
+    )
+}
+
+fun sendBlockBroken(player: Player, position: Position, blockId: Int) {
+    val packet = WrapperPlayServerWorldEvent(
+        2001,
+        Vector3i(position.x, position.y, position.z),
+        blockId,
+        false
+    )
+    PacketEvents.getAPI().playerManager.sendPacket(
+        player,
+        packet
+    )
+}
+
+fun sendMiningFatigue(player: Player) {
+    val packet = WrapperPlayServerEntityEffect(
+        player.entityId,
+        PotionTypes.MINING_FATIGUE,
+        -1,
+        Int.MAX_VALUE,
+        0.toByte()
+    )
+    PacketEvents.getAPI().playerManager.sendPacket(
+        player,
+        packet
+    )
+}
+
+fun removeMiningFatigue(player: Player) {
+    val packet = WrapperPlayServerRemoveEntityEffect(
+        player.entityId,
+        PotionTypes.MINING_FATIGUE
+    )
+    PacketEvents.getAPI().playerManager.sendPacket(
+        player,
+        packet
+    )
 }

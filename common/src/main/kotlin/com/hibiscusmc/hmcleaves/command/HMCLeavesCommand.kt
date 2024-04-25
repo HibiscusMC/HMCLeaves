@@ -18,7 +18,6 @@ class HMCLeavesCommand(
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<String>): Boolean {
         if (args.size < 2) {
-            sender.sendMessage("Invalid arguments: ${args.contentToString()}")
             return true
         }
         when (args[0]) {
@@ -33,12 +32,10 @@ class HMCLeavesCommand(
     private fun handleGive(sender: Player, args: Array<String>) {
         val id = args[1]
         val data = this.config.getBlockData(id) ?: run {
-            sender.sendMessage("Invalid item: $id")
             return
         }
         val item = data.createItem()
         sender.inventory.addItem(item)
-        sender.sendMessage("Given $id")
     }
 
     override fun onTabComplete(

@@ -22,6 +22,7 @@ dependencies {
     testImplementation(kotlin("test"))
     compileOnly("org.spigotmc:spigot-api:1.18.1-R0.1-SNAPSHOT")
     implementation("com.github.retrooper.packetevents:spigot:2.2.1")
+    implementation("net.kyori:adventure-text-minimessage:4.16.0")
 }
 
 tasks {
@@ -32,9 +33,9 @@ tasks {
 
     shadowJar {
         archiveFileName.set("hmcleaves-${project.version}.jar")
-//        relocate("com.github.retrooper.packetevents", "com.hibiscusmc.hmcleaves.packetevents")
+        relocate("com.github.retrooper.packetevents", "com.hibiscusmc.hmcleaves.packetevents")
 
-//        minimize()
+        minimize()
 
         dependencies {
             exclude(dependency("org.yaml:snakeyaml"))
@@ -51,7 +52,7 @@ tasks.test {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(17)
 }
 
 bukkit {

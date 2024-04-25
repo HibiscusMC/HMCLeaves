@@ -1,12 +1,17 @@
 package com.hibiscusmc.hmcleaves.config
 
 import com.hibiscusmc.hmcleaves.HMCLeaves
-import com.hibiscusmc.hmcleaves.block.BlockData
-import com.hibiscusmc.hmcleaves.block.BlockType
-import com.hibiscusmc.hmcleaves.block.Property
+import com.hibiscusmc.hmcleaves.block.*
+import com.hibiscusmc.hmcleaves.item.BlockDrops
+import com.hibiscusmc.hmcleaves.item.ConstantItemSupplier
+import com.hibiscusmc.hmcleaves.item.ItemSupplier
+import com.hibiscusmc.hmcleaves.item.SingleBlockDropReplacement
 import com.hibiscusmc.hmcleaves.pdc.PDCUtil
+import com.hibiscusmc.hmcleaves.util.parseAsAdventure
+import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.Tag
+import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.inventory.ItemStack
 import java.util.*
@@ -18,6 +23,12 @@ const val TYPE_KEY = "type"
 const val VISUAL_MATERIAL_KEY = "visual-material"
 const val WORLD_MATERIAL_KEY = "world-material"
 const val PROPERTIES_KEY = "properties"
+const val ITEM_KEY = "item"
+const val MATERIAL_KEY = "material"
+const val MODEL_DATA_KEY = "model-data"
+const val NAME_KEY = "name"
+const val LORE_KEY = "lore"
+const val DROPS_KEY = "drops"
 
 class LeavesConfig(private val plugin: HMCLeaves) {
 
@@ -43,7 +54,21 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         return Collections.unmodifiableMap(this.blockData)
     }
 
-    fun getBlockDataFromItem(item: ItemStack) : BlockData? {
+    fun getDirectionalBlockData(original: BlockData, axis: BlockAxis): BlockData? {
+        val newId = "${original.id}_${axis.toString().lowercase()}"
+        return this.getBlockData(newId) ?: original
+    }
+
+    fun getNonDirectionalBlockData(original: BlockData): BlockData? {
+        val index = original.id.lastIndexOf('_')
+        if (index == -1) {
+            return original
+        }
+        val id = original.id.substring(0, index)
+        return getBlockData(id)
+    }
+
+    fun getBlockDataFromItem(item: ItemStack): BlockData? {
         val id = PDCUtil.getItemId(item) ?: return null
         return this.blockData[id]
     }
@@ -80,7 +105,9 @@ class LeavesConfig(private val plugin: HMCLeaves) {
                 id,
                 material,
                 material,
-                properties
+                properties,
+                ConstantItemSupplier(ItemStack(material), id),
+                SingleBlockDropReplacement()
             )
             this.defaultBlockData[material] = data
             this.blockData[id] = data
@@ -100,7 +127,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
 
             val propertiesSection = section.getConfigurationSection(PROPERTIES_KEY)
                 ?: throw IllegalArgumentException("$id requires $PROPERTIES_KEY")
-            val properties: MutableMap<Property<*>, Any> = hashMapOf<Property<*>, Any>()
+            val properties: MutableMap<Property<*>, Any> = hashMapOf()
             for (propertyKey in propertiesSection.getKeys(false)) {
                 val property: Property<Any> = Property.getPropertyByKey(propertyKey)
                     ?: throw IllegalArgumentException("Invalid property $propertyKey")
@@ -109,13 +136,54 @@ class LeavesConfig(private val plugin: HMCLeaves) {
                 properties[property] = value
             }
 
-            val data = type.blockSupplier(id, visualMaterial, worldMaterial, properties)
+            val itemSupplier = section.getConfigurationSection(ITEM_KEY)?.let {
+                this.loadItem(it, id)
+            } ?: ConstantItemSupplier(ItemStack(worldMaterial), id)
+
+            val blockDrops = loadDrops(section.getConfigurationSection(DROPS_KEY), id, type)
+
+            val data = type.blockSupplier(
+                id,
+                visualMaterial,
+                worldMaterial,
+                properties,
+                itemSupplier,
+                blockDrops
+            )
             blockData[id] = data
         }
     }
 
-    private fun loadItem(section: YamlConfiguration) : ItemStack {
-        TODO("NOT YET IMPLEMENTED")
+    private fun loadItem(section: ConfigurationSection, id: String): ItemSupplier {
+        val material = section.getString(MATERIAL_KEY)?.let { Material.valueOf(it.uppercase()) }
+            ?: throw IllegalArgumentException("$id item requires $MATERIAL_KEY")
+        val name = section.getString(NAME_KEY)?.parseAsAdventure() ?: ""
+        val lore = section.getStringList(LORE_KEY).map {
+            it.parseAsAdventure()
+        }.toMutableList()
+        val modelData = section.getInt(MODEL_DATA_KEY, -1)
+
+        val item = ItemStack(material)
+        val meta = item.itemMeta ?: throw IllegalStateException("Error creating metadata for $material in item $id")
+        meta.setDisplayName(name)
+        meta.lore = lore
+        if (modelData >= 0) {
+            meta.setCustomModelData(modelData)
+        }
+        item.itemMeta = meta
+        return ConstantItemSupplier(item, id)
+    }
+
+    private fun loadDrops(
+        section: ConfigurationSection?,
+        id: String,
+        type: BlockType
+        ) : BlockDrops {
+        if (section == null) {
+            return type.defaultBlockDrops
+        }
+        // todo
+        return type.defaultBlockDrops
     }
 
 }

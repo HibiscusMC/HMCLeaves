@@ -3,14 +3,18 @@ package com.hibiscusmc.hmcleaves.world
 import com.hibiscusmc.hmcleaves.block.BlockDirection
 import com.hibiscusmc.hmcleaves.util.getChunkPosition
 import com.hibiscusmc.hmcleaves.util.toBlockDirection
+import org.bukkit.Bukkit
+import org.bukkit.Location
 import org.bukkit.block.BlockFace
 import java.util.*
 
 data class Position(val world: UUID, val x: Int, val y: Int, val z: Int) {
 
-
     private val hash = calculateHash()
 
+    fun toLocation(): Location {
+        return Location(Bukkit.getWorld(this.world), this.x.toDouble(), this.y.toDouble(), this.z.toDouble())
+    }
     fun relative(direction: BlockDirection, minHeight: Int, maxHeight: Int): Position? {
         val newY = this.y + direction.yOffset
         if (newY < minHeight || newY >= maxHeight) {
