@@ -7,6 +7,7 @@ import com.hibiscusmc.hmcleaves.block.BlockDirection.*
 import com.hibiscusmc.hmcleaves.world.*
 import net.kyori.adventure.text.Component
 import org.bukkit.Axis
+import org.bukkit.Location
 import org.bukkit.block.Block
 import org.bukkit.block.BlockFace
 import java.util.UUID
@@ -35,6 +36,25 @@ fun Block.getPositionInChunk(): PositionInChunk {
         convertCoordToCoordInChunk(this.z)
     )
 }
+
+fun Location.toPosition() : Position? {
+    return Position(
+        this.world?.uid ?: return null,
+        this.x.toInt(),
+        this.y.toInt(),
+        this.z.toInt()
+    )
+}
+
+fun Location.toPositionInChunk(): PositionInChunk? {
+    return PositionInChunk(
+        this.world?.uid ?: return null,
+        convertCoordToCoordInChunk(this.x.toInt()),
+        this.y.toInt(),
+        convertCoordToCoordInChunk(this.z.toInt())
+    )
+}
+
 
 fun BlockFace.toBlockDirection(): BlockDirection? {
     return when (this) {

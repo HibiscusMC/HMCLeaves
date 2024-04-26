@@ -12,20 +12,21 @@ import com.hibiscusmc.hmcleaves.item.SingleBlockDropReplacement
 import com.hibiscusmc.hmcleaves.listener.*
 import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakManager
 import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakModifier
-import com.hibiscusmc.hmcleaves.pdc.PDCUtil
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
 import com.hibiscusmc.hmcleaves.world.PositionInChunk
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
+import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Item
 import org.bukkit.event.Event
-import org.bukkit.event.block.BlockDropItemEvent
+import org.bukkit.event.block.BlockGrowEvent
 import org.bukkit.event.block.BlockPistonExtendEvent
 import org.bukkit.event.block.BlockPistonRetractEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.block.LeavesDecayEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
+import java.util.*
 
 sealed class Property<T>(val key: String, val converter: (String) -> T) {
 
@@ -56,13 +57,20 @@ sealed class Property<T>(val key: String, val converter: (String) -> T) {
         }
     }
 
+    data object AGE : Property<Int>("age", { it.toInt() }) {
+        override fun applyToState(state: WrappedBlockState, value: Int) {
+            state.age = value
+        }
+    }
+
     companion object {
         private val PROPERTY_KEYS by lazy {
             hashMapOf(
                 DISTANCE.key to DISTANCE,
                 PERSISTENT.key to PERSISTENT,
                 INSTRUMENT.key to INSTRUMENT,
-                NOTE.key to NOTE
+                NOTE.key to NOTE,
+                AGE.key to AGE
             )
         }
 
@@ -87,13 +95,25 @@ enum class BlockType(
 ) {
     LEAVES(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops ->
-            BlockData.createLeaves(id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops)
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops ->
+            BlockData.createLeaves(id, visualMaterial, properties, itemSupplier, blockDrops)
         }),
     LOG(
         LogDropReplacement(),
         { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops ->
-            BlockData.createLog(id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops)
+            BlockData.createLog(
+                id,
+                visualMaterial,
+                worldMaterial,
+                properties,
+                itemSupplier,
+                blockDrops
+            )
+        }),
+    SUGAR_CANE(
+        SingleBlockDropReplacement(),
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops ->
+            BlockData.createSugarcane(id, visualMaterial, properties, itemSupplier, blockDrops)
         })
 }
 
@@ -126,7 +146,6 @@ class BlockData(
         fun createLeaves(
             id: String,
             visualMaterial: Material,
-            worldMaterial: Material,
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops
@@ -134,7 +153,7 @@ class BlockData(
             return BlockData(
                 id,
                 visualMaterial,
-                worldMaterial,
+                visualMaterial,
                 BlockType.LEAVES,
                 properties,
                 itemSupplier,
@@ -170,6 +189,30 @@ class BlockData(
             )
         }
 
+        fun createSugarcane(
+            id: String,
+            visualMaterial: Material,
+            properties: Map<Property<*>, *>,
+            itemSupplier: ItemSupplier,
+            blockDrops: BlockDrops
+        ): BlockData {
+            return BlockData(
+                id,
+                visualMaterial,
+                visualMaterial,
+                BlockType.SUGAR_CANE,
+                properties,
+                itemSupplier,
+                blockDrops,
+                Collections.unmodifiableMap(
+                    hashMapOf(
+                        BlockPlaceEvent::class.java to SugarCanePlaceListener,
+                        BlockGrowEvent::class.java to SugarCaneGrowListener
+                    )
+                ),
+                blockBreakModifier = null
+            )
+        }
     }
 
     fun listen(
@@ -178,8 +221,7 @@ class BlockData(
         leavesChunk: LeavesChunk,
         config: LeavesConfig
     ): ListenResult {
-        val listener = this.listeners[event::class.java] ?:
-        return ListenResult(this, ListenResultType.PASS_THROUGH)
+        val listener = this.listeners[event::class.java] ?: return ListenResult(this, ListenResultType.PASS_THROUGH)
         return listener.listen(event, position, this, leavesChunk, config)
     }
 

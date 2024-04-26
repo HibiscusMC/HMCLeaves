@@ -50,3 +50,13 @@ blocks:
       material: PAPER
       name: "<red>Aspen Log (z)"
       model-data: 4
+  sugar_cane:
+    type: sugar_cane
+    world-material: sugar_cane
+    visual-material: sugar_cane
+    properties:
+      age: 2
+    item:
+      material: PAPER
+      name: "<green>Sugar Cane"
+      model-data: 4

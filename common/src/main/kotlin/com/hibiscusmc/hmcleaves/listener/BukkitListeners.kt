@@ -7,10 +7,7 @@ import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.config.MATERIAL_KEY
 import com.hibiscusmc.hmcleaves.database.LeavesDatabase
 import com.hibiscusmc.hmcleaves.packet.sendSingleBlockChange
-import com.hibiscusmc.hmcleaves.util.getChunkPosition
-import com.hibiscusmc.hmcleaves.util.getPosition
-import com.hibiscusmc.hmcleaves.util.getPositionInChunk
-import com.hibiscusmc.hmcleaves.util.toBlockDirection
+import com.hibiscusmc.hmcleaves.util.*
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
 import com.hibiscusmc.hmcleaves.world.Position
 import com.hibiscusmc.hmcleaves.world.PositionInChunk
@@ -25,6 +22,7 @@ import org.bukkit.entity.LivingEntity
 import org.bukkit.event.*
 import org.bukkit.event.block.*
 import org.bukkit.event.entity.EntityExplodeEvent
+import org.bukkit.event.entity.ItemSpawnEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.world.ChunkLoadEvent
 import org.bukkit.inventory.EquipmentSlot
@@ -135,10 +133,51 @@ class BukkitListeners(
         var data = leavesChunk[position] ?: run {
             return
         }
-        val result = data.listen(event, position, leavesChunk, config)
-        if (result.type == ListenResultType.CANCEL_EVENT) return
+        val result = data.listen(event, position, leavesChunk, this.config)
+        if (result.type == ListenResultType.CANCEL_EVENT || result.type == ListenResultType.BLOCKED) return
         data = result.blockData
         data.replaceDrops(this.config, event.items as MutableList<Item>)
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    private fun onItemSpawn(event: ItemSpawnEvent) {
+        val position = event.location.block.location.toPosition() ?: return
+        val leavesChunk = worldManager[position.world]?.get(position.getChunkPosition()) ?: return
+        val positionInChunk = position.toPositionInChunk()
+        val data = leavesChunk[positionInChunk] ?: return
+        val result = data.listen(event, positionInChunk, leavesChunk, this.config)
+        if (result.type == ListenResultType.CANCEL_EVENT) {
+            val block = event.entity.world.getBlockAt(position.toLocation())
+            block.type = data.worldMaterial
+            event.isCancelled = true
+            return
+        }
+        val list = mutableListOf(event.entity)
+        data.replaceDrops(this.config, list)
+        if (list.isEmpty()) {
+            event.isCancelled = true
+            return
+        }
+        leavesChunk.remove(positionInChunk)
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    private fun onBlockGrow(event: BlockGrowEvent) {
+        val state = event.newState
+        val world = state.world
+        val worldUUID = world.uid
+        val position = event.block.getPositionInChunk()
+        val chunkPosition = event.block.getChunkPosition()
+        var data = this.config.getDefaultBLockData(state.type) ?: run {
+            return
+        }
+        val leavesChunk = plugin.getWorldManager().getOrAdd(worldUUID).getOrAdd(chunkPosition)
+        val result = data.listen(event, position, leavesChunk, config)
+        if (result.type == ListenResultType.CANCEL_EVENT) {
+            return
+        }
+        data = result.blockData
+        leavesChunk[position] = data
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)

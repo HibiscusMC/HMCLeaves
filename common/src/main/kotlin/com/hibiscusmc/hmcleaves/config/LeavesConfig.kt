@@ -17,6 +17,7 @@ import org.bukkit.inventory.ItemStack
 import java.util.*
 
 private val LEAVES_MATERIALS = Material.entries.filter { Tag.LEAVES.isTagged(it) }.toList()
+private val LOG_MATERIALS = Material.entries.filter { Tag.LOGS.isTagged(it) }.toList()
 
 const val BLOCKS_KEY = "blocks"
 const val TYPE_KEY = "type"
@@ -69,7 +70,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
     }
 
     fun getBlockDataFromItem(item: ItemStack): BlockData? {
-        val id = PDCUtil.getItemId(item) ?: return null
+        val id = PDCUtil.getItemId(item) ?: return getDefaultBLockData(item.type)
         return this.blockData[id]
     }
 
@@ -81,7 +82,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         }
         val config = YamlConfiguration.loadConfiguration(file)
 
-        loadDefaultLeaves()
+        loadDefaults()
         loadBlocks(config)
     }
 
@@ -90,7 +91,9 @@ class LeavesConfig(private val plugin: HMCLeaves) {
     }
 
     private fun loadDefaults() {
-        loadDefaultLeaves()
+        this.loadDefaultLeaves()
+        this.loadDefaultLogs()
+        this.loadDefaultSugarcane()
     }
 
     private fun loadDefaultLeaves() {
@@ -104,6 +107,23 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             val data = BlockData.createLeaves(
                 id,
                 material,
+                properties,
+                ConstantItemSupplier(ItemStack(material), id),
+                SingleBlockDropReplacement()
+            )
+            this.defaultBlockData[material] = data
+            this.blockData[id] = data
+        }
+    }
+
+    private fun loadDefaultLogs() {
+        val properties: Map<Property<*>, Any> = hashMapOf()
+
+        for (material in LOG_MATERIALS) {
+            val id = getDefaultIdFromMaterial(material)
+            val data = BlockData.createLog(
+                id,
+                material,
                 material,
                 properties,
                 ConstantItemSupplier(ItemStack(material), id),
@@ -112,6 +132,23 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             this.defaultBlockData[material] = data
             this.blockData[id] = data
         }
+    }
+
+    private fun loadDefaultSugarcane() {
+        val properties: Map<Property<*>, *> = hashMapOf(
+            Property.AGE to 0
+        )
+        val material = Material.SUGAR_CANE
+        val id = getDefaultIdFromMaterial(material)
+        val data = BlockData.createSugarcane(
+            id,
+            material,
+            properties,
+            ConstantItemSupplier(ItemStack(material), id),
+            SingleBlockDropReplacement()
+        )
+        this.defaultBlockData[material] = data
+        this.blockData[id] = data
     }
 
     private fun loadBlocks(config: YamlConfiguration) {
@@ -178,7 +215,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         section: ConfigurationSection?,
         id: String,
         type: BlockType
-        ) : BlockDrops {
+    ): BlockDrops {
         if (section == null) {
             return type.defaultBlockDrops
         }

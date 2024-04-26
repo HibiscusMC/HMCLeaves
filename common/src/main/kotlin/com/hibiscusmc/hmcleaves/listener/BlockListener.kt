@@ -1,22 +1,26 @@
 package com.hibiscusmc.hmcleaves.listener
 
 import com.hibiscusmc.hmcleaves.HMCLeaves
+import com.hibiscusmc.hmcleaves.block.BLOCK_DIRECTIONS
 import com.hibiscusmc.hmcleaves.block.BlockData
+import com.hibiscusmc.hmcleaves.block.BlockDirection
 import com.hibiscusmc.hmcleaves.block.getDirectionTo
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
-import com.hibiscusmc.hmcleaves.util.asBlockAxis
 import com.hibiscusmc.hmcleaves.util.getPosition
-import com.hibiscusmc.hmcleaves.util.toBlockDirection
+import com.hibiscusmc.hmcleaves.util.getPositionInChunk
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
 import com.hibiscusmc.hmcleaves.world.PositionInChunk
 import org.bukkit.Bukkit
-import org.bukkit.block.data.Orientable
+import org.bukkit.Material
+import org.bukkit.block.BlockFace
 import org.bukkit.event.Event
+import org.bukkit.event.block.BlockGrowEvent
 import org.bukkit.event.block.BlockPistonExtendEvent
 import org.bukkit.event.block.BlockPistonRetractEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.block.LeavesDecayEvent
 import org.bukkit.plugin.java.JavaPlugin
+import java.util.*
 
 data class ListenResult(val blockData: BlockData, val type: ListenResultType)
 
@@ -131,4 +135,68 @@ data object LogPlaceListener : BlockListener<BlockPlaceEvent>() {
 
     }
 
+}
+
+data object SugarCanePlaceListener : BlockListener<BlockPlaceEvent>() {
+
+    private val scanDirections: List<BlockDirection> = BLOCK_DIRECTIONS.stream().filter { d ->
+        d != BlockDirection.UP && d != BlockDirection.DOWN
+    }.toList()
+
+    private val allowedSoil = EnumSet.of(
+        Material.DIRT,
+        Material.GRASS_BLOCK,
+        Material.SAND,
+        Material.RED_SAND
+    )
+
+    override fun handle(
+        event: BlockPlaceEvent,
+        position: PositionInChunk,
+        blockData: BlockData,
+        leavesChunk: LeavesChunk,
+        config: LeavesConfig
+    ): ListenResult {
+        val block = event.block
+        val under = block.getRelative(BlockFace.DOWN)
+        val relativeData = leavesChunk[under.getPositionInChunk()]
+        val onTopOfOtherCane = relativeData != null && relativeData.id == blockData.id
+        if (!this.allowedSoil.contains(under.type) && !onTopOfOtherCane) {
+            event.isCancelled = true
+            return ListenResult(blockData, ListenResultType.CANCEL_EVENT)
+        }
+        var allowed = onTopOfOtherCane
+        if (!allowed) {
+            for (direction in scanDirections) {
+                val relative = under.getRelative(direction.bukkitBlockFace)
+                if (relative.type == Material.WATER) {
+                    allowed = true
+                    break
+                }
+            }
+        }
+        if (!allowed) {
+            event.isCancelled = true
+            return ListenResult(blockData, ListenResultType.CANCEL_EVENT)
+        }
+        return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+    }
+}
+
+data object SugarCaneGrowListener : BlockListener<BlockGrowEvent>() {
+
+    override fun handle(
+        event: BlockGrowEvent,
+        position: PositionInChunk,
+        blockData: BlockData,
+        leavesChunk: LeavesChunk,
+        config: LeavesConfig
+    ): ListenResult {
+        val block = event.block
+        val under = block.getRelative(BlockFace.DOWN)
+        val relativeData =
+            leavesChunk[under.getPositionInChunk()]
+                ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+        return ListenResult(relativeData, ListenResultType.PASS_THROUGH)
+    }
 }
