@@ -2,6 +2,7 @@ package com.hibiscusmc.hmcleaves.block
 
 import com.hibiscusmc.hmcleaves.world.Position
 import org.bukkit.block.BlockFace
+import java.util.*
 
 enum class BlockDirection(
     val xOffset: Int,
@@ -47,3 +48,4 @@ fun getDirectionTo(first: Position, second: Position) : BlockDirection? {
 }
 
 val BLOCK_DIRECTIONS = BlockDirection.entries
+val SUPPORTING_DIRECTIONS = EnumSet.of(BlockDirection.UP, BlockDirection.DOWN)

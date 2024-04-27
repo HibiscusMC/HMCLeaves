@@ -1,17 +1,14 @@
 package com.hibiscusmc.hmcleaves.listener
 
 import com.hibiscusmc.hmcleaves.HMCLeaves
+import com.hibiscusmc.hmcleaves.block.BLOCK_DIRECTIONS
 import com.hibiscusmc.hmcleaves.block.BlockData
 import com.hibiscusmc.hmcleaves.block.BlockDirection
+import com.hibiscusmc.hmcleaves.block.SUPPORTING_DIRECTIONS
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
-import com.hibiscusmc.hmcleaves.config.MATERIAL_KEY
 import com.hibiscusmc.hmcleaves.database.LeavesDatabase
-import com.hibiscusmc.hmcleaves.packet.sendSingleBlockChange
 import com.hibiscusmc.hmcleaves.util.*
-import com.hibiscusmc.hmcleaves.world.LeavesChunk
-import com.hibiscusmc.hmcleaves.world.Position
-import com.hibiscusmc.hmcleaves.world.PositionInChunk
-import com.hibiscusmc.hmcleaves.world.WorldManager
+import com.hibiscusmc.hmcleaves.world.*
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.Material
@@ -26,8 +23,8 @@ import org.bukkit.event.entity.ItemSpawnEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.world.ChunkLoadEvent
 import org.bukkit.inventory.EquipmentSlot
-import org.bukkit.inventory.ItemStack
 import java.util.*
+import kotlin.math.max
 
 class BukkitListeners(
     private val plugin: HMCLeaves,
@@ -55,7 +52,7 @@ class BukkitListeners(
         val position = block.getPositionInChunk()
         val chunkPosition = block.getChunkPosition()
         val leavesChunk = plugin.getWorldManager().getOrAdd(worldUUID).getOrAdd(chunkPosition)
-        val result = blockData.listen(event, position, leavesChunk, config)
+        val result = blockData.listen(event::class.java, event, world, position, leavesChunk, config)
         if (result.type == ListenResultType.CANCEL_EVENT) return
         blockData = result.blockData
         leavesChunk[position] = blockData
@@ -66,15 +63,31 @@ class BukkitListeners(
         if (event.action != Action.RIGHT_CLICK_BLOCK) return
         val clickedBlock = event.clickedBlock ?: return
         val itemInHand = event.item ?: return
+
         val player = event.player
         val worldUUID = player.world.uid
-        val data = this.config.getBlockDataFromItem(itemInHand) ?: return
         val face = event.blockFace
         val relativeBlock = clickedBlock.getRelative(face)
 
         val clickedBlockData = this.worldManager[worldUUID]
-            ?.get(relativeBlock.getChunkPosition())
-            ?.get(relativeBlock.getPositionInChunk())
+            ?.get(clickedBlock.getChunkPosition())
+            ?.get(clickedBlock.getPositionInChunk())
+
+        if (this.config.isDebugStick(itemInHand)) {
+
+            if (clickedBlockData == null) {
+                player.sendMessage("<red>That block does not have custom data.".parseAsAdventure())
+            } else {
+                player.sendMessage("<green>Actual material: ${clickedBlock.type}, Data: $clickedBlockData".parseAsAdventure())
+            }
+
+            event.setUseInteractedBlock(Event.Result.DENY)
+            event.setUseItemInHand(Event.Result.DENY)
+            event.isCancelled = true
+            return
+        }
+
+        val data = this.config.getBlockDataFromItem(itemInHand) ?: return
 
         if (clickedBlockData == null && itemInHand.type.isBlock) {
             return
@@ -130,22 +143,30 @@ class BukkitListeners(
         val position = block.getPositionInChunk()
         val chunkPosition = block.getChunkPosition()
         val leavesChunk = plugin.getWorldManager()[worldUUID]?.get(chunkPosition) ?: return
-        var data = leavesChunk[position] ?: run {
-            return
-        }
-        val result = data.listen(event, position, leavesChunk, this.config)
+        var data = leavesChunk.getDataToRemove(position) ?: return
+        val result = data.listen(event::class.java, event, world, position, leavesChunk, this.config)
         if (result.type == ListenResultType.CANCEL_EVENT || result.type == ListenResultType.BLOCKED) return
         data = result.blockData
         data.replaceDrops(this.config, event.items as MutableList<Item>)
+        leavesChunk.removeFromToRemove(position)
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     private fun onItemSpawn(event: ItemSpawnEvent) {
-        val position = event.location.block.location.toPosition() ?: return
+        val block = event.location.block
+        val position = block.location.toPosition() ?: return
         val leavesChunk = worldManager[position.world]?.get(position.getChunkPosition()) ?: return
         val positionInChunk = position.toPositionInChunk()
-        val data = leavesChunk[positionInChunk] ?: return
-        val result = data.listen(event, positionInChunk, leavesChunk, this.config)
+        val world = event.entity.world
+        val data = leavesChunk.getDataToRemove(positionInChunk) ?: leavesChunk[positionInChunk] ?: run {
+            if (!block.type.isAir) return
+            handleRelativeBlockBreak(
+                world,
+                position
+            )
+            return
+        }
+        val result = data.listen(event::class.java, event, event.entity.world, positionInChunk, leavesChunk, this.config)
         if (result.type == ListenResultType.CANCEL_EVENT) {
             val block = event.entity.world.getBlockAt(position.toLocation())
             block.type = data.worldMaterial
@@ -158,7 +179,11 @@ class BukkitListeners(
             event.isCancelled = true
             return
         }
-        leavesChunk.remove(positionInChunk)
+        if (!block.type.isAir) {
+            return
+        }
+        leavesChunk.remove(positionInChunk, false)
+        leavesChunk.removeFromToRemove(positionInChunk)
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
@@ -168,11 +193,9 @@ class BukkitListeners(
         val worldUUID = world.uid
         val position = event.block.getPositionInChunk()
         val chunkPosition = event.block.getChunkPosition()
-        var data = this.config.getDefaultBLockData(state.type) ?: run {
-            return
-        }
+        var data = this.config.getDefaultBLockData(state.type) ?: return
         val leavesChunk = plugin.getWorldManager().getOrAdd(worldUUID).getOrAdd(chunkPosition)
-        val result = data.listen(event, position, leavesChunk, config)
+        val result = data.listen(event::class.java, event, world, position, leavesChunk, config)
         if (result.type == ListenResultType.CANCEL_EVENT) {
             return
         }
@@ -188,14 +211,22 @@ class BukkitListeners(
         val position = block.getPositionInChunk()
         val chunkPosition = block.getChunkPosition()
         val leavesChunk = plugin.getWorldManager()[worldUUID]?.get(chunkPosition) ?: return
-        val data = leavesChunk[position] ?: return
-        val result = data.listen(event, position, leavesChunk, config)
+        val data = leavesChunk[position] ?: run {
+            handleRelativeBlockBreak(
+                world,
+                block.getPosition()
+            )
+            return
+        }
+        val result = data.listen(event::class.java, event, world, position, leavesChunk, config)
         if (result.type == ListenResultType.CANCEL_EVENT) return
-        Bukkit.getScheduler().runTaskLaterAsynchronously(this.plugin, { _ ->
-//            sendSingleBlockChange(block.getPosition(), Material.AIR.createBlockData(), event.player)
-            leavesChunk.remove(position) // only want to remove it after it drops items
-        }, 1)
+        leavesChunk.remove(position, true)
+        handleRelativeBlockBreak(
+            world,
+            block.getPosition()
+        )
     }
+
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     private fun onLeavesDecay(event: LeavesDecayEvent) {
@@ -205,26 +236,34 @@ class BukkitListeners(
         val position = block.getPositionInChunk()
         val chunkPosition = block.getChunkPosition()
         val leavesChunk = plugin.getWorldManager()[worldUUID]?.get(chunkPosition) ?: return
-        val data = leavesChunk[position] ?: return
-        val result = data.listen(event, position, leavesChunk, config)
+        val data = leavesChunk[position] ?: run {
+            handleRelativeBlockBreak(
+                world,
+                block.getPosition()
+            )
+            return
+        }
+        val result = data.listen(event::class.java, event, world, position, leavesChunk, config)
         if (result.type == ListenResultType.CANCEL_EVENT) return
-        leavesChunk.remove(position)
+        leavesChunk.remove(position, true)
+        handleRelativeBlockBreak(
+            world,
+            block.getPosition()
+        )
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     private fun onBlockExplode(event: BlockExplodeEvent) {
         val explodedBlock = event.block
         val world = explodedBlock.world
-        val worldUUID = world.uid
-        handleExplosion(event, event.blockList(), worldUUID)
+        handleExplosion(event, world, event.blockList())
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     private fun onEntityExplode(event: EntityExplodeEvent) {
         val entity = event.entity
         val world = entity.world
-        val worldUUID = world.uid
-        handleExplosion(event, event.blockList(), worldUUID)
+        handleExplosion(event, world, event.blockList())
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
@@ -264,26 +303,40 @@ class BukkitListeners(
         movedListAdder: (LinkedList<Triple<Position, BlockData, LeavesChunk>>, Triple<Position, BlockData, LeavesChunk>) -> Unit
     ) {
         val worldUUID = world.uid
+        val minHeight = world.minHeight
+        val maxHeight = world.maxHeight
         val moved: LinkedList<Triple<Position, BlockData, LeavesChunk>> = LinkedList()
-        for (block in blocks) {
+        loop@for (block in blocks) {
             val chunkPosition = block.getChunkPosition()
             val leavesChunk = plugin.getWorldManager()[worldUUID]?.get(chunkPosition) ?: continue
             val position = block.getPosition()
             val positionInChunk = block.getPositionInChunk()
-            var data = leavesChunk[positionInChunk] ?: continue
-            val result = data.listen(event, positionInChunk, leavesChunk, config)
+            var data = leavesChunk[positionInChunk]
+            if (data == null) {
+                handleRelativeBlockBreak(
+                    world,
+                    block.getPosition()
+                )
+                continue
+            }
+            val result = data.listen(event::class.java, event, world, positionInChunk, leavesChunk, config)
             if (result.type == ListenResultType.CANCEL_EVENT) {
                 event.isCancelled = true
                 return
             }
-            if (result.type == ListenResultType.REMOVED || result.type == ListenResultType.BLOCKED) {
+            if (result.type == ListenResultType.REMOVED) {
+                handleRelativeBlockBreak(
+                    world,
+                    position
+                )
+                continue
+            }
+            if (result.type == ListenResultType.BLOCKED) {
                 continue
             }
             data = result.blockData
             movedListAdder(moved, Triple(position, data, leavesChunk))
         }
-        val minHeight = world.minHeight
-        val maxHeight = world.maxHeight
 
         for (triple in moved) {
             val oldPosition = triple.first
@@ -297,35 +350,76 @@ class BukkitListeners(
                 worldManager.getOrAdd(worldUUID).getOrAdd(newChunkPos)
             }
             leavesChunk[newPosition.toPositionInChunk()] = triple.second
-            triple.third.remove(oldPosition.toPositionInChunk())
+            triple.third.remove(oldPosition.toPositionInChunk(), true)
         }
     }
 
     private fun <E : Event> handleExplosion(
         event: E,
-        blockList: List<Block>,
-        worldUUID: UUID
+        world: World,
+        blockList: List<Block>
     ) {
         if (event !is Cancellable) return
-        val toRemove: MutableList<Triple<PositionInChunk, BlockData, LeavesChunk>> = mutableListOf()
+        val worldUUID = world.uid
+        val toRemove: MutableList<Triple<Position, BlockData, LeavesChunk>> = mutableListOf()
         for (block in blockList) {
             val chunkPosition = block.getChunkPosition()
             val leavesChunk = plugin.getWorldManager()[worldUUID]?.get(chunkPosition) ?: continue
             val position = block.getPositionInChunk()
-            var data = leavesChunk[position] ?: return
-            val result = data.listen(event, position, leavesChunk, config)
+            var data = leavesChunk[position]
+            if (data == null) {
+                handleRelativeBlockBreak(
+                    world,
+                    block.getPosition()
+                )
+                continue
+            }
+            val result = data.listen(event::class.java, event, world, position, leavesChunk, this.config)
             if (result.type == ListenResultType.CANCEL_EVENT) {
                 event.isCancelled = true
                 return
             }
+            handleRelativeBlockBreak(
+                world,
+                block.getPosition()
+            )
             if (result.type == ListenResultType.REMOVED || result.type == ListenResultType.BLOCKED) {
                 continue
             }
             data = result.blockData
-            toRemove.add(Triple(position, data, leavesChunk))
+            toRemove.add(Triple(block.getPosition(), data, leavesChunk))
         }
+
         for (triple in toRemove) {
-            triple.third.remove(triple.first)
+            val positionInChunk = triple.first.toPositionInChunk()
+            triple.third.remove(positionInChunk, true)
+            handleRelativeBlockBreak(
+                world,
+                triple.first
+            )
+        }
+    }
+
+    private fun handleRelativeBlockBreak(
+        world: World,
+        position: Position,
+    ) {
+        val minHeight = world.minHeight
+        val maxHeight = world.maxHeight
+        val worldUUID = world.uid
+        for (direction in SUPPORTING_DIRECTIONS) {
+            val relative = position.relative(direction, minHeight, maxHeight) ?: continue
+            val data = this.worldManager[relative] ?: continue
+            val leavesChunk = this.worldManager[worldUUID]?.get(relative.getChunkPosition()) ?: continue
+            val relativeEvent = RelativeBlockBreakEvent(direction)
+            data.listen(
+                relativeEvent::class.java,
+                relativeEvent,
+                world,
+                relative.toPositionInChunk(),
+                leavesChunk,
+                this.config
+            )
         }
     }
 

@@ -6,6 +6,7 @@ import com.hibiscusmc.hmcleaves.item.BlockDrops
 import com.hibiscusmc.hmcleaves.item.ConstantItemSupplier
 import com.hibiscusmc.hmcleaves.item.ItemSupplier
 import com.hibiscusmc.hmcleaves.item.SingleBlockDropReplacement
+import com.hibiscusmc.hmcleaves.listener.ConnectedBlockFacingUpDestroyListener
 import com.hibiscusmc.hmcleaves.pdc.PDCUtil
 import com.hibiscusmc.hmcleaves.util.parseAsAdventure
 import org.bukkit.Bukkit
@@ -13,23 +14,27 @@ import org.bukkit.Material
 import org.bukkit.Tag
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
+import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.inventory.ItemStack
 import java.util.*
 
 private val LEAVES_MATERIALS = Material.entries.filter { Tag.LEAVES.isTagged(it) }.toList()
 private val LOG_MATERIALS = Material.entries.filter { Tag.LOGS.isTagged(it) }.toList()
+private val SAPLING_MATERIALS = Material.entries.filter { Tag.SAPLINGS.isTagged(it) }.toList()
 
-const val BLOCKS_KEY = "blocks"
-const val TYPE_KEY = "type"
-const val VISUAL_MATERIAL_KEY = "visual-material"
-const val WORLD_MATERIAL_KEY = "world-material"
-const val PROPERTIES_KEY = "properties"
-const val ITEM_KEY = "item"
-const val MATERIAL_KEY = "material"
-const val MODEL_DATA_KEY = "model-data"
-const val NAME_KEY = "name"
-const val LORE_KEY = "lore"
-const val DROPS_KEY = "drops"
+private const val BLOCKS_KEY = "blocks"
+private const val TYPE_KEY = "type"
+private const val VISUAL_MATERIAL_KEY = "visual-material"
+private const val WORLD_MATERIAL_KEY = "world-material"
+private const val PROPERTIES_KEY = "properties"
+private const val ITEM_KEY = "item"
+private const val MATERIAL_KEY = "material"
+private const val MODEL_DATA_KEY = "model-data"
+private const val NAME_KEY = "name"
+private const val LORE_KEY = "lore"
+private const val DROPS_KEY = "drops"
+
+const val DEBUG_STICK_ID = "debug_stick"
 
 class LeavesConfig(private val plugin: HMCLeaves) {
 
@@ -38,6 +43,19 @@ class LeavesConfig(private val plugin: HMCLeaves) {
     private val defaultBlockData: MutableMap<Material, BlockData> = EnumMap(org.bukkit.Material::class.java)
 
     private val blockData: MutableMap<String, BlockData> = hashMapOf()
+
+    fun getDebugStick(): ItemStack {
+        val item = ItemStack(Material.STICK)
+        val meta = item.itemMeta ?: return item
+        meta.setDisplayName("<red>Debug Stick".parseAsAdventure())
+        item.itemMeta = meta
+        PDCUtil.setItemId(item, DEBUG_STICK_ID)
+        return item
+    }
+
+    fun isDebugStick(item: ItemStack): Boolean {
+        return DEBUG_STICK_ID == PDCUtil.getItemId(item)
+    }
 
     fun getDefaultBLockData(material: Material): BlockData? {
         return this.defaultBlockData[material]
@@ -87,13 +105,35 @@ class LeavesConfig(private val plugin: HMCLeaves) {
     }
 
     private fun getDefaultIdFromMaterial(material: Material): String {
-        return "${material.toString().lowercase()}_default"
+        return "default_${material.toString().lowercase()}"
     }
+
+    // example: default_cave_vines -> default_cave_vines_plant
+    fun getPlantFromId(id: String): BlockData? {
+        return this.getBlockData("${id}_plant")
+    }
+
+    // example: default_cave_vines_plant -> default_cave_vines
+    fun getNonPlantFromId(id: String): BlockData? {
+        val index = id.indexOf("_plant")
+        if (index == -1) return this.getBlockData(id)
+        return this.getBlockData(id.substring(0, index))
+    }
+
 
     private fun loadDefaults() {
         this.loadDefaultLeaves()
         this.loadDefaultLogs()
         this.loadDefaultSugarcane()
+        this.loadDefaultSaplings()
+        this.loadDefaultCaveVines()
+        this.loadDefaultCaveVinesPlant()
+        this.loadDefaultWeepingVines()
+        this.loadDefaultWeepingVinesPlant()
+        this.loadDefaultTwistingVines()
+        this.loadDefaultTwistingVinesPlant()
+        this.loadDefaultKelp()
+        this.loadDefaultKelpPlant()
     }
 
     private fun loadDefaultLeaves() {
@@ -151,6 +191,160 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         this.blockData[id] = data
     }
 
+    private fun loadDefaultSaplings() {
+        val properties: Map<Property<*>, Any> = hashMapOf()
+
+        for (material in SAPLING_MATERIALS) {
+            val id = getDefaultIdFromMaterial(material)
+            val data = BlockData.createSapling(
+                id,
+                material,
+                properties,
+                ConstantItemSupplier(ItemStack(material), id),
+                SingleBlockDropReplacement()
+            )
+            this.defaultBlockData[material] = data
+            this.blockData[id] = data
+        }
+    }
+
+    private fun loadDefaultCaveVines() {
+        val properties: Map<Property<*>, *> = hashMapOf(
+            Property.AGE to 0
+        )
+        val material = Material.CAVE_VINES
+        val id = getDefaultIdFromMaterial(material)
+        val data = BlockData.createCaveVines(
+            id,
+            material,
+            properties,
+            ConstantItemSupplier(ItemStack(Material.GLOW_BERRIES), id),
+            SingleBlockDropReplacement(),
+            setOf(getDefaultIdFromMaterial(Material.CAVE_VINES_PLANT))
+        )
+        this.defaultBlockData[material] = data
+        this.defaultBlockData[Material.GLOW_BERRIES] = data
+        this.blockData[id] = data
+    }
+
+    private fun loadDefaultCaveVinesPlant() {
+        val properties: Map<Property<*>, Any> = hashMapOf()
+        val material = Material.CAVE_VINES_PLANT
+        val id = getDefaultIdFromMaterial(material)
+        val data = BlockData.createCaveVinesPlant(
+            id,
+            material,
+            properties,
+            ConstantItemSupplier(ItemStack(Material.GLOW_BERRIES), id),
+            SingleBlockDropReplacement(),
+            setOf(getDefaultIdFromMaterial(Material.CAVE_VINES))
+        )
+        this.defaultBlockData[material] = data
+        this.blockData[id] = data
+    }
+
+    private fun loadDefaultWeepingVines() {
+        val properties: Map<Property<*>, *> = hashMapOf(
+            Property.AGE to 0
+        )
+        val material = Material.WEEPING_VINES
+        val id = getDefaultIdFromMaterial(material)
+        val data = BlockData.createWeepingVines(
+            id,
+            material,
+            properties,
+            ConstantItemSupplier(ItemStack(material), id),
+            SingleBlockDropReplacement(),
+            setOf(getDefaultIdFromMaterial(Material.WEEPING_VINES_PLANT))
+        )
+        this.defaultBlockData[material] = data
+        this.blockData[id] = data
+    }
+
+    private fun loadDefaultWeepingVinesPlant() {
+        val properties: Map<Property<*>, Any> = hashMapOf()
+        val material = Material.WEEPING_VINES_PLANT
+        val id = getDefaultIdFromMaterial(material)
+        val data = BlockData.createWeepingVinesPlant(
+            id,
+            material,
+            properties,
+            ConstantItemSupplier(ItemStack(material), id),
+            SingleBlockDropReplacement(),
+            setOf(getDefaultIdFromMaterial(Material.WEEPING_VINES))
+        )
+        this.defaultBlockData[material] = data
+        this.blockData[id] = data
+    }
+
+    private fun loadDefaultTwistingVines() {
+        val properties: Map<Property<*>, *> = hashMapOf(
+            Property.AGE to 0
+        )
+        val material = Material.TWISTING_VINES
+        val id = getDefaultIdFromMaterial(material)
+        val data = BlockData.createTwistingVines(
+            id,
+            material,
+            properties,
+            ConstantItemSupplier(ItemStack(material), id),
+            SingleBlockDropReplacement(),
+            setOf(getDefaultIdFromMaterial(Material.TWISTING_VINES))
+        )
+        this.defaultBlockData[material] = data
+        this.blockData[id] = data
+    }
+
+    private fun loadDefaultTwistingVinesPlant() {
+        val properties: Map<Property<*>, Any> = hashMapOf()
+        val material = Material.TWISTING_VINES_PLANT
+        val id = getDefaultIdFromMaterial(material)
+        val data = BlockData.createTwistingVinesPlant(
+            id,
+            material,
+            properties,
+            ConstantItemSupplier(ItemStack(material), id),
+            SingleBlockDropReplacement(),
+            setOf(getDefaultIdFromMaterial(Material.TWISTING_VINES_PLANT))
+        )
+        this.defaultBlockData[material] = data
+        this.blockData[id] = data
+    }
+
+    private fun loadDefaultKelp() {
+        val properties: Map<Property<*>, Any> = hashMapOf(
+            Property.AGE to 0
+        )
+        val material = Material.KELP
+        val id = getDefaultIdFromMaterial(material)
+        val data = BlockData.createKelp(
+            id,
+            material,
+            properties,
+            ConstantItemSupplier(ItemStack(material), id),
+            SingleBlockDropReplacement(),
+            setOf(getDefaultIdFromMaterial(Material.KELP_PLANT))
+        )
+        this.defaultBlockData[material] = data
+        this.blockData[id] = data
+    }
+
+    private fun loadDefaultKelpPlant() {
+        val properties: Map<Property<*>, Any> = hashMapOf()
+        val material = Material.KELP_PLANT
+        val id = getDefaultIdFromMaterial(material)
+        val data = BlockData.createKelpPlant(
+            id,
+            material,
+            properties,
+            ConstantItemSupplier(ItemStack(material), id),
+            SingleBlockDropReplacement(),
+            setOf(getDefaultIdFromMaterial(Material.KELP))
+        )
+        this.defaultBlockData[material] = data
+        this.blockData[id] = data
+    }
+
     private fun loadBlocks(config: YamlConfiguration) {
         val blocksSection = config.getConfigurationSection(BLOCKS_KEY) ?: return
         for (id in blocksSection.getKeys(false)) {
@@ -178,14 +372,14 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             } ?: ConstantItemSupplier(ItemStack(worldMaterial), id)
 
             val blockDrops = loadDrops(section.getConfigurationSection(DROPS_KEY), id, type)
-
             val data = type.blockSupplier(
                 id,
                 visualMaterial,
                 worldMaterial,
                 properties,
                 itemSupplier,
-                blockDrops
+                blockDrops,
+                setOf() // todo
             )
             blockData[id] = data
         }

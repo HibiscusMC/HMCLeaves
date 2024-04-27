@@ -8,6 +8,7 @@ class LeavesChunk(
     private val position: ChunkPosition,
     val world: UUID = position.world,
     private val blocks: MutableMap<PositionInChunk, BlockData?> = ConcurrentHashMap(),
+    private val blocksToRemove: MutableMap<PositionInChunk, BlockData> = ConcurrentHashMap(),
     private var dirty: Boolean = false,
     private var loaded: Boolean = false
 ) {
@@ -26,12 +27,25 @@ class LeavesChunk(
         return this.blocks[position]
     }
 
-    fun remove(position: PositionInChunk) : BlockData? {
-        return this.blocks.remove(position)
+    fun remove(position: PositionInChunk, addToRemoved: Boolean) : BlockData? {
+        val removed = this.blocks.remove(position)
+        if (addToRemoved && removed != null) {
+            this.blocksToRemove[position] = removed
+        }
+        this.dirty = true
+        return removed
     }
 
     fun getBlocks(): Map<PositionInChunk, BlockData?> {
         return Collections.unmodifiableMap(this.blocks)
+    }
+
+    fun getDataToRemove(position: PositionInChunk): BlockData? {
+        return this.blocksToRemove[position]
+    }
+
+    fun removeFromToRemove(position: PositionInChunk): BlockData? {
+        return this.blocksToRemove.remove(position)
     }
 
     fun isDirty() = this.dirty

@@ -103,7 +103,7 @@ class BlockBreakManager(
                     })
                     worldManager[position.world]
                         ?.get(position.getChunkPosition())
-                        ?.remove(position.toPositionInChunk())
+                        ?.remove(position.toPositionInChunk(), false)
                     block.type = Material.AIR
                     val blockBreakModifier = blockBreakData.blockData.blockBreakModifier!!
                     val heldItem: ItemStack = blockBreakData.breaker.inventory.itemInMainHand
@@ -112,7 +112,7 @@ class BlockBreakManager(
                                     blockBreakModifier.hasToolType(heldItem.type))
 
                     if (event.isDropItems && dropItems) {
-                        val world: World = block.getWorld()
+                        val world: World = block.world
                         Bukkit.getScheduler().runTaskLater(
                             this@BlockBreakManager.plugin,
                             Runnable {
@@ -146,7 +146,7 @@ class BlockBreakManager(
 
     // formula found at https://minecraft.fandom.com/wiki/Breaking#Speed
     private fun calculateBlockBreakTimeInTicks(player: Player, inHand: ItemStack, modifier: BlockBreakModifier): Int {
-        val material: Material = inHand.getType()
+        val material: Material = inHand.type
         var speedMultiplier = TOOL_SPEED_MULTIPLIERS.getOrDefault(material, 1).toDouble()
         if (!modifier.hasToolType(material)) {
             speedMultiplier = 1.0
