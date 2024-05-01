@@ -60,3 +60,18 @@ blocks:
       material: PAPER
       name: "<green>Sugar Cane"
       model-data: 4
+  fake_grass:
+    type: server_side_block
+    world-material: grass_block
+    visual-material: note_block
+    properties:
+      instrument: flute
+      note: 2
+    item:
+      material: PAPER
+      name: "<green>Fake Grass Block"
+      model-data: 4
+    block-break-modifier:
+      hardness: 5
+      tool-types:
+        - shovel

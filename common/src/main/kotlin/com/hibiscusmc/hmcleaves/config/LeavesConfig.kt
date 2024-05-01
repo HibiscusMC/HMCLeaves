@@ -7,13 +7,18 @@ import com.hibiscusmc.hmcleaves.item.ConstantItemSupplier
 import com.hibiscusmc.hmcleaves.item.ItemSupplier
 import com.hibiscusmc.hmcleaves.item.SingleBlockDropReplacement
 import com.hibiscusmc.hmcleaves.listener.ConnectedBlockFacingUpDestroyListener
+import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakManager
+import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakModifier
+import com.hibiscusmc.hmcleaves.packet.mining.ToolType
 import com.hibiscusmc.hmcleaves.pdc.PDCUtil
 import com.hibiscusmc.hmcleaves.util.parseAsAdventure
 import org.bukkit.Bukkit
 import org.bukkit.Material
+import org.bukkit.NamespacedKey
 import org.bukkit.Tag
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
+import org.bukkit.enchantments.Enchantment
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.inventory.ItemStack
 import java.util.*
@@ -33,6 +38,12 @@ private const val MODEL_DATA_KEY = "model-data"
 private const val NAME_KEY = "name"
 private const val LORE_KEY = "lore"
 private const val DROPS_KEY = "drops"
+private const val BLOCK_BREAK_MODIFIER_KEY = "block-break-modifier"
+private const val BLOCK_HARDNESS_KEY = "hardness"
+private const val REQUIRES_TOOL_KEY = "requires-tool"
+private const val REQUIRED_TOOLS_KEY = "tool-types"
+private const val REQUIRED_ENCHANTMENTS = "required-enchantments"
+
 
 const val DEBUG_STICK_ID = "debug_stick"
 
@@ -149,7 +160,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
                 material,
                 properties,
                 ConstantItemSupplier(ItemStack(material), id),
-                SingleBlockDropReplacement()
+                SingleBlockDropReplacement(),
+                null
             )
             this.defaultBlockData[material] = data
             this.blockData[id] = data
@@ -167,7 +179,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
                 material,
                 properties,
                 ConstantItemSupplier(ItemStack(material), id),
-                SingleBlockDropReplacement()
+                SingleBlockDropReplacement(),
+                BlockBreakManager.LOG_BREAK_MODIFIER
             )
             this.defaultBlockData[material] = data
             this.blockData[id] = data
@@ -289,7 +302,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             properties,
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
-            setOf(getDefaultIdFromMaterial(Material.TWISTING_VINES))
+            setOf(getDefaultIdFromMaterial(Material.TWISTING_VINES_PLANT))
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -305,7 +318,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             properties,
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
-            setOf(getDefaultIdFromMaterial(Material.TWISTING_VINES_PLANT))
+            setOf(getDefaultIdFromMaterial(Material.TWISTING_VINES))
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -372,6 +385,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             } ?: ConstantItemSupplier(ItemStack(worldMaterial), id)
 
             val blockDrops = loadDrops(section.getConfigurationSection(DROPS_KEY), id, type)
+            val blockBreakModifier = loadBlockBreakModifier(section.getConfigurationSection(BLOCK_BREAK_MODIFIER_KEY), id)
             val data = type.blockSupplier(
                 id,
                 visualMaterial,
@@ -379,7 +393,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
                 properties,
                 itemSupplier,
                 blockDrops,
-                setOf() // todo
+                setOf(), // todo
+                blockBreakModifier
             )
             blockData[id] = data
         }
@@ -415,6 +430,20 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         }
         // todo
         return type.defaultBlockDrops
+    }
+
+    private fun loadBlockBreakModifier(section: ConfigurationSection?, id: String): BlockBreakModifier? {
+        if (section == null) return null
+        val hardness = section.getDouble(BLOCK_HARDNESS_KEY, -1.0)
+        if (hardness <= 0) throw IllegalArgumentException("$BLOCK_HARDNESS_KEY cannot be $hardness for $id")
+        val requiresToolToDrop = section.getBoolean(REQUIRES_TOOL_KEY, false)
+        val toolTypes = section.getStringList(REQUIRED_TOOLS_KEY).map { ToolType.valueOf(it.uppercase()) }
+            .toSet()
+        val enchantments = section.getStringList(REQUIRED_ENCHANTMENTS).map {
+            Enchantment.getByKey(NamespacedKey.minecraft(it))
+                ?: throw IllegalArgumentException("$it is not a valid enchantment for $id")
+        }.toSet()
+        return BlockBreakModifier(hardness, requiresToolToDrop, toolTypes, enchantments)
     }
 
 }

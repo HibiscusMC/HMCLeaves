@@ -8,17 +8,18 @@ enum class BlockDirection(
     val xOffset: Int,
     val yOffset: Int,
     val zOffset: Int,
-    val bukkitBlockFace: BlockFace
-    ) {
+    val bukkitBlockFace: BlockFace,
+    private val opposite: Lazy<BlockDirection>
+) {
 
-    NORTH(0, 0, -1, BlockFace.NORTH),
-    EAST(1, 0, 0, BlockFace.EAST),
-    SOUTH(0, 0, 1, BlockFace.SOUTH),
-    WEST(-1, 0, 0, BlockFace.WEST),
-    UP(0, 1, 0, BlockFace.UP),
-    DOWN(0, -1, 0, BlockFace.DOWN);
+    NORTH(0, 0, -1, BlockFace.NORTH, lazy { SOUTH }),
+    EAST(1, 0, 0, BlockFace.EAST, lazy { WEST }),
+    SOUTH(0, 0, 1, BlockFace.SOUTH, lazy { NORTH }),
+    WEST(-1, 0, 0, BlockFace.WEST, lazy { EAST }),
+    UP(0, 1, 0, BlockFace.UP, lazy { DOWN }),
+    DOWN(0, -1, 0, BlockFace.DOWN, lazy { UP });
 
-    fun toAxis() : BlockAxis {
+    fun toAxis(): BlockAxis {
         return when (this) {
             NORTH, SOUTH -> BlockAxis.X
             EAST, WEST -> BlockAxis.Z
@@ -26,9 +27,13 @@ enum class BlockDirection(
         }
     }
 
+    fun opposite(): BlockDirection {
+        return opposite.value
+    }
+
 }
 
-fun getDirectionTo(first: Position, second: Position) : BlockDirection? {
+fun getDirectionTo(first: Position, second: Position): BlockDirection? {
     val diffX = second.x - first.x
     if (diffX != 0) {
         if (diffX < 0) return BlockDirection.NORTH

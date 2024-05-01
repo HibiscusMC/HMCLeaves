@@ -11,20 +11,12 @@ import com.hibiscusmc.hmcleaves.util.getPositionInChunk
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
 import com.hibiscusmc.hmcleaves.world.PositionInChunk
 import org.bukkit.Bukkit
+import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.World
-import org.bukkit.block.Block
 import org.bukkit.block.BlockFace
 import org.bukkit.event.Event
-import org.bukkit.event.block.BlockBreakEvent
-import org.bukkit.event.block.BlockEvent
-import org.bukkit.event.block.BlockExplodeEvent
-import org.bukkit.event.block.BlockGrowEvent
-import org.bukkit.event.block.BlockPistonEvent
-import org.bukkit.event.block.BlockPistonExtendEvent
-import org.bukkit.event.block.BlockPistonRetractEvent
-import org.bukkit.event.block.BlockPlaceEvent
-import org.bukkit.event.block.LeavesDecayEvent
+import org.bukkit.event.block.*
 import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.*
@@ -54,17 +46,19 @@ sealed class BlockListener<E> {
     fun listen(
         event: E,
         world: World,
+        startLocation: Location,
         position: PositionInChunk,
         blockData: BlockData,
         leavesChunk: LeavesChunk,
         config: LeavesConfig
     ): ListenResult {
-        return this.handle(event, world, position, blockData, leavesChunk, config)
+        return this.handle(event, world, startLocation, position, blockData, leavesChunk, config)
     }
 
     protected abstract fun handle(
         event: E,
         world: World,
+        startLocation: Location,
         position: PositionInChunk,
         blockData: BlockData,
         leavesChunk: LeavesChunk,
@@ -78,6 +72,7 @@ data object LeavesDecayListener : BlockListener<LeavesDecayEvent>() {
     override fun handle(
         event: LeavesDecayEvent,
         world: World,
+        startLocation: Location,
         position: PositionInChunk,
         blockData: BlockData,
         leavesChunk: LeavesChunk,
@@ -93,6 +88,7 @@ data object LeavesPistonExtendListener : BlockListener<BlockPistonExtendEvent>()
     override fun handle(
         event: BlockPistonExtendEvent,
         world: World,
+        startLocation: Location,
         position: PositionInChunk,
         blockData: BlockData,
         leavesChunk: LeavesChunk,
@@ -109,6 +105,7 @@ data object LeavesPistonRetractListener : BlockListener<BlockPistonRetractEvent>
     override fun handle(
         event: BlockPistonRetractEvent,
         world: World,
+        startLocation: Location,
         position: PositionInChunk,
         blockData: BlockData,
         leavesChunk: LeavesChunk,
@@ -125,6 +122,7 @@ data object LogPlaceListener : BlockListener<BlockPlaceEvent>() {
     override fun handle(
         event: BlockPlaceEvent,
         world: World,
+        startLocation: Location,
         position: PositionInChunk,
         blockData: BlockData,
         leavesChunk: LeavesChunk,
@@ -132,12 +130,10 @@ data object LogPlaceListener : BlockListener<BlockPlaceEvent>() {
     ): ListenResult {
         val firstPos = event.block.getPosition()
         val secondPos = event.blockAgainst.getPosition()
-        val axis = getDirectionTo(firstPos, secondPos)?.toAxis() ?: run {
-            return ListenResult(
-                blockData,
-                ListenResultType.PASS_THROUGH
-            )
-        }
+        val axis = getDirectionTo(firstPos, secondPos)?.toAxis() ?: return ListenResult(
+            blockData,
+            ListenResultType.PASS_THROUGH
+        )
 
         val newData = config.getDirectionalBlockData(blockData, axis) ?: return ListenResult(
             blockData,
@@ -165,6 +161,7 @@ data object SugarCanePlaceListener : BlockListener<BlockPlaceEvent>() {
     override fun handle(
         event: BlockPlaceEvent,
         world: World,
+        startLocation: Location,
         position: PositionInChunk,
         blockData: BlockData,
         leavesChunk: LeavesChunk,
@@ -196,11 +193,42 @@ data object SugarCanePlaceListener : BlockListener<BlockPlaceEvent>() {
     }
 }
 
+data object SaplingPlaceListener : BlockListener<BlockPlaceEvent>() {
+
+    private val allowedSoil = EnumSet.of(
+        Material.DIRT,
+        Material.GRASS_BLOCK,
+        Material.COARSE_DIRT,
+        Material.PODZOL,
+        Material.ROOTED_DIRT
+    )
+
+    override fun handle(
+        event: BlockPlaceEvent,
+        world: World,
+        startLocation: Location,
+        position: PositionInChunk,
+        blockData: BlockData,
+        leavesChunk: LeavesChunk,
+        config: LeavesConfig
+    ): ListenResult {
+        val block = event.block
+        val under = block.getRelative(BlockFace.DOWN)
+        if (!this.allowedSoil.contains(under.type)) {
+            event.isCancelled = true
+            return ListenResult(blockData, ListenResultType.CANCEL_EVENT)
+        }
+        return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+    }
+}
+
+
 data object SugarCaneGrowListener : BlockListener<BlockGrowEvent>() {
 
     override fun handle(
         event: BlockGrowEvent,
         world: World,
+        startLocation: Location,
         position: PositionInChunk,
         blockData: BlockData,
         leavesChunk: LeavesChunk,
@@ -217,6 +245,9 @@ data object SugarCaneGrowListener : BlockListener<BlockGrowEvent>() {
 
 data object PlantFacingUpPlaceListener : PlantFacingPlaceListener(BlockDirection.DOWN)
 data object PlantFacingDownPlaceListener : PlantFacingPlaceListener(BlockDirection.UP)
+
+data object PlantFacingUpGrowListener : PlantGrowListener(BlockDirection.DOWN)
+data object PlantFacingDownGrowListener : PlantGrowListener(BlockDirection.UP)
 
 data object ConnectedBlockFacingUpBlockBreakListener : ConnectedBlockFacingUpDestroyListener<BlockBreakEvent>()
 data object ConnectedBlockFacingDownBlockBreakListener : ConnectedBlockFacingDownDestroyListener<BlockBreakEvent>()
@@ -249,12 +280,17 @@ sealed class ConnectedBlockFacingUpDestroyListener<T : Event> : BlockListener<T>
     override fun handle(
         event: T,
         world: World,
+        startLocation: Location,
         position: PositionInChunk,
         blockData: BlockData,
         leavesChunk: LeavesChunk,
         config: LeavesConfig
     ): ListenResult {
+        val supportingBlockData = config.getNonPlantFromId(blockData.id)
+            ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
         markConnectedBlocksRemoved(
+            startLocation,
+            supportingBlockData,
             world,
             BlockDirection.UP,
             position,
@@ -269,12 +305,17 @@ sealed class ConnectedBlockFacingDownDestroyListener<T : Event> : BlockListener<
     override fun handle(
         event: T,
         world: World,
+        startLocation: Location,
         position: PositionInChunk,
         blockData: BlockData,
         leavesChunk: LeavesChunk,
         config: LeavesConfig
     ): ListenResult {
+        val supportingBlockData = config.getNonPlantFromId(blockData.id)
+            ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
         markConnectedBlocksRemoved(
+            startLocation,
+            supportingBlockData,
             world,
             BlockDirection.DOWN,
             position,
@@ -289,6 +330,7 @@ sealed class PlantFacingPlaceListener(private val direction: BlockDirection) : B
     override fun handle(
         event: BlockPlaceEvent,
         world: World,
+        startLocation: Location,
         position: PositionInChunk,
         blockData: BlockData,
         leavesChunk: LeavesChunk,
@@ -314,17 +356,19 @@ sealed class PlantFacingPlaceListener(private val direction: BlockDirection) : B
         val plantData = config.getPlantFromId(relativeData.id)
             ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
         leavesChunk[relative] = plantData
-        relativeBlock.setType(plantData.worldMaterial, false)
         return ListenResult(blockData, ListenResultType.PASS_THROUGH)
     }
 }
 
-sealed class PlantRelativeBreakListener(private val direction: BlockDirection) :
+sealed class PlantRelativeBreakListener(
+    private val direction: BlockDirection
+) :
     BlockListener<RelativeBlockBreakEvent>() {
 
     override fun handle(
         event: RelativeBlockBreakEvent,
         world: World,
+        startLocation: Location,
         position: PositionInChunk,
         blockData: BlockData,
         leavesChunk: LeavesChunk,
@@ -333,8 +377,12 @@ sealed class PlantRelativeBreakListener(private val direction: BlockDirection) :
         if (event.direction != this.direction) {
             return ListenResult(blockData, ListenResultType.PASS_THROUGH)
         }
+        val supportingBlockData = config.getNonPlantFromId(blockData.id)
+            ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
         leavesChunk.remove(position, true)
         markConnectedBlocksRemoved(
+            event.startLocation,
+            supportingBlockData,
             world,
             direction,
             position,
@@ -345,6 +393,52 @@ sealed class PlantRelativeBreakListener(private val direction: BlockDirection) :
     }
 }
 
+sealed class PlantGrowListener(
+    private val supportDirection: BlockDirection
+) :
+    BlockListener<BlockSpreadEvent>() {
+
+    override fun handle(
+        event: BlockSpreadEvent,
+        world: World,
+        startLocation: Location,
+        position: PositionInChunk,
+        blockData: BlockData,
+        leavesChunk: LeavesChunk,
+        config: LeavesConfig
+    ): ListenResult {
+        val supportingBlock = event.block.getRelative(supportDirection.bukkitBlockFace)
+        val supportingData = leavesChunk[supportingBlock.getPositionInChunk()]
+            ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+        val plant = config.getPlantFromId(supportingData.id)
+            ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+        leavesChunk[supportingBlock.getPositionInChunk()] = plant
+        return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+    }
+}
+
+private fun markConnectedBlocksRemoved(
+    startLocation: Location,
+    supportingBlockData: BlockData,
+    world: World,
+    direction: BlockDirection,
+    position: PositionInChunk,
+    leavesChunk: LeavesChunk,
+    data: BlockData
+) {
+    val supporting = startLocation.block.getRelative(direction.opposite().bukkitBlockFace)
+    val currentSupportingBlockData = leavesChunk[supporting.getPositionInChunk()]
+    if (currentSupportingBlockData != null && data.canConnectTo(supportingBlockData)) {
+        leavesChunk[supporting.getPositionInChunk()] = supportingBlockData
+    }
+    markConnectedBlocksRemoved(
+        world,
+        direction,
+        position,
+        leavesChunk,
+        data
+    )
+}
 
 private fun markConnectedBlocksRemoved(
     world: World,
@@ -353,6 +447,7 @@ private fun markConnectedBlocksRemoved(
     leavesChunk: LeavesChunk,
     data: BlockData
 ) {
+
     val relative = position.relative(direction, world.minHeight, world.maxHeight) ?: return
     val relativeData = leavesChunk[relative] ?: return
     if (!relativeData.canConnectTo(data)) return
@@ -370,5 +465,6 @@ private fun markConnectedBlocksRemoved(
  * For when a block broken is relative to another block
  */
 data class RelativeBlockBreakEvent(
+    val startLocation: Location,
     val direction: BlockDirection
 )

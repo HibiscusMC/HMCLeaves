@@ -15,6 +15,8 @@ import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakModifier
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
 import com.hibiscusmc.hmcleaves.world.PositionInChunk
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
+import org.bukkit.Bukkit
+import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.entity.Item
@@ -54,6 +56,12 @@ sealed class Property<T>(val key: String, val converter: (String) -> T) {
         }
     }
 
+    data object POWERED : Property<Boolean>("powered", { it.toBoolean() }) {
+        override fun applyToState(state: WrappedBlockState, value: Boolean) {
+            state.isPowered = value
+        }
+    }
+
     data object AGE : Property<Int>("age", { it.toInt() }) {
         override fun applyToState(state: WrappedBlockState, value: Int) {
             state.age = value
@@ -67,7 +75,8 @@ sealed class Property<T>(val key: String, val converter: (String) -> T) {
                 PERSISTENT.key to PERSISTENT,
                 INSTRUMENT.key to INSTRUMENT,
                 NOTE.key to NOTE,
-                AGE.key to AGE
+                AGE.key to AGE,
+                POWERED.key to POWERED
             )
         }
 
@@ -88,75 +97,82 @@ enum class BlockType(
         properties: Map<Property<*>, *>,
         itemSupplier: ItemSupplier,
         blockDrops: BlockDrops,
-        connectsTo: Set<String>
+        connectsTo: Set<String>,
+        blockBreakModifier: BlockBreakModifier?
     ) -> BlockData
 ) {
     LEAVES(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _ ->
-            BlockData.createLeaves(id, visualMaterial, properties, itemSupplier, blockDrops)
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, modifier ->
+            BlockData.createLeaves(id, visualMaterial, properties, itemSupplier, blockDrops, modifier)
         }),
     LOG(
         LogDropReplacement(),
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _ ->
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier ->
             BlockData.createLog(
                 id,
                 visualMaterial,
                 worldMaterial,
                 properties,
                 itemSupplier,
-                blockDrops
+                blockDrops,
+                modifier
             )
         }),
     SUGAR_CANE(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _ ->
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, _ ->
             BlockData.createSugarcane(id, visualMaterial, properties, itemSupplier, blockDrops)
         }),
     SAPLING(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _ ->
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, _ ->
             BlockData.createSapling(id, visualMaterial, properties, itemSupplier, blockDrops)
         }),
     CAVE_VINES(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo ->
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _ ->
             BlockData.createCaveVines(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo)
         }),
     CAVE_VINES_PLANT(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo ->
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _ ->
             BlockData.createCaveVinesPlant(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo)
         }),
     WEEPING_VINES(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo ->
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _ ->
             BlockData.createWeepingVines(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo)
         }),
     WEEPING_VINES_PLANT(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo ->
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _ ->
             BlockData.createWeepingVinesPlant(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo)
         }),
     TWISTING_VINES(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo ->
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _ ->
             BlockData.createTwistingVines(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo)
         }),
     TWISTING_VINES_PLANT(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo ->
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _ ->
             BlockData.createTwistingVinesPlant(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo)
         }),
     KELP(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo ->
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _ ->
             BlockData.createKelp(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo)
         }),
     KELP_PLANT(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo ->
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _ ->
             BlockData.createKelpPlant(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo)
+        }),
+    SERVER_SIDE_BLOCK(
+        SingleBlockDropReplacement(),
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier ->
+            BlockData.createServerSideBlock(id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, modifier)
         })
 }
 
@@ -192,7 +208,8 @@ class BlockData(
             visualMaterial: Material,
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops
+            blockDrops: BlockDrops,
+            blockBreakModifier: BlockBreakModifier?
         ): BlockData {
             return BlockData(
                 id,
@@ -206,7 +223,8 @@ class BlockData(
                     LeavesDecayEvent::class.java to LeavesDecayListener,
                     BlockPistonExtendEvent::class.java to LeavesPistonExtendListener,
                     BlockPistonRetractEvent::class.java to LeavesPistonRetractListener,
-                )
+                ),
+                blockBreakModifier = blockBreakModifier
             )
         }
 
@@ -216,7 +234,8 @@ class BlockData(
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops
+            blockDrops: BlockDrops,
+            blockBreakModifier: BlockBreakModifier?
         ): BlockData {
             return BlockData(
                 id,
@@ -229,7 +248,7 @@ class BlockData(
                 hashMapOf(
                     BlockPlaceEvent::class.java to LogPlaceListener
                 ),
-                blockBreakModifier = BlockBreakManager.LOG_BREAK_MODIFIER
+                blockBreakModifier = blockBreakModifier
             )
         }
 
@@ -275,6 +294,7 @@ class BlockData(
                 blockDrops,
                 Collections.unmodifiableMap(
                     hashMapOf(
+                        BlockPlaceEvent::class.java to SaplingPlaceListener
                     )
                 ),
                 blockBreakModifier = null
@@ -304,7 +324,8 @@ class BlockData(
                     BlockExplodeEvent::class.java to ConnectedBlockFacingDownBlockExplodeBreakListener,
                     EntityExplodeEvent::class.java to ConnectedBlockFacingDownEntityExplodeBreakListener,
                     BlockPlaceEvent::class.java to PlantFacingDownPlaceListener,
-                    RelativeBlockBreakEvent::class.java to PlantFacingDownRelativeBreakListener
+                    RelativeBlockBreakEvent::class.java to PlantFacingDownRelativeBreakListener,
+                    BlockSpreadEvent::class.java to PlantFacingDownGrowListener
                 ),
                 blockBreakModifier = null,
                 connectsTo = connectsTo
@@ -334,7 +355,8 @@ class BlockData(
                     BlockExplodeEvent::class.java to ConnectedBlockFacingDownBlockExplodeBreakListener,
                     EntityExplodeEvent::class.java to ConnectedBlockFacingDownEntityExplodeBreakListener,
                     BlockPlaceEvent::class.java to PlantFacingDownPlaceListener,
-                    RelativeBlockBreakEvent::class.java to PlantFacingDownRelativeBreakListener
+                    RelativeBlockBreakEvent::class.java to PlantFacingDownRelativeBreakListener,
+                    BlockSpreadEvent::class.java to PlantFacingDownGrowListener
                 ),
                 blockBreakModifier = null,
                 connectsTo = connectsTo
@@ -364,7 +386,8 @@ class BlockData(
                     BlockExplodeEvent::class.java to ConnectedBlockFacingDownBlockExplodeBreakListener,
                     EntityExplodeEvent::class.java to ConnectedBlockFacingDownEntityExplodeBreakListener,
                     BlockPlaceEvent::class.java to PlantFacingDownPlaceListener,
-                    RelativeBlockBreakEvent::class.java to PlantFacingDownRelativeBreakListener
+                    RelativeBlockBreakEvent::class.java to PlantFacingDownRelativeBreakListener,
+                    BlockSpreadEvent::class.java to PlantFacingDownGrowListener
                 ),
                 blockBreakModifier = null,
                 connectsTo = connectsTo
@@ -394,7 +417,8 @@ class BlockData(
                     BlockExplodeEvent::class.java to ConnectedBlockFacingDownBlockExplodeBreakListener,
                     EntityExplodeEvent::class.java to ConnectedBlockFacingDownEntityExplodeBreakListener,
                     BlockPlaceEvent::class.java to PlantFacingDownPlaceListener,
-                    RelativeBlockBreakEvent::class.java to PlantFacingDownRelativeBreakListener
+                    RelativeBlockBreakEvent::class.java to PlantFacingDownRelativeBreakListener,
+                    BlockSpreadEvent::class.java to PlantFacingDownGrowListener
                 ),
                 blockBreakModifier = null,
                 connectsTo = connectsTo
@@ -424,7 +448,8 @@ class BlockData(
                     BlockExplodeEvent::class.java to ConnectedBlockFacingUpBlockExplodeBreakListener,
                     EntityExplodeEvent::class.java to ConnectedBlockFacingUpEntityExplodeBreakListener,
                     BlockPlaceEvent::class.java to PlantFacingUpPlaceListener,
-                    RelativeBlockBreakEvent::class.java to PlantFacingUpRelativeBreakListener
+                    RelativeBlockBreakEvent::class.java to PlantFacingUpRelativeBreakListener,
+                    BlockSpreadEvent::class.java to PlantFacingUpGrowListener
                 ),
                 blockBreakModifier = null,
                 connectsTo = connectsTo
@@ -454,7 +479,8 @@ class BlockData(
                     BlockExplodeEvent::class.java to ConnectedBlockFacingUpBlockExplodeBreakListener,
                     EntityExplodeEvent::class.java to ConnectedBlockFacingUpEntityExplodeBreakListener,
                     BlockPlaceEvent::class.java to PlantFacingUpPlaceListener,
-                    RelativeBlockBreakEvent::class.java to PlantFacingUpRelativeBreakListener
+                    RelativeBlockBreakEvent::class.java to PlantFacingUpRelativeBreakListener,
+                    BlockSpreadEvent::class.java to PlantFacingUpGrowListener
                 ),
                 blockBreakModifier = null,
                 connectsTo = connectsTo
@@ -484,7 +510,8 @@ class BlockData(
                     BlockExplodeEvent::class.java to ConnectedBlockFacingUpBlockExplodeBreakListener,
                     EntityExplodeEvent::class.java to ConnectedBlockFacingUpEntityExplodeBreakListener,
                     BlockPlaceEvent::class.java to PlantFacingUpPlaceListener,
-                    RelativeBlockBreakEvent::class.java to PlantFacingUpRelativeBreakListener
+                    RelativeBlockBreakEvent::class.java to PlantFacingUpRelativeBreakListener,
+                    BlockSpreadEvent::class.java to PlantFacingUpGrowListener
                 ),
                 blockBreakModifier = null,
                 connectsTo = connectsTo
@@ -514,10 +541,33 @@ class BlockData(
                     BlockExplodeEvent::class.java to ConnectedBlockFacingUpBlockExplodeBreakListener,
                     EntityExplodeEvent::class.java to ConnectedBlockFacingUpEntityExplodeBreakListener,
                     BlockPlaceEvent::class.java to PlantFacingUpPlaceListener,
-                    RelativeBlockBreakEvent::class.java to PlantFacingUpRelativeBreakListener
+                    RelativeBlockBreakEvent::class.java to PlantFacingUpRelativeBreakListener,
+                    BlockSpreadEvent::class.java to PlantFacingUpGrowListener
                 ),
                 blockBreakModifier = null,
                 connectsTo = connectsTo
+            )
+        }
+
+        fun createServerSideBlock(
+            id: String,
+            visualMaterial: Material,
+            worldMaterial: Material,
+            properties: Map<Property<*>, *>,
+            itemSupplier: ItemSupplier,
+            blockDrops: BlockDrops,
+            blockBreakModifier: BlockBreakModifier?
+        ): BlockData {
+            return BlockData(
+                id,
+                visualMaterial,
+                worldMaterial,
+                BlockType.SERVER_SIDE_BLOCK,
+                properties,
+                itemSupplier,
+                blockDrops,
+                mapOf(),
+                blockBreakModifier = blockBreakModifier
             )
         }
     }
@@ -526,6 +576,7 @@ class BlockData(
         clazz: Class<*>,
         event: E,
         world: World,
+        startLocation: Location,
         position: PositionInChunk,
         leavesChunk: LeavesChunk,
         config: LeavesConfig
@@ -535,7 +586,7 @@ class BlockData(
 
         listener as BlockListener<E>
 
-        return listener.listen(event, world, position, this, leavesChunk, config)
+        return listener.listen(event, world, startLocation, position, this, leavesChunk, config)
     }
 
     fun canConnectTo(blockData: BlockData): Boolean {

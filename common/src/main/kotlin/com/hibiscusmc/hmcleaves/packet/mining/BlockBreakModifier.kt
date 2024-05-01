@@ -9,7 +9,7 @@ class BlockBreakModifier(
     val hardness: Double,
     val requiresToolToDrop: Boolean,
     private val toolTypes: Set<ToolType>,
-    private val requiredEnchantments: Set<Enchantment>,
+    private val requiredEnchantments: Set<Enchantment>
 ) {
     fun hasToolType(material: Material?): Boolean {
         for (toolType in this.toolTypes) {
@@ -29,7 +29,7 @@ class BlockBreakModifier(
 
 enum class ToolType(private val tools: Set<Material?>) {
     AXE(
-        java.util.Set.of(
+        setOf(
             Material.WOODEN_AXE,
             Material.STONE_AXE,
             Material.IRON_AXE,
@@ -39,7 +39,7 @@ enum class ToolType(private val tools: Set<Material?>) {
         )
     ),
     PICKAXE(
-        java.util.Set.of(
+        setOf(
             Material.WOODEN_PICKAXE,
             Material.STONE_PICKAXE,
             Material.IRON_PICKAXE,
@@ -49,7 +49,7 @@ enum class ToolType(private val tools: Set<Material?>) {
         )
     ),
     SHOVEL(
-        java.util.Set.of(
+        setOf(
             Material.WOODEN_SHOVEL,
             Material.STONE_SHOVEL,
             Material.IRON_SHOVEL,
@@ -59,7 +59,7 @@ enum class ToolType(private val tools: Set<Material?>) {
         )
     ),
     HOE(
-        java.util.Set.of(
+        setOf(
             Material.WOODEN_HOE,
             Material.STONE_HOE,
             Material.IRON_HOE,
@@ -69,7 +69,7 @@ enum class ToolType(private val tools: Set<Material?>) {
         )
     ),
     SWORD(
-        java.util.Set.of(
+        setOf(
             Material.WOODEN_SWORD,
             Material.STONE_SWORD,
             Material.IRON_SWORD,
@@ -79,7 +79,7 @@ enum class ToolType(private val tools: Set<Material?>) {
         )
     ),
     SHEARS(
-        java.util.Set.of(
+        setOf(
             Material.SHEARS
         )
     );
