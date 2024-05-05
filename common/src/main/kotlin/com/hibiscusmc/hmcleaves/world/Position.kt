@@ -15,6 +15,7 @@ data class Position(val world: UUID, val x: Int, val y: Int, val z: Int) {
     fun toLocation(): Location {
         return Location(Bukkit.getWorld(this.world), this.x.toDouble(), this.y.toDouble(), this.z.toDouble())
     }
+
     fun relative(direction: BlockDirection, minHeight: Int, maxHeight: Int): Position? {
         val newY = this.y + direction.yOffset
         if (newY < minHeight || newY >= maxHeight) {
@@ -107,6 +108,10 @@ data class PositionInChunk(val world: UUID, val x: Int, val y: Int, val z: Int) 
 
     fun relative(direction: BlockFace, minHeight: Int, maxHeight: Int): PositionInChunk? {
         return this.relative(direction.toBlockDirection() ?: return null, minHeight, maxHeight)
+    }
+
+    fun toPosition(chunkPosition: ChunkPosition): Position {
+        return Position(this.world, chunkPosition.x * 16 + this.x, this.y, chunkPosition.z * 16 + this.z)
     }
 
     private fun calculateHash(): Int {

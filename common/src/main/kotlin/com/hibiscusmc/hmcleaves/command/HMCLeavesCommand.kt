@@ -14,7 +14,7 @@ private const val DEBUG_STICK = "debugstick"
 
 class HMCLeavesCommand(
     private var plugin: HMCLeaves,
-    private var config: LeavesConfig = plugin.getLeavesConfig()
+    private var config: LeavesConfig = plugin.leavesConfig
 ) : CommandExecutor, TabExecutor {
 
 

@@ -10,6 +10,8 @@ import org.bukkit.Axis
 import org.bukkit.Location
 import org.bukkit.block.Block
 import org.bukkit.block.BlockFace
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.UUID
 
 fun Vector3i.toChunkPosition(world: UUID): ChunkPosition {
@@ -37,7 +39,7 @@ fun Block.getPositionInChunk(): PositionInChunk {
     )
 }
 
-fun Location.toPosition() : Position? {
+fun Location.toPosition(): Position? {
     return Position(
         this.world?.uid ?: return null,
         this.x.toInt(),
@@ -69,8 +71,8 @@ fun BlockFace.toBlockDirection(): BlockDirection? {
 }
 
 fun Axis.asBlockAxis(): BlockAxis {
-    return when(this) {
-         Axis.X -> BlockAxis.X
+    return when (this) {
+        Axis.X -> BlockAxis.X
         Axis.Y -> BlockAxis.Y
         Axis.Z -> BlockAxis.Z
     }
@@ -80,10 +82,28 @@ fun Position.toVector3i(): Vector3i {
     return Vector3i(this.x, this.y, this.z)
 }
 
+fun ChunkPosition.toVector3i(): Vector3i {
+    return Vector3i(this.x, 0, this.z)
+}
+
 fun String.parseToComponent(): Component {
     return MINI_MESAGE.deserialize(this)
 }
 
 fun String.parseAsAdventure(): String {
     return ADVENTURE_SERIALIZER.serialize(this.parseToComponent())
+}
+
+fun UUID.toBytes(): ByteArray {
+    return ByteBuffer.wrap(ByteArray(16))
+        .order(ByteOrder.BIG_ENDIAN)
+        .putLong(this.mostSignificantBits)
+        .putLong(this.leastSignificantBits).array()
+}
+
+fun ByteArray.toUUID(): UUID {
+    val byteBuffer = ByteBuffer.wrap(this).order(ByteOrder.BIG_ENDIAN);
+    val firstLong = byteBuffer.getLong();
+    val secondLong = byteBuffer.getLong();
+    return UUID(firstLong, secondLong);
 }

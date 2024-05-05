@@ -46,7 +46,6 @@ sealed class Property<T>(val key: String, val converter: (String) -> T) {
     data object INSTRUMENT : Property<Instrument>("instrument", { Instrument.valueOf(it.uppercase()) }) {
         override fun applyToState(state: WrappedBlockState, value: Instrument) {
             state.instrument = value
-            JavaPlugin.getPlugin(HMCLeaves::class.java).logger.info("Applied instrument ${value}, ${state.instrument}")
         }
     }
 
@@ -90,6 +89,7 @@ sealed class Property<T>(val key: String, val converter: (String) -> T) {
 
 enum class BlockType(
     val defaultBlockDrops: BlockDrops,
+    val defaultSettings: BlockSettings,
     val blockSupplier: (
         id: String,
         visualMaterial: Material,
@@ -98,17 +98,20 @@ enum class BlockType(
         itemSupplier: ItemSupplier,
         blockDrops: BlockDrops,
         connectsTo: Set<String>,
-        blockBreakModifier: BlockBreakModifier?
+        blockBreakModifier: BlockBreakModifier?,
+        settings: BlockSettings
     ) -> BlockData
 ) {
     LEAVES(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, modifier ->
-            BlockData.createLeaves(id, visualMaterial, properties, itemSupplier, blockDrops, modifier)
+        BlockSettings.EMPTY,
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, modifier, settings ->
+            BlockData.createLeaves(id, visualMaterial, properties, itemSupplier, blockDrops, modifier, settings)
         }),
     LOG(
         LogDropReplacement(),
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier ->
+        BlockSettings.EMPTY,
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings ->
             BlockData.createLog(
                 id,
                 visualMaterial,
@@ -116,63 +119,116 @@ enum class BlockType(
                 properties,
                 itemSupplier,
                 blockDrops,
-                modifier
+                modifier,
+                settings
             )
         }),
     SUGAR_CANE(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, _ ->
-            BlockData.createSugarcane(id, visualMaterial, properties, itemSupplier, blockDrops)
+        BlockSettings.PLACEABLE_IN_ENTITIES,
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, _, settings ->
+            BlockData.createSugarcane(id, visualMaterial, properties, itemSupplier, blockDrops, settings)
         }),
     SAPLING(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, _ ->
-            BlockData.createSapling(id, visualMaterial, properties, itemSupplier, blockDrops)
+        BlockSettings.PLACEABLE_IN_ENTITIES,
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, _, settings ->
+            BlockData.createSapling(id, visualMaterial, properties, itemSupplier, blockDrops, settings)
         }),
     CAVE_VINES(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _ ->
-            BlockData.createCaveVines(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo)
+        BlockSettings.ALL,
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+            BlockData.createCaveVines(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo, settings)
         }),
     CAVE_VINES_PLANT(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _ ->
-            BlockData.createCaveVinesPlant(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo)
+        BlockSettings.ALL,
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+            BlockData.createCaveVinesPlant(
+                id,
+                visualMaterial,
+                properties,
+                itemSupplier,
+                blockDrops,
+                connectsTo,
+                settings
+            )
         }),
     WEEPING_VINES(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _ ->
-            BlockData.createWeepingVines(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo)
+        BlockSettings.PLACEABLE_IN_ENTITIES,
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+            BlockData.createWeepingVines(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo, settings)
         }),
     WEEPING_VINES_PLANT(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _ ->
-            BlockData.createWeepingVinesPlant(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo)
+        BlockSettings.PLACEABLE_IN_ENTITIES,
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+            BlockData.createWeepingVinesPlant(
+                id,
+                visualMaterial,
+                properties,
+                itemSupplier,
+                blockDrops,
+                connectsTo,
+                settings
+            )
         }),
     TWISTING_VINES(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _ ->
-            BlockData.createTwistingVines(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo)
+        BlockSettings.PLACEABLE_IN_ENTITIES,
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+            BlockData.createTwistingVines(
+                id,
+                visualMaterial,
+                properties,
+                itemSupplier,
+                blockDrops,
+                connectsTo,
+                settings
+            )
         }),
     TWISTING_VINES_PLANT(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _ ->
-            BlockData.createTwistingVinesPlant(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo)
+        BlockSettings.PLACEABLE_IN_ENTITIES,
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+            BlockData.createTwistingVinesPlant(
+                id,
+                visualMaterial,
+                properties,
+                itemSupplier,
+                blockDrops,
+                connectsTo,
+                settings
+            )
         }),
     KELP(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _ ->
-            BlockData.createKelp(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo)
+        BlockSettings.PLACEABLE_IN_ENTITIES,
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+            BlockData.createKelp(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo, settings)
         }),
     KELP_PLANT(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _ ->
-            BlockData.createKelpPlant(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo)
+        BlockSettings.PLACEABLE_IN_ENTITIES,
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+            BlockData.createKelpPlant(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo, settings)
         }),
     SERVER_SIDE_BLOCK(
         SingleBlockDropReplacement(),
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier ->
-            BlockData.createServerSideBlock(id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, modifier)
+        BlockSettings.EMPTY,
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings ->
+            BlockData.createServerSideBlock(
+                id,
+                visualMaterial,
+                worldMaterial,
+                properties,
+                itemSupplier,
+                blockDrops,
+                modifier,
+                settings
+            )
         })
 }
 
@@ -185,9 +241,9 @@ class BlockData(
     private val itemSupplier: ItemSupplier,
     private val blockDrops: BlockDrops,
     private val listeners: Map<Class<*>, BlockListener<*>>,
-    val placeableInEntities: Boolean = false,
     val blockBreakModifier: BlockBreakModifier? = null,
     private val connectsTo: Set<String> = setOf(),
+    val settings: BlockSettings,
     private val packetState: WrappedBlockState = run {
         val state = WrappedBlockState.getDefaultState(
             PacketEvents.getAPI().serverManager.version.toClientVersion(),
@@ -209,7 +265,8 @@ class BlockData(
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
-            blockBreakModifier: BlockBreakModifier?
+            blockBreakModifier: BlockBreakModifier?,
+            settings: BlockSettings
         ): BlockData {
             return BlockData(
                 id,
@@ -224,7 +281,8 @@ class BlockData(
                     BlockPistonExtendEvent::class.java to LeavesPistonExtendListener,
                     BlockPistonRetractEvent::class.java to LeavesPistonRetractListener,
                 ),
-                blockBreakModifier = blockBreakModifier
+                blockBreakModifier = blockBreakModifier,
+                settings = settings
             )
         }
 
@@ -235,7 +293,8 @@ class BlockData(
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
-            blockBreakModifier: BlockBreakModifier?
+            blockBreakModifier: BlockBreakModifier?,
+            settings: BlockSettings
         ): BlockData {
             return BlockData(
                 id,
@@ -248,7 +307,8 @@ class BlockData(
                 hashMapOf(
                     BlockPlaceEvent::class.java to LogPlaceListener
                 ),
-                blockBreakModifier = blockBreakModifier
+                blockBreakModifier = blockBreakModifier,
+                settings = settings
             )
         }
 
@@ -257,7 +317,8 @@ class BlockData(
             visualMaterial: Material,
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops
+            blockDrops: BlockDrops,
+            settings: BlockSettings
         ): BlockData {
             return BlockData(
                 id,
@@ -273,7 +334,8 @@ class BlockData(
                         BlockGrowEvent::class.java to SugarCaneGrowListener
                     )
                 ),
-                blockBreakModifier = null
+                blockBreakModifier = null,
+                settings = settings
             )
         }
 
@@ -282,7 +344,8 @@ class BlockData(
             visualMaterial: Material,
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops
+            blockDrops: BlockDrops,
+            settings: BlockSettings
         ): BlockData {
             return BlockData(
                 id,
@@ -297,7 +360,8 @@ class BlockData(
                         BlockPlaceEvent::class.java to SaplingPlaceListener
                     )
                 ),
-                blockBreakModifier = null
+                blockBreakModifier = null,
+                settings = settings
             )
         }
 
@@ -307,7 +371,8 @@ class BlockData(
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
-            connectsTo: Set<String>
+            connectsTo: Set<String>,
+            settings: BlockSettings
         ): BlockData {
             return BlockData(
                 id,
@@ -328,7 +393,8 @@ class BlockData(
                     BlockSpreadEvent::class.java to PlantFacingDownGrowListener
                 ),
                 blockBreakModifier = null,
-                connectsTo = connectsTo
+                connectsTo = connectsTo,
+                settings = settings
             )
         }
 
@@ -338,7 +404,8 @@ class BlockData(
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
-            connectsTo: Set<String>
+            connectsTo: Set<String>,
+            settings: BlockSettings
         ): BlockData {
             return BlockData(
                 id,
@@ -359,7 +426,8 @@ class BlockData(
                     BlockSpreadEvent::class.java to PlantFacingDownGrowListener
                 ),
                 blockBreakModifier = null,
-                connectsTo = connectsTo
+                connectsTo = connectsTo,
+                settings = settings
             )
         }
 
@@ -369,7 +437,8 @@ class BlockData(
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
-            connectsTo: Set<String>
+            connectsTo: Set<String>,
+            settings: BlockSettings
         ): BlockData {
             return BlockData(
                 id,
@@ -390,7 +459,8 @@ class BlockData(
                     BlockSpreadEvent::class.java to PlantFacingDownGrowListener
                 ),
                 blockBreakModifier = null,
-                connectsTo = connectsTo
+                connectsTo = connectsTo,
+                settings = settings
             )
         }
 
@@ -400,7 +470,8 @@ class BlockData(
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
-            connectsTo: Set<String>
+            connectsTo: Set<String>,
+            settings: BlockSettings
         ): BlockData {
             return BlockData(
                 id,
@@ -421,7 +492,8 @@ class BlockData(
                     BlockSpreadEvent::class.java to PlantFacingDownGrowListener
                 ),
                 blockBreakModifier = null,
-                connectsTo = connectsTo
+                connectsTo = connectsTo,
+                settings = settings
             )
         }
 
@@ -431,7 +503,8 @@ class BlockData(
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
-            connectsTo: Set<String>
+            connectsTo: Set<String>,
+            settings: BlockSettings
         ): BlockData {
             return BlockData(
                 id,
@@ -452,7 +525,8 @@ class BlockData(
                     BlockSpreadEvent::class.java to PlantFacingUpGrowListener
                 ),
                 blockBreakModifier = null,
-                connectsTo = connectsTo
+                connectsTo = connectsTo,
+                settings = settings
             )
         }
 
@@ -462,7 +536,8 @@ class BlockData(
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
-            connectsTo: Set<String>
+            connectsTo: Set<String>,
+            settings: BlockSettings
         ): BlockData {
             return BlockData(
                 id,
@@ -483,7 +558,8 @@ class BlockData(
                     BlockSpreadEvent::class.java to PlantFacingUpGrowListener
                 ),
                 blockBreakModifier = null,
-                connectsTo = connectsTo
+                connectsTo = connectsTo,
+                settings = settings
             )
         }
 
@@ -493,7 +569,8 @@ class BlockData(
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
-            connectsTo: Set<String>
+            connectsTo: Set<String>,
+            settings: BlockSettings
         ): BlockData {
             return BlockData(
                 id,
@@ -514,7 +591,8 @@ class BlockData(
                     BlockSpreadEvent::class.java to PlantFacingUpGrowListener
                 ),
                 blockBreakModifier = null,
-                connectsTo = connectsTo
+                connectsTo = connectsTo,
+                settings = settings
             )
         }
 
@@ -524,7 +602,8 @@ class BlockData(
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
-            connectsTo: Set<String>
+            connectsTo: Set<String>,
+            settings: BlockSettings
         ): BlockData {
             return BlockData(
                 id,
@@ -545,7 +624,8 @@ class BlockData(
                     BlockSpreadEvent::class.java to PlantFacingUpGrowListener
                 ),
                 blockBreakModifier = null,
-                connectsTo = connectsTo
+                connectsTo = connectsTo,
+                settings = settings
             )
         }
 
@@ -556,7 +636,8 @@ class BlockData(
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
-            blockBreakModifier: BlockBreakModifier?
+            blockBreakModifier: BlockBreakModifier?,
+            settings: BlockSettings
         ): BlockData {
             return BlockData(
                 id,
@@ -567,7 +648,8 @@ class BlockData(
                 itemSupplier,
                 blockDrops,
                 mapOf(),
-                blockBreakModifier = blockBreakModifier
+                blockBreakModifier = blockBreakModifier,
+                settings = settings
             )
         }
     }

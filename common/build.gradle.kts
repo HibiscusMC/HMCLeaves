@@ -23,6 +23,8 @@ dependencies {
     compileOnly("org.spigotmc:spigot-api:1.18.1-R0.1-SNAPSHOT")
     implementation("com.github.retrooper.packetevents:spigot:2.2.1")
     implementation("net.kyori:adventure-text-minimessage:4.16.0")
+    implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
+    implementation("com.zaxxer:HikariCP:5.1.0")
 }
 
 tasks {
@@ -34,8 +36,9 @@ tasks {
     shadowJar {
         archiveFileName.set("hmcleaves-${project.version}.jar")
         relocate("com.github.retrooper.packetevents", "com.hibiscusmc.hmcleaves.packetevents")
+        relocate("com.github.benmanes.caffeine", "com.hibiscusmc.hmcleaves.caffeine")
 
-        minimize()
+//        minimize()
 
         dependencies {
             exclude(dependency("org.yaml:snakeyaml"))

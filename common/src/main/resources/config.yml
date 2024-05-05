@@ -1,3 +1,6 @@
+database-settings:
+  type: SQLite
+
 blocks:
   aspen_leaves:
     type: leaves

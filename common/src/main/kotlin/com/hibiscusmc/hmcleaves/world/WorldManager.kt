@@ -2,9 +2,10 @@ package com.hibiscusmc.hmcleaves.world
 
 import com.hibiscusmc.hmcleaves.block.BlockData
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 class WorldManager(
-    private val worlds: MutableMap<UUID, LeavesWorld> = hashMapOf()
+    private val worlds: MutableMap<UUID, LeavesWorld> = ConcurrentHashMap()
 ) {
 
     operator fun get(world: UUID): LeavesWorld? {

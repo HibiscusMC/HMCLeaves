@@ -29,8 +29,8 @@ import kotlin.math.pow
 class BlockBreakManager(
     private val blockBreakDataMap: MutableMap<UUID, BlockBreakData> = ConcurrentHashMap(),
     private val plugin: HMCLeaves,
-    private val worldManager: WorldManager = plugin.getWorldManager(),
-    private val config: LeavesConfig = plugin.getLeavesConfig()
+    private val worldManager: WorldManager = plugin.worldManager,
+    private val config: LeavesConfig = plugin.leavesConfig
 ) {
     private val randomRange = (10_000..20_000)
 

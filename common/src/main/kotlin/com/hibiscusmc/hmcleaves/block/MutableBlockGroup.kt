@@ -1,15 +1,23 @@
 package com.hibiscusmc.hmcleaves.block
 
-import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
 import com.hibiscusmc.hmcleaves.world.PositionInChunk
 import org.bukkit.ChunkSnapshot
 import org.bukkit.World
-import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
 
-class BlockGroup(
+data class BlockGroup(
+    val world: UUID,
+    val minX: Int,
+    val minY: Int,
+    val minZ: Int,
+    val maxX: Int,
+    val maxY: Int,
+    val maxZ: Int
+)
+
+class MutableBlockGroup(
     private val world: UUID,
     private var minX: Int,
     private var minY: Int,
@@ -26,6 +34,10 @@ class BlockGroup(
         this.maxX = this.maxX.coerceAtLeast(position.x)
         this.maxY = this.maxY.coerceAtLeast(position.y)
         this.maxZ = this.maxZ.coerceAtLeast(position.z)
+    }
+
+    fun toBlockGroup(): BlockGroup {
+        return BlockGroup(this.world, this.minX, this.minY, this.minZ, this.maxX, this.maxY, this.maxZ)
     }
 }
 
@@ -52,9 +64,9 @@ fun findBlockGroupsInChunk(
                 if (usedBlocks[x][z][y - minHeight]) continue
                 usedBlocks[x][z][y - minHeight] = true
                 val block = chunk.getBlockData(x, y, z)
-                val data = config.getDefaultBLockData(block.material) ?: continue
-                leavesChunk.setIfNull(pos, data)
-                val group = BlockGroup(worldUUID, x, y, z, x, y, z)
+                val data = config.getDefaultBlockData(block.material) ?: continue
+                leavesChunk.setDefaultBlock(pos, data)
+                val group = MutableBlockGroup(worldUUID, x, y, z, x, y, z)
                 findConnectedBlocks(
                     config,
                     pos,
@@ -65,7 +77,7 @@ fun findBlockGroupsInChunk(
                     maxHeight,
                     group
                 )
-                found.add(group)
+                found.add(group.toBlockGroup())
             }
         }
     }
@@ -81,7 +93,7 @@ private fun findConnectedBlocks(
     leavesChunk: LeavesChunk,
     minHeight: Int,
     maxHeight: Int,
-    group: BlockGroup
+    group: MutableBlockGroup
 ) {
     for (direction in BLOCK_DIRECTIONS) {
         val relative = startPos.relative(direction, minHeight, maxHeight) ?: continue
@@ -91,8 +103,8 @@ private fun findConnectedBlocks(
         if (used[x][z][y - minHeight]) continue
         used[x][z][y - minHeight] = true
         val block = chunk.getBlockData(x, y, z)
-        val data = config.getDefaultBLockData(block.material) ?: continue
-        leavesChunk.setIfNull(relative, data)
+        val data = config.getDefaultBlockData(block.material) ?: continue
+        leavesChunk.setDefaultBlock(relative, data)
         group.add(relative)
         findConnectedBlocks(
             config,
