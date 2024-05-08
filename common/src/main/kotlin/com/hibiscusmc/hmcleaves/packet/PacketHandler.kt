@@ -150,15 +150,6 @@ class PacketListener(
 
         val state = data.applyPropertiesToState(packet.blockState)
 
-        if (data.blockType == BlockType.LEAVES) {
-            plugin.logger.info(
-                "Leaves: " +
-                        "(${position.x}, ${position.y}, ${position.z}) " +
-                        "(${position.toPositionInChunk().x} ${position.toPositionInChunk().y}, ${position.toPositionInChunk().z}) " +
-                        "${state.distance}, ${state.isPersistent}"
-            )
-        }
-
         val newPacket = WrapperPlayServerBlockChange(
             packet.blockPosition,
             state.globalId

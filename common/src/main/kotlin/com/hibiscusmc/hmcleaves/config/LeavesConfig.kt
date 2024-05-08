@@ -4,9 +4,11 @@ import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.block.*
 import com.hibiscusmc.hmcleaves.database.DatabaseSettings
 import com.hibiscusmc.hmcleaves.database.DatabaseType
+import com.hibiscusmc.hmcleaves.item.BlockDropType
 import com.hibiscusmc.hmcleaves.item.BlockDrops
 import com.hibiscusmc.hmcleaves.item.ConstantItemSupplier
 import com.hibiscusmc.hmcleaves.item.ItemSupplier
+import com.hibiscusmc.hmcleaves.item.MappedBlockDropReplacements
 import com.hibiscusmc.hmcleaves.item.SingleBlockDropReplacement
 import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakManager
 import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakModifier
@@ -22,6 +24,7 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.inventory.ItemStack
 import java.util.*
+import kotlin.properties.Delegates
 
 private val LEAVES_MATERIALS = Material.entries.filter { Tag.LEAVES.isTagged(it) }.toList()
 private val LOG_MATERIALS = Material.entries.filter { Tag.LOGS.isTagged(it) }.toList()
@@ -37,6 +40,7 @@ private const val DATABASE_FILE_KEY = "file"
 
 private const val CHUNK_VERSION_KEY = "chunk-version-key"
 
+private const val USE_CUSTOM_MINING_SPEED_FOR_DEFAULT_LOGS = "custom-mining-speed-for-default-logs"
 private const val BLOCKS_KEY = "blocks"
 private const val TYPE_KEY = "type"
 private const val VISUAL_MATERIAL_KEY = "visual-material"
@@ -48,6 +52,9 @@ private const val MODEL_DATA_KEY = "model-data"
 private const val NAME_KEY = "name"
 private const val LORE_KEY = "lore"
 private const val DROPS_KEY = "drops"
+private const val DROPS_TYPE_KEY = "type"
+private const val MAPPED_REPLACEMENTS_KEY = "mapped-replacements"
+private const val CONNECTS_TO_KEY = "connects-to"
 private const val BLOCK_BREAK_MODIFIER_KEY = "block-break-modifier"
 private const val BLOCK_HARDNESS_KEY = "hardness"
 private const val REQUIRES_TOOL_KEY = "requires-tool"
@@ -66,6 +73,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
     private var chunkVersion = CURRENT_CHUNK_VERSION
 
     private lateinit var databaseSettings: DatabaseSettings
+    private var customMiningSpeedsForDefaultLogs by Delegates.notNull<Boolean>()
 
     fun getDatabaseSettings(): DatabaseSettings {
         return this.databaseSettings
@@ -129,6 +137,9 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             this.plugin.saveDefaultConfig()
         }
         val config = YamlConfiguration.loadConfiguration(file)
+
+        this.customMiningSpeedsForDefaultLogs = config.getBoolean(USE_CUSTOM_MINING_SPEED_FOR_DEFAULT_LOGS, false)
+
         loadDatabase(config)
         loadDefaults()
         loadBlocks(config)
@@ -243,7 +254,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
                 properties,
                 ConstantItemSupplier(ItemStack(material), id),
                 SingleBlockDropReplacement(),
-                BlockBreakManager.LOG_BREAK_MODIFIER,
+                if (this.customMiningSpeedsForDefaultLogs) BlockBreakManager.LOG_BREAK_MODIFIER else null,
                 BlockType.LOG.defaultSettings
             )
             this.defaultBlockData[material] = data
@@ -296,6 +307,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val data = BlockData.createCaveVines(
             id,
             material,
+            material,
             properties,
             ConstantItemSupplier(ItemStack(Material.GLOW_BERRIES), id),
             SingleBlockDropReplacement(),
@@ -313,6 +325,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createCaveVinesPlant(
             id,
+            material,
             material,
             properties,
             ConstantItemSupplier(ItemStack(Material.GLOW_BERRIES), id),
@@ -333,6 +346,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val data = BlockData.createWeepingVines(
             id,
             material,
+            material,
             properties,
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
@@ -349,6 +363,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createWeepingVinesPlant(
             id,
+            material,
             material,
             properties,
             ConstantItemSupplier(ItemStack(material), id),
@@ -369,6 +384,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val data = BlockData.createTwistingVines(
             id,
             material,
+            material,
             properties,
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
@@ -385,6 +401,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createTwistingVinesPlant(
             id,
+            material,
             material,
             properties,
             ConstantItemSupplier(ItemStack(material), id),
@@ -405,6 +422,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val data = BlockData.createKelp(
             id,
             material,
+            material,
             properties,
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
@@ -421,6 +439,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createKelpPlant(
             id,
+            material,
             material,
             properties,
             ConstantItemSupplier(ItemStack(material), id),
@@ -459,6 +478,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             } ?: ConstantItemSupplier(ItemStack(worldMaterial), id)
 
             val blockDrops = loadDrops(section.getConfigurationSection(DROPS_KEY), id, type)
+            val connectsTo = section.getStringList(CONNECTS_TO_KEY).toSet()
             val blockBreakModifier =
                 loadBlockBreakModifier(section.getConfigurationSection(BLOCK_BREAK_MODIFIER_KEY), id)
             val settings = loadBlockSettings(section.getConfigurationSection(BLOCK_SETTINGS_KEY), id, type)
@@ -469,7 +489,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
                 properties,
                 itemSupplier,
                 blockDrops,
-                setOf(), // todo
+                connectsTo,
                 blockBreakModifier,
                 settings
             )
@@ -505,8 +525,30 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         if (section == null) {
             return type.defaultBlockDrops
         }
-        // todo
-        return type.defaultBlockDrops
+        val dropType = section.getString(DROPS_TYPE_KEY)?.let { BlockDropType.valueOf(it.uppercase()) }
+            ?: throw IllegalArgumentException("Invalid drop type: ${section.getString(DROPS_TYPE_KEY)}")
+        return when (dropType) {
+            BlockDropType.MAPPED_REPLACEMENT -> loadMappedBlockDrops(section, id, type)
+        }
+    }
+
+    private fun loadMappedBlockDrops(section: ConfigurationSection, id: String, type: BlockType): BlockDrops {
+        val replacements: MutableMap<Material, ItemSupplier> = EnumMap(org.bukkit.Material::class.java)
+        for (key in section.getKeys(false)) {
+            val material = Material.matchMaterial(key.uppercase())
+            if (material == null) {
+                this.plugin.logger.warning("$key is not a valid material for block drops of $id")
+                continue
+            }
+            val itemSection = section.getConfigurationSection(key)
+            if (itemSection == null) {
+                this.plugin.logger.warning("Item was not able to be loaded for block drops of $id")
+                continue
+            }
+            val itemSupplier = loadItem(itemSection, id)
+            replacements[material] = itemSupplier
+        }
+        return MappedBlockDropReplacements(replacements)
     }
 
     private fun loadBlockBreakModifier(section: ConfigurationSection?, id: String): BlockBreakModifier? {

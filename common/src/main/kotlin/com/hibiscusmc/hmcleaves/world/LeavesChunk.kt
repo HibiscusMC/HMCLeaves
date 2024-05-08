@@ -1,9 +1,9 @@
 package com.hibiscusmc.hmcleaves.world
 
 import com.hibiscusmc.hmcleaves.block.BlockData
-import java.util.*
+import java.util.Collections
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.collections.HashMap
 
 class LeavesChunk(
     val position: ChunkPosition,

@@ -1,6 +1,8 @@
 database-settings:
   type: SQLite
 
+custom-mining-speed-for-default-logs: true
+
 blocks:
   aspen_leaves:
     type: leaves
@@ -78,3 +80,31 @@ blocks:
       hardness: 5
       tool-types:
         - shovel
+  custom_cave_vines_plant:
+    type: cave_vines_plant
+    world-material: cave_vines_plant
+    visual-material: cave_vines
+    connects-to:
+      - custom_cave_vines
+    properties:
+      age: 8
+    drops:
+      type: mapped_replacement
+      GLOW_BERRIES:
+        material: PAPER
+        name: <aqua>Paper Glow Berries
+        model-data: 5
+  custom_cave_vines:
+    type: cave_vines
+    visual-material: cave_vines
+    world-material: cave_vines
+    connects-to:
+      - custom_cave_vines_plant
+    properties:
+      age: 9
+    drops:
+      type: mapped_replacement
+      GLOW_BERRIES:
+        material: PAPER
+        name: <aqua>Paper Glow Berries
+        model-data: 5

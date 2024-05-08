@@ -6,23 +6,64 @@ import com.hibiscusmc.hmcleaves.block.BlockDirection
 import com.hibiscusmc.hmcleaves.block.BlockSetting
 import com.hibiscusmc.hmcleaves.block.SUPPORTING_DIRECTIONS
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
-import com.hibiscusmc.hmcleaves.util.*
+import com.hibiscusmc.hmcleaves.util.getChunkPosition
+import com.hibiscusmc.hmcleaves.util.getPositionInChunk
+import com.hibiscusmc.hmcleaves.util.parseAsAdventure
+import com.hibiscusmc.hmcleaves.util.toBlockDirection
+import com.hibiscusmc.hmcleaves.util.toPosition
+import com.hibiscusmc.hmcleaves.util.toPositionInChunk
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
 import com.hibiscusmc.hmcleaves.world.WorldManager
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.Location
+import org.bukkit.Material
+import org.bukkit.Tag
 import org.bukkit.World
 import org.bukkit.block.Block
 import org.bukkit.entity.Item
 import org.bukkit.entity.LivingEntity
-import org.bukkit.event.*
-import org.bukkit.event.block.*
+import org.bukkit.event.Cancellable
+import org.bukkit.event.Event
+import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
+import org.bukkit.event.Listener
+import org.bukkit.event.block.Action
+import org.bukkit.event.block.BlockBreakEvent
+import org.bukkit.event.block.BlockDropItemEvent
+import org.bukkit.event.block.BlockExplodeEvent
+import org.bukkit.event.block.BlockGrowEvent
+import org.bukkit.event.block.BlockPistonEvent
+import org.bukkit.event.block.BlockPistonExtendEvent
+import org.bukkit.event.block.BlockPistonRetractEvent
+import org.bukkit.event.block.BlockPlaceEvent
+import org.bukkit.event.block.BlockSpreadEvent
+import org.bukkit.event.block.LeavesDecayEvent
 import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.event.entity.ItemSpawnEvent
+import org.bukkit.event.player.PlayerHarvestBlockEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.EquipmentSlot
-import java.util.*
+import org.bukkit.inventory.ItemStack
+import java.util.EnumSet
+import java.util.LinkedList
+
+private val REPLACEABLE_TAG: Tag<Material>? = run {
+    val field = Tag::class.java.getField("REPLACEABLE")
+    val tag = field.get(null)
+    if (tag !is Tag<*>) return@run null
+    return@run tag as Tag<Material>
+}
+
+private val BLOCKS_PLACEABLE_IN =
+    EnumSet.copyOf(Material.entries.filter {
+        try {
+            Tag.REPLACEABLE_PLANTS.isTagged(it)
+        } catch (_: Error) {
+            return@filter REPLACEABLE_TAG?.isTagged(it) ?: false
+        }
+
+    }.toSet())
 
 class BukkitListeners(
     private val plugin: HMCLeaves,
@@ -51,11 +92,13 @@ class BukkitListeners(
         if (event.action != Action.RIGHT_CLICK_BLOCK) return
         val clickedBlock = event.clickedBlock ?: return
         val itemInHand = event.item ?: return
+        if (itemInHand.type == Material.AIR) return
 
         val player = event.player
         val worldUUID = player.world.uid
         val face = event.blockFace
-        val relativeBlock = clickedBlock.getRelative(face)
+        val relativeBlock =
+            if (BLOCKS_PLACEABLE_IN.contains(clickedBlock.type)) clickedBlock else clickedBlock.getRelative(face)
 
         val clickedBlockData = this.worldManager[worldUUID]
             ?.get(clickedBlock.getChunkPosition())
@@ -100,7 +143,7 @@ class BukkitListeners(
             return
         }
 
-        relativeBlock.setType(material, false)
+        relativeBlock.setType(material, true)
 
         val blockPlaceEvent = BlockPlaceEvent(
             relativeBlock,
@@ -118,8 +161,12 @@ class BukkitListeners(
             return
         }
 
-        if (player.gameMode == GameMode.CREATIVE) {
-
+        if (player.gameMode != GameMode.CREATIVE) {
+            val hand = event.hand
+            itemInHand.amount -= 1
+            hand?.apply {
+                player.inventory.setItem(this, itemInHand)
+            }
         }
     }
 
@@ -135,8 +182,23 @@ class BukkitListeners(
         val result = data.listen(event::class.java, event, world, block.location, position, leavesChunk, this.config)
         if (result.type == ListenResultType.CANCEL_EVENT || result.type == ListenResultType.BLOCKED) return
         data = result.blockData
-        data.replaceDrops(this.config, event.items as MutableList<Item>)
+        data.replaceItemDrops(this.config, event.items)
         leavesChunk.removeFromToRemove(position)
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    private fun onBlockHarvest(event: PlayerHarvestBlockEvent) {
+        val block = event.harvestedBlock
+        val world = block.world
+        val worldUUID = world.uid
+        val position = block.getPositionInChunk()
+        val chunkPosition = block.getChunkPosition()
+        val leavesChunk = plugin.worldManager[worldUUID]?.get(chunkPosition) ?: return
+        var data = leavesChunk[position] ?: return
+        val result = data.listen(event::class.java, event, world, block.location, position, leavesChunk, this.config)
+        if (result.type == ListenResultType.CANCEL_EVENT || result.type == ListenResultType.BLOCKED) return
+        data = result.blockData
+        data.replaceItemStackDrops(this.config, event.itemsHarvested)
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
@@ -171,7 +233,7 @@ class BukkitListeners(
             return
         }
         val list = mutableListOf(event.entity)
-        data.replaceDrops(this.config, list)
+        data.replaceItemDrops(this.config, list)
         if (list.isEmpty()) {
             event.isCancelled = true
             return

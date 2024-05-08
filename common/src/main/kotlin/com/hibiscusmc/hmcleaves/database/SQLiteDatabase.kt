@@ -163,8 +163,11 @@ class SQLiteDatabase(
     private val chunksToRemoveCache: Cache<ChunkPosition, Boolean> by lazy {
         Caffeine.newBuilder()
             .expireAfterWrite(30, TimeUnit.SECONDS)
-            .removalListener { position: ChunkPosition?, _: Boolean?, cause: RemovalCause ->
-                if (cause == RemovalCause.EXPLICIT) return@removalListener // don't remove chunk if
+            .removalListener { position: ChunkPosition?, value: Boolean?, cause: RemovalCause ->
+                if (cause == RemovalCause.EXPLICIT) {
+                    this.chunksToRemoveCache.put(position, value)
+                    return@removalListener
+                } // don't remove chunk if
                 // it was removed from the cache in handleChunkLoad()
                 if (position == null) return@removalListener
                 worldManager[position.world]?.remove(position)

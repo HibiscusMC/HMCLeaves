@@ -3,14 +3,13 @@ package com.hibiscusmc.hmcleaves.block
 import com.github.retrooper.packetevents.PacketEvents
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState
 import com.github.retrooper.packetevents.protocol.world.states.enums.Instrument
-import com.hibiscusmc.hmcleaves.HMCLeaves
+import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.item.BlockDrops
 import com.hibiscusmc.hmcleaves.item.ItemSupplier
 import com.hibiscusmc.hmcleaves.item.LogDropReplacement
 import com.hibiscusmc.hmcleaves.item.SingleBlockDropReplacement
 import com.hibiscusmc.hmcleaves.listener.*
-import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakManager
 import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakModifier
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
 import com.hibiscusmc.hmcleaves.world.PositionInChunk
@@ -18,13 +17,12 @@ import io.github.retrooper.packetevents.util.SpigotConversionUtil
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
+import org.bukkit.Tag
 import org.bukkit.World
 import org.bukkit.entity.Item
-import org.bukkit.event.Event
 import org.bukkit.event.block.*
 import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.inventory.ItemStack
-import org.bukkit.plugin.java.JavaPlugin
 import java.util.*
 
 sealed class Property<T>(val key: String, val converter: (String) -> T) {
@@ -138,16 +136,26 @@ enum class BlockType(
     CAVE_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.ALL,
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
-            BlockData.createCaveVines(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo, settings)
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+            BlockData.createCaveVines(
+                id,
+                visualMaterial,
+                worldMaterial,
+                properties,
+                itemSupplier,
+                blockDrops,
+                connectsTo,
+                settings
+            )
         }),
     CAVE_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.ALL,
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
             BlockData.createCaveVinesPlant(
                 id,
                 visualMaterial,
+                worldMaterial,
                 properties,
                 itemSupplier,
                 blockDrops,
@@ -158,16 +166,26 @@ enum class BlockType(
     WEEPING_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
-            BlockData.createWeepingVines(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo, settings)
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+            BlockData.createWeepingVines(
+                id,
+                visualMaterial,
+                worldMaterial,
+                properties,
+                itemSupplier,
+                blockDrops,
+                connectsTo,
+                settings
+            )
         }),
     WEEPING_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
             BlockData.createWeepingVinesPlant(
                 id,
                 visualMaterial,
+                worldMaterial,
                 properties,
                 itemSupplier,
                 blockDrops,
@@ -178,10 +196,11 @@ enum class BlockType(
     TWISTING_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
             BlockData.createTwistingVines(
                 id,
                 visualMaterial,
+                worldMaterial,
                 properties,
                 itemSupplier,
                 blockDrops,
@@ -192,10 +211,11 @@ enum class BlockType(
     TWISTING_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
             BlockData.createTwistingVinesPlant(
                 id,
                 visualMaterial,
+                worldMaterial,
                 properties,
                 itemSupplier,
                 blockDrops,
@@ -206,14 +226,32 @@ enum class BlockType(
     KELP(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
-            BlockData.createKelp(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo, settings)
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+            BlockData.createKelp(
+                id,
+                visualMaterial,
+                worldMaterial,
+                properties,
+                itemSupplier,
+                blockDrops,
+                connectsTo,
+                settings
+            )
         }),
     KELP_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
-            BlockData.createKelpPlant(id, visualMaterial, properties, itemSupplier, blockDrops, connectsTo, settings)
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+            BlockData.createKelpPlant(
+                id,
+                visualMaterial,
+                worldMaterial,
+                properties,
+                itemSupplier,
+                blockDrops,
+                connectsTo,
+                settings
+            )
         }),
     SERVER_SIDE_BLOCK(
         SingleBlockDropReplacement(),
@@ -255,6 +293,17 @@ class BlockData(
             property.applyToState(state, value)
         }
         return@run state
+    },
+    private val propertyApplier: (BlockData, WrappedBlockState) -> WrappedBlockState = applier@{ blockData, originalState ->
+        if (originalState.type != blockData.packetState.type) {
+            return@applier blockData.packetState.clone()
+        }
+        for (entry in properties) {
+            val property: Property<Any> = entry.key as Property<Any>
+            val value = entry.value ?: continue
+            property.applyToState(originalState, value)
+        }
+        return@applier originalState
     }
 ) {
 
@@ -368,16 +417,32 @@ class BlockData(
         fun createCaveVines(
             id: String,
             visualMaterial: Material,
+            worldMaterial: Material,
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
-            settings: BlockSettings
+            settings: BlockSettings,
+            propertyApplier: (BlockData, WrappedBlockState) -> WrappedBlockState = applier@{ blockData, originalState ->
+                if (originalState.type != blockData.packetState.type) {
+                    val cloned = blockData.packetState.clone()
+                    if (originalState.type == StateTypes.CAVE_VINES || originalState.type == StateTypes.CAVE_VINES_PLANT) {
+                        cloned.isBerries = originalState.isBerries
+                    }
+                    return@applier cloned
+                }
+                for (entry in properties) {
+                    val property: Property<Any> = entry.key as Property<Any>
+                    val value = entry.value ?: continue
+                    property.applyToState(originalState, value)
+                }
+                return@applier originalState
+            }
         ): BlockData {
             return BlockData(
                 id,
                 visualMaterial,
-                visualMaterial,
+                worldMaterial,
                 BlockType.CAVE_VINES,
                 properties,
                 itemSupplier,
@@ -394,23 +459,40 @@ class BlockData(
                 ),
                 blockBreakModifier = null,
                 connectsTo = connectsTo,
-                settings = settings
+                settings = settings,
+                propertyApplier = propertyApplier
             )
         }
 
         fun createCaveVinesPlant(
             id: String,
             visualMaterial: Material,
+            worldMaterial: Material,
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
-            settings: BlockSettings
+            settings: BlockSettings,
+            propertyApplier: (BlockData, WrappedBlockState) -> WrappedBlockState = applier@{ blockData, originalState ->
+                if (originalState.type != blockData.packetState.type) {
+                    val cloned = blockData.packetState.clone()
+                    if (originalState.type == StateTypes.CAVE_VINES || originalState.type == StateTypes.CAVE_VINES_PLANT) {
+                        cloned.isBerries = originalState.isBerries
+                    }
+                    return@applier cloned
+                }
+                for (entry in properties) {
+                    val property: Property<Any> = entry.key as Property<Any>
+                    val value = entry.value ?: continue
+                    property.applyToState(originalState, value)
+                }
+                return@applier originalState
+            }
         ): BlockData {
             return BlockData(
                 id,
                 visualMaterial,
-                visualMaterial,
+                worldMaterial,
                 BlockType.CAVE_VINES_PLANT,
                 properties,
                 itemSupplier,
@@ -427,13 +509,15 @@ class BlockData(
                 ),
                 blockBreakModifier = null,
                 connectsTo = connectsTo,
-                settings = settings
+                settings = settings,
+                propertyApplier = propertyApplier
             )
         }
 
         fun createWeepingVines(
             id: String,
             visualMaterial: Material,
+            worldMaterial: Material,
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
@@ -443,7 +527,7 @@ class BlockData(
             return BlockData(
                 id,
                 visualMaterial,
-                visualMaterial,
+                worldMaterial,
                 BlockType.WEEPING_VINES,
                 properties,
                 itemSupplier,
@@ -467,6 +551,7 @@ class BlockData(
         fun createWeepingVinesPlant(
             id: String,
             visualMaterial: Material,
+            worldMaterial: Material,
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
@@ -476,7 +561,7 @@ class BlockData(
             return BlockData(
                 id,
                 visualMaterial,
-                visualMaterial,
+                worldMaterial,
                 BlockType.WEEPING_VINES_PLANT,
                 properties,
                 itemSupplier,
@@ -500,6 +585,7 @@ class BlockData(
         fun createTwistingVines(
             id: String,
             visualMaterial: Material,
+            worldMaterial: Material,
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
@@ -509,7 +595,7 @@ class BlockData(
             return BlockData(
                 id,
                 visualMaterial,
-                visualMaterial,
+                worldMaterial,
                 BlockType.TWISTING_VINES,
                 properties,
                 itemSupplier,
@@ -533,6 +619,7 @@ class BlockData(
         fun createTwistingVinesPlant(
             id: String,
             visualMaterial: Material,
+            worldMaterial: Material,
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
@@ -542,7 +629,7 @@ class BlockData(
             return BlockData(
                 id,
                 visualMaterial,
-                visualMaterial,
+                worldMaterial,
                 BlockType.TWISTING_VINES_PLANT,
                 properties,
                 itemSupplier,
@@ -566,6 +653,7 @@ class BlockData(
         fun createKelp(
             id: String,
             visualMaterial: Material,
+            worldMaterial: Material,
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
@@ -575,7 +663,7 @@ class BlockData(
             return BlockData(
                 id,
                 visualMaterial,
-                visualMaterial,
+                worldMaterial,
                 BlockType.KELP,
                 properties,
                 itemSupplier,
@@ -599,6 +687,7 @@ class BlockData(
         fun createKelpPlant(
             id: String,
             visualMaterial: Material,
+            worldMaterial: Material,
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
@@ -608,7 +697,7 @@ class BlockData(
             return BlockData(
                 id,
                 visualMaterial,
-                visualMaterial,
+                worldMaterial,
                 BlockType.KELP_PLANT,
                 properties,
                 itemSupplier,
@@ -679,8 +768,12 @@ class BlockData(
         return this.itemSupplier.createItem()
     }
 
-    fun replaceDrops(config: LeavesConfig, items: MutableList<Item>) {
+    fun replaceItemDrops(config: LeavesConfig, items: MutableList<Item>) {
         this.blockDrops.replaceItems(config, this, items)
+    }
+
+    fun replaceItemStackDrops(config: LeavesConfig, items: MutableList<ItemStack>) {
+        this.blockDrops.replaceItemStacks(config, this, items)
     }
 
     fun getDrops(config: LeavesConfig): List<ItemStack> {
@@ -688,15 +781,16 @@ class BlockData(
     }
 
     fun applyPropertiesToState(originalState: WrappedBlockState): WrappedBlockState {
-        if (originalState.type != this.packetState.type) {
-            return this.packetState.clone()
-        }
-        for (entry in properties) {
-            val property: Property<Any> = entry.key as Property<Any>
-            val value = entry.value ?: continue
-            property.applyToState(originalState, value)
-        }
-        return originalState
+        return this.propertyApplier(this, originalState)
+//        if (originalState.type != this.packetState.type) {
+//            return this.packetState.clone()
+//        }
+//        for (entry in properties) {
+//            val property: Property<Any> = entry.key as Property<Any>
+//            val value = entry.value ?: continue
+//            property.applyToState(originalState, value)
+//        }
+//        return originalState
     }
 
     fun getBlockGlobalId(): Int {
