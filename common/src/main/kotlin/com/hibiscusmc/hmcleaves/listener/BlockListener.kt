@@ -4,22 +4,29 @@ import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.block.BLOCK_DIRECTIONS
 import com.hibiscusmc.hmcleaves.block.BlockData
 import com.hibiscusmc.hmcleaves.block.BlockDirection
+import com.hibiscusmc.hmcleaves.block.BlockSetting
 import com.hibiscusmc.hmcleaves.block.getDirectionTo
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.util.getPosition
 import com.hibiscusmc.hmcleaves.util.getPositionInChunk
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
 import com.hibiscusmc.hmcleaves.world.PositionInChunk
-import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.block.BlockFace
 import org.bukkit.event.Event
-import org.bukkit.event.block.*
+import org.bukkit.event.block.BlockBreakEvent
+import org.bukkit.event.block.BlockExplodeEvent
+import org.bukkit.event.block.BlockGrowEvent
+import org.bukkit.event.block.BlockPistonExtendEvent
+import org.bukkit.event.block.BlockPistonRetractEvent
+import org.bukkit.event.block.BlockPlaceEvent
+import org.bukkit.event.block.BlockSpreadEvent
+import org.bukkit.event.block.LeavesDecayEvent
 import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.plugin.java.JavaPlugin
-import java.util.*
+import java.util.EnumSet
 
 data class ListenResult(val blockData: BlockData, val type: ListenResultType)
 
@@ -151,13 +158,6 @@ data object SugarCanePlaceListener : BlockListener<BlockPlaceEvent>() {
         d != BlockDirection.UP && d != BlockDirection.DOWN
     }.toList()
 
-    private val allowedSoil = EnumSet.of(
-        Material.DIRT,
-        Material.GRASS_BLOCK,
-        Material.SAND,
-        Material.RED_SAND
-    )
-
     override fun handle(
         event: BlockPlaceEvent,
         world: World,
@@ -171,11 +171,7 @@ data object SugarCanePlaceListener : BlockListener<BlockPlaceEvent>() {
         val under = block.getRelative(BlockFace.DOWN)
         val relativeData = leavesChunk[under.getPositionInChunk()]
         val onTopOfOtherCane = relativeData != null && relativeData.id == blockData.id
-        if (!this.allowedSoil.contains(under.type) && !onTopOfOtherCane) {
-            event.isCancelled = true
-            return ListenResult(blockData, ListenResultType.CANCEL_EVENT)
-        }
-        var allowed = onTopOfOtherCane
+        var allowed = onTopOfOtherCane || blockData.settings.isEnabled(BlockSetting.SOIL_DOES_NOT_REQUIRE_WATER)
         if (!allowed) {
             for (direction in scanDirections) {
                 val relative = under.getRelative(direction.bukkitBlockFace)

@@ -16,6 +16,8 @@ repositories {
     maven("https://oss.sonatype.org/content/repositories/snapshots")
     maven("https://oss.sonatype.org/content/repositories/central")
     maven("https://repo.codemc.io/repository/maven-releases/")
+    maven("https://repo.oraxen.com/releases")
+    maven("https://jitpack.io")
 }
 
 dependencies {
@@ -25,6 +27,8 @@ dependencies {
     implementation("net.kyori:adventure-text-minimessage:4.16.0")
     implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
     implementation("com.zaxxer:HikariCP:5.1.0")
+    compileOnly("io.th0rgal:oraxen:1.175.0")
+    compileOnly("com.github.LoneDev6:api-itemsadder:3.6.1")
 }
 
 tasks {

@@ -9,21 +9,52 @@ import com.hibiscusmc.hmcleaves.item.BlockDrops
 import com.hibiscusmc.hmcleaves.item.ItemSupplier
 import com.hibiscusmc.hmcleaves.item.LogDropReplacement
 import com.hibiscusmc.hmcleaves.item.SingleBlockDropReplacement
-import com.hibiscusmc.hmcleaves.listener.*
+import com.hibiscusmc.hmcleaves.listener.BlockListener
+import com.hibiscusmc.hmcleaves.listener.ConnectedBlockFacingDownBlockBreakListener
+import com.hibiscusmc.hmcleaves.listener.ConnectedBlockFacingDownBlockExplodeBreakListener
+import com.hibiscusmc.hmcleaves.listener.ConnectedBlockFacingDownEntityExplodeBreakListener
+import com.hibiscusmc.hmcleaves.listener.ConnectedBlockFacingDownPistonExtendBreakListener
+import com.hibiscusmc.hmcleaves.listener.ConnectedBlockFacingDownPistonRetractBreakListener
+import com.hibiscusmc.hmcleaves.listener.ConnectedBlockFacingUpBlockBreakListener
+import com.hibiscusmc.hmcleaves.listener.ConnectedBlockFacingUpBlockExplodeBreakListener
+import com.hibiscusmc.hmcleaves.listener.ConnectedBlockFacingUpEntityExplodeBreakListener
+import com.hibiscusmc.hmcleaves.listener.ConnectedBlockFacingUpPistonExtendBreakListener
+import com.hibiscusmc.hmcleaves.listener.ConnectedBlockFacingUpPistonRetractBreakListener
+import com.hibiscusmc.hmcleaves.listener.LeavesDecayListener
+import com.hibiscusmc.hmcleaves.listener.LeavesPistonExtendListener
+import com.hibiscusmc.hmcleaves.listener.LeavesPistonRetractListener
+import com.hibiscusmc.hmcleaves.listener.ListenResult
+import com.hibiscusmc.hmcleaves.listener.ListenResultType
+import com.hibiscusmc.hmcleaves.listener.LogPlaceListener
+import com.hibiscusmc.hmcleaves.listener.PlantFacingDownGrowListener
+import com.hibiscusmc.hmcleaves.listener.PlantFacingDownPlaceListener
+import com.hibiscusmc.hmcleaves.listener.PlantFacingDownRelativeBreakListener
+import com.hibiscusmc.hmcleaves.listener.PlantFacingUpGrowListener
+import com.hibiscusmc.hmcleaves.listener.PlantFacingUpPlaceListener
+import com.hibiscusmc.hmcleaves.listener.PlantFacingUpRelativeBreakListener
+import com.hibiscusmc.hmcleaves.listener.RelativeBlockBreakEvent
+import com.hibiscusmc.hmcleaves.listener.SaplingPlaceListener
+import com.hibiscusmc.hmcleaves.listener.SugarCaneGrowListener
+import com.hibiscusmc.hmcleaves.listener.SugarCanePlaceListener
 import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakModifier
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
 import com.hibiscusmc.hmcleaves.world.PositionInChunk
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
-import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
-import org.bukkit.Tag
 import org.bukkit.World
 import org.bukkit.entity.Item
-import org.bukkit.event.block.*
+import org.bukkit.event.block.BlockBreakEvent
+import org.bukkit.event.block.BlockExplodeEvent
+import org.bukkit.event.block.BlockGrowEvent
+import org.bukkit.event.block.BlockPistonExtendEvent
+import org.bukkit.event.block.BlockPistonRetractEvent
+import org.bukkit.event.block.BlockPlaceEvent
+import org.bukkit.event.block.BlockSpreadEvent
+import org.bukkit.event.block.LeavesDecayEvent
 import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.inventory.ItemStack
-import java.util.*
+import java.util.Collections
 
 sealed class Property<T>(val key: String, val converter: (String) -> T) {
 
@@ -97,19 +128,20 @@ enum class BlockType(
         blockDrops: BlockDrops,
         connectsTo: Set<String>,
         blockBreakModifier: BlockBreakModifier?,
-        settings: BlockSettings
+        settings: BlockSettings,
+        placeConditions: List<PlaceConditions>
     ) -> BlockData
 ) {
     LEAVES(
         SingleBlockDropReplacement(),
         BlockSettings.EMPTY,
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, modifier, settings ->
-            BlockData.createLeaves(id, visualMaterial, properties, itemSupplier, blockDrops, modifier, settings)
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
+            BlockData.createLeaves(id, visualMaterial, properties, itemSupplier, blockDrops, modifier, settings, placeConditions)
         }),
     LOG(
         LogDropReplacement(),
         BlockSettings.EMPTY,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings ->
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
             BlockData.createLog(
                 id,
                 visualMaterial,
@@ -118,25 +150,26 @@ enum class BlockType(
                 itemSupplier,
                 blockDrops,
                 modifier,
-                settings
+                settings,
+                placeConditions
             )
         }),
     SUGAR_CANE(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, _, settings ->
-            BlockData.createSugarcane(id, visualMaterial, properties, itemSupplier, blockDrops, settings)
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, _, settings, placeConditions ->
+            BlockData.createSugarcane(id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, settings, placeConditions)
         }),
     SAPLING(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, _, settings ->
-            BlockData.createSapling(id, visualMaterial, properties, itemSupplier, blockDrops, settings)
+        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, _, settings, placeConditions ->
+            BlockData.createSapling(id, visualMaterial, properties, itemSupplier, blockDrops, settings, placeConditions)
         }),
     CAVE_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.ALL,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createCaveVines(
                 id,
                 visualMaterial,
@@ -145,13 +178,14 @@ enum class BlockType(
                 itemSupplier,
                 blockDrops,
                 connectsTo,
-                settings
+                settings,
+                placeConditions
             )
         }),
     CAVE_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.ALL,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createCaveVinesPlant(
                 id,
                 visualMaterial,
@@ -160,13 +194,14 @@ enum class BlockType(
                 itemSupplier,
                 blockDrops,
                 connectsTo,
-                settings
+                settings,
+                placeConditions
             )
         }),
     WEEPING_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createWeepingVines(
                 id,
                 visualMaterial,
@@ -175,13 +210,14 @@ enum class BlockType(
                 itemSupplier,
                 blockDrops,
                 connectsTo,
-                settings
+                settings,
+                placeConditions
             )
         }),
     WEEPING_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createWeepingVinesPlant(
                 id,
                 visualMaterial,
@@ -190,13 +226,14 @@ enum class BlockType(
                 itemSupplier,
                 blockDrops,
                 connectsTo,
-                settings
+                settings,
+                placeConditions
             )
         }),
     TWISTING_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createTwistingVines(
                 id,
                 visualMaterial,
@@ -205,13 +242,14 @@ enum class BlockType(
                 itemSupplier,
                 blockDrops,
                 connectsTo,
-                settings
+                settings,
+                placeConditions
             )
         }),
     TWISTING_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createTwistingVinesPlant(
                 id,
                 visualMaterial,
@@ -220,13 +258,14 @@ enum class BlockType(
                 itemSupplier,
                 blockDrops,
                 connectsTo,
-                settings
+                settings,
+                placeConditions
             )
         }),
     KELP(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createKelp(
                 id,
                 visualMaterial,
@@ -235,13 +274,14 @@ enum class BlockType(
                 itemSupplier,
                 blockDrops,
                 connectsTo,
-                settings
+                settings,
+                placeConditions
             )
         }),
     KELP_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings ->
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createKelpPlant(
                 id,
                 visualMaterial,
@@ -250,13 +290,14 @@ enum class BlockType(
                 itemSupplier,
                 blockDrops,
                 connectsTo,
-                settings
+                settings,
+                placeConditions
             )
         }),
     SERVER_SIDE_BLOCK(
         SingleBlockDropReplacement(),
         BlockSettings.EMPTY,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings ->
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
             BlockData.createServerSideBlock(
                 id,
                 visualMaterial,
@@ -265,7 +306,8 @@ enum class BlockType(
                 itemSupplier,
                 blockDrops,
                 modifier,
-                settings
+                settings,
+                placeConditions
             )
         })
 }
@@ -282,6 +324,7 @@ class BlockData(
     val blockBreakModifier: BlockBreakModifier? = null,
     private val connectsTo: Set<String> = setOf(),
     val settings: BlockSettings,
+    val placeConditions: List<PlaceConditions>,
     private val packetState: WrappedBlockState = run {
         val state = WrappedBlockState.getDefaultState(
             PacketEvents.getAPI().serverManager.version.toClientVersion(),
@@ -315,7 +358,8 @@ class BlockData(
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             blockBreakModifier: BlockBreakModifier?,
-            settings: BlockSettings
+            settings: BlockSettings,
+            placeConditions: List<PlaceConditions>
         ): BlockData {
             return BlockData(
                 id,
@@ -331,7 +375,8 @@ class BlockData(
                     BlockPistonRetractEvent::class.java to LeavesPistonRetractListener,
                 ),
                 blockBreakModifier = blockBreakModifier,
-                settings = settings
+                settings = settings,
+                placeConditions = placeConditions
             )
         }
 
@@ -343,7 +388,8 @@ class BlockData(
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             blockBreakModifier: BlockBreakModifier?,
-            settings: BlockSettings
+            settings: BlockSettings,
+            placeConditions: List<PlaceConditions>
         ): BlockData {
             return BlockData(
                 id,
@@ -357,22 +403,25 @@ class BlockData(
                     BlockPlaceEvent::class.java to LogPlaceListener
                 ),
                 blockBreakModifier = blockBreakModifier,
-                settings = settings
+                settings = settings,
+                placeConditions = placeConditions
             )
         }
 
         fun createSugarcane(
             id: String,
             visualMaterial: Material,
+            worldMaterial: Material,
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
-            settings: BlockSettings
+            settings: BlockSettings,
+            placeConditions: List<PlaceConditions>
         ): BlockData {
             return BlockData(
                 id,
                 visualMaterial,
-                visualMaterial,
+                worldMaterial,
                 BlockType.SUGAR_CANE,
                 properties,
                 itemSupplier,
@@ -384,7 +433,8 @@ class BlockData(
                     )
                 ),
                 blockBreakModifier = null,
-                settings = settings
+                settings = settings,
+                placeConditions = placeConditions
             )
         }
 
@@ -394,7 +444,8 @@ class BlockData(
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
-            settings: BlockSettings
+            settings: BlockSettings,
+            placeConditions: List<PlaceConditions>
         ): BlockData {
             return BlockData(
                 id,
@@ -410,7 +461,8 @@ class BlockData(
                     )
                 ),
                 blockBreakModifier = null,
-                settings = settings
+                settings = settings,
+                placeConditions = placeConditions
             )
         }
 
@@ -423,6 +475,7 @@ class BlockData(
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
             settings: BlockSettings,
+            placeConditions: List<PlaceConditions>,
             propertyApplier: (BlockData, WrappedBlockState) -> WrappedBlockState = applier@{ blockData, originalState ->
                 if (originalState.type != blockData.packetState.type) {
                     val cloned = blockData.packetState.clone()
@@ -460,6 +513,7 @@ class BlockData(
                 blockBreakModifier = null,
                 connectsTo = connectsTo,
                 settings = settings,
+                placeConditions = placeConditions,
                 propertyApplier = propertyApplier
             )
         }
@@ -473,6 +527,7 @@ class BlockData(
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
             settings: BlockSettings,
+            placeConditions: List<PlaceConditions>,
             propertyApplier: (BlockData, WrappedBlockState) -> WrappedBlockState = applier@{ blockData, originalState ->
                 if (originalState.type != blockData.packetState.type) {
                     val cloned = blockData.packetState.clone()
@@ -510,6 +565,7 @@ class BlockData(
                 blockBreakModifier = null,
                 connectsTo = connectsTo,
                 settings = settings,
+                placeConditions = placeConditions,
                 propertyApplier = propertyApplier
             )
         }
@@ -522,7 +578,8 @@ class BlockData(
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
-            settings: BlockSettings
+            settings: BlockSettings,
+            placeConditions: List<PlaceConditions>
         ): BlockData {
             return BlockData(
                 id,
@@ -544,7 +601,8 @@ class BlockData(
                 ),
                 blockBreakModifier = null,
                 connectsTo = connectsTo,
-                settings = settings
+                settings = settings,
+                placeConditions = placeConditions
             )
         }
 
@@ -556,7 +614,8 @@ class BlockData(
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
-            settings: BlockSettings
+            settings: BlockSettings,
+            placeConditions: List<PlaceConditions>
         ): BlockData {
             return BlockData(
                 id,
@@ -578,7 +637,8 @@ class BlockData(
                 ),
                 blockBreakModifier = null,
                 connectsTo = connectsTo,
-                settings = settings
+                settings = settings,
+                placeConditions = placeConditions
             )
         }
 
@@ -590,7 +650,8 @@ class BlockData(
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
-            settings: BlockSettings
+            settings: BlockSettings,
+            placeConditions: List<PlaceConditions>
         ): BlockData {
             return BlockData(
                 id,
@@ -612,7 +673,8 @@ class BlockData(
                 ),
                 blockBreakModifier = null,
                 connectsTo = connectsTo,
-                settings = settings
+                settings = settings,
+                placeConditions = placeConditions
             )
         }
 
@@ -624,7 +686,8 @@ class BlockData(
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
-            settings: BlockSettings
+            settings: BlockSettings,
+            placeConditions: List<PlaceConditions>
         ): BlockData {
             return BlockData(
                 id,
@@ -646,7 +709,8 @@ class BlockData(
                 ),
                 blockBreakModifier = null,
                 connectsTo = connectsTo,
-                settings = settings
+                settings = settings,
+                placeConditions = placeConditions
             )
         }
 
@@ -658,7 +722,8 @@ class BlockData(
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
-            settings: BlockSettings
+            settings: BlockSettings,
+            placeConditions: List<PlaceConditions>
         ): BlockData {
             return BlockData(
                 id,
@@ -680,7 +745,8 @@ class BlockData(
                 ),
                 blockBreakModifier = null,
                 connectsTo = connectsTo,
-                settings = settings
+                settings = settings,
+                placeConditions = placeConditions
             )
         }
 
@@ -692,7 +758,8 @@ class BlockData(
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
-            settings: BlockSettings
+            settings: BlockSettings,
+            placeConditions: List<PlaceConditions>
         ): BlockData {
             return BlockData(
                 id,
@@ -714,7 +781,8 @@ class BlockData(
                 ),
                 blockBreakModifier = null,
                 connectsTo = connectsTo,
-                settings = settings
+                settings = settings,
+                placeConditions = placeConditions
             )
         }
 
@@ -726,7 +794,8 @@ class BlockData(
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             blockBreakModifier: BlockBreakModifier?,
-            settings: BlockSettings
+            settings: BlockSettings,
+            placeConditions: List<PlaceConditions>
         ): BlockData {
             return BlockData(
                 id,
@@ -738,7 +807,8 @@ class BlockData(
                 blockDrops,
                 mapOf(),
                 blockBreakModifier = blockBreakModifier,
-                settings = settings
+                settings = settings,
+                placeConditions = placeConditions
             )
         }
     }

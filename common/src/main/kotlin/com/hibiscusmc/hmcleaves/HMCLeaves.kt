@@ -4,6 +4,7 @@ import com.github.retrooper.packetevents.PacketEvents
 import com.hibiscusmc.hmcleaves.command.HMCLeavesCommand
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.database.LeavesDatabase
+import com.hibiscusmc.hmcleaves.hook.Hooks
 import com.hibiscusmc.hmcleaves.listener.BlockListener
 import com.hibiscusmc.hmcleaves.listener.BukkitListeners
 import com.hibiscusmc.hmcleaves.listener.ChunkListener
@@ -47,6 +48,12 @@ class HMCLeaves : JavaPlugin() {
         this.registerCommands()
 
         this.database.init()
+
+        // load hooks after all plugins have been loaded, cannot use
+        // softdepend because HMCLeaves must load before the world loads
+        Bukkit.getScheduler().runTaskLater(this, Runnable {
+            Hooks.init()
+        }, 1)
     }
 
     private fun registerCommands() {

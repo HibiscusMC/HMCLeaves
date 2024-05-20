@@ -1,12 +1,24 @@
 package com.hibiscusmc.hmcleaves.config
 
 import com.hibiscusmc.hmcleaves.HMCLeaves
-import com.hibiscusmc.hmcleaves.block.*
+import com.hibiscusmc.hmcleaves.block.BlockAxis
+import com.hibiscusmc.hmcleaves.block.BlockData
+import com.hibiscusmc.hmcleaves.block.BlockDirection
+import com.hibiscusmc.hmcleaves.block.BlockIdPlaceCondition
+import com.hibiscusmc.hmcleaves.block.BlockSetting
+import com.hibiscusmc.hmcleaves.block.BlockSettings
+import com.hibiscusmc.hmcleaves.block.BlockType
+import com.hibiscusmc.hmcleaves.block.MaterialPlaceCondition
+import com.hibiscusmc.hmcleaves.block.PlaceCondition
+import com.hibiscusmc.hmcleaves.block.PlaceConditions
+import com.hibiscusmc.hmcleaves.block.Property
+import com.hibiscusmc.hmcleaves.block.TagPlaceCondition
 import com.hibiscusmc.hmcleaves.database.DatabaseSettings
 import com.hibiscusmc.hmcleaves.database.DatabaseType
 import com.hibiscusmc.hmcleaves.item.BlockDropType
 import com.hibiscusmc.hmcleaves.item.BlockDrops
 import com.hibiscusmc.hmcleaves.item.ConstantItemSupplier
+import com.hibiscusmc.hmcleaves.item.HookItemSupplier
 import com.hibiscusmc.hmcleaves.item.ItemSupplier
 import com.hibiscusmc.hmcleaves.item.MappedBlockDropReplacements
 import com.hibiscusmc.hmcleaves.item.SingleBlockDropReplacement
@@ -15,6 +27,7 @@ import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakModifier
 import com.hibiscusmc.hmcleaves.packet.mining.ToolType
 import com.hibiscusmc.hmcleaves.pdc.PDCUtil
 import com.hibiscusmc.hmcleaves.util.parseAsAdventure
+import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.Tag
@@ -23,7 +36,8 @@ import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.inventory.ItemStack
-import java.util.*
+import java.util.Collections
+import java.util.EnumMap
 import kotlin.properties.Delegates
 
 private val LEAVES_MATERIALS = Material.entries.filter { Tag.LEAVES.isTagged(it) }.toList()
@@ -47,13 +61,13 @@ private const val VISUAL_MATERIAL_KEY = "visual-material"
 private const val WORLD_MATERIAL_KEY = "world-material"
 private const val PROPERTIES_KEY = "properties"
 private const val ITEM_KEY = "item"
+private const val ITEM_ID_KEY = "item-id"
 private const val MATERIAL_KEY = "material"
 private const val MODEL_DATA_KEY = "model-data"
 private const val NAME_KEY = "name"
 private const val LORE_KEY = "lore"
 private const val DROPS_KEY = "drops"
 private const val DROPS_TYPE_KEY = "type"
-private const val MAPPED_REPLACEMENTS_KEY = "mapped-replacements"
 private const val CONNECTS_TO_KEY = "connects-to"
 private const val BLOCK_BREAK_MODIFIER_KEY = "block-break-modifier"
 private const val BLOCK_HARDNESS_KEY = "hardness"
@@ -61,6 +75,12 @@ private const val REQUIRES_TOOL_KEY = "requires-tool"
 private const val REQUIRED_TOOLS_KEY = "tool-types"
 private const val REQUIRED_ENCHANTMENTS_KEY = "required-enchantments"
 private const val BLOCK_SETTINGS_KEY = "settings"
+
+private const val PLACE_CONDITIONS_KEY = "place-conditions"
+private const val PLACE_CONDITION_TAGS_KEY = "tags"
+private const val PLACE_CONDITION_MATERIALS_KEY = "materials"
+private const val PLACE_CONDITION_IDS_KEY = "ids"
+private const val PLACE_CONDITION_ID = "id"
 
 private const val DEBUG_STICK_ID = "debug_stick"
 
@@ -235,7 +255,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
                 ConstantItemSupplier(ItemStack(material), id),
                 SingleBlockDropReplacement(),
                 null,
-                BlockType.LEAVES.defaultSettings
+                BlockType.LEAVES.defaultSettings,
+                emptyList()
             )
             this.defaultBlockData[material] = data
             this.blockData[id] = data
@@ -255,7 +276,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
                 ConstantItemSupplier(ItemStack(material), id),
                 SingleBlockDropReplacement(),
                 if (this.customMiningSpeedsForDefaultLogs) BlockBreakManager.LOG_BREAK_MODIFIER else null,
-                BlockType.LOG.defaultSettings
+                BlockType.LOG.defaultSettings,
+                emptyList()
             )
             this.defaultBlockData[material] = data
             this.blockData[id] = data
@@ -271,10 +293,12 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val data = BlockData.createSugarcane(
             id,
             material,
+            material,
             properties,
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
-            BlockType.SUGAR_CANE.defaultSettings
+            BlockType.SUGAR_CANE.defaultSettings,
+            PlaceConditions.createSugarCane(id)
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -291,7 +315,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
                 properties,
                 ConstantItemSupplier(ItemStack(material), id),
                 SingleBlockDropReplacement(),
-                BlockType.SAPLING.defaultSettings
+                BlockType.SAPLING.defaultSettings,
+                emptyList()
             )
             this.defaultBlockData[material] = data
             this.blockData[id] = data
@@ -312,7 +337,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             ConstantItemSupplier(ItemStack(Material.GLOW_BERRIES), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.CAVE_VINES_PLANT)),
-            BlockType.CAVE_VINES.defaultSettings
+            BlockType.CAVE_VINES.defaultSettings,
+            emptyList()
         )
         this.defaultBlockData[material] = data
         this.defaultBlockData[Material.GLOW_BERRIES] = data
@@ -331,7 +357,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             ConstantItemSupplier(ItemStack(Material.GLOW_BERRIES), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.CAVE_VINES)),
-            BlockType.CAVE_VINES_PLANT.defaultSettings
+            BlockType.CAVE_VINES_PLANT.defaultSettings,
+            emptyList()
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -351,7 +378,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.WEEPING_VINES_PLANT)),
-            BlockType.WEEPING_VINES.defaultSettings
+            BlockType.WEEPING_VINES.defaultSettings,
+            emptyList()
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -369,7 +397,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.WEEPING_VINES)),
-            BlockType.WEEPING_VINES_PLANT.defaultSettings
+            BlockType.WEEPING_VINES_PLANT.defaultSettings,
+            emptyList()
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -389,7 +418,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.TWISTING_VINES_PLANT)),
-            BlockType.TWISTING_VINES.defaultSettings
+            BlockType.TWISTING_VINES.defaultSettings,
+            emptyList()
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -407,7 +437,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.TWISTING_VINES)),
-            BlockType.TWISTING_VINES_PLANT.defaultSettings
+            BlockType.TWISTING_VINES_PLANT.defaultSettings,
+            emptyList()
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -427,7 +458,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.KELP_PLANT)),
-            BlockSettings.PLACEABLE_IN_ENTITIES
+            BlockSettings.PLACEABLE_IN_ENTITIES,
+            emptyList()
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -445,7 +477,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.KELP)),
-            BlockSettings.PLACEABLE_IN_ENTITIES
+            BlockSettings.PLACEABLE_IN_ENTITIES,
+            emptyList()
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -482,6 +515,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             val blockBreakModifier =
                 loadBlockBreakModifier(section.getConfigurationSection(BLOCK_BREAK_MODIFIER_KEY), id)
             val settings = loadBlockSettings(section.getConfigurationSection(BLOCK_SETTINGS_KEY), id, type)
+            val placeConditions = loadPlaceConditions(section.getConfigurationSection(PLACE_CONDITIONS_KEY), id)
             val data = type.blockSupplier(
                 id,
                 visualMaterial,
@@ -491,30 +525,44 @@ class LeavesConfig(private val plugin: HMCLeaves) {
                 blockDrops,
                 connectsTo,
                 blockBreakModifier,
-                settings
+                settings,
+                placeConditions
             )
             blockData[id] = data
         }
     }
 
     private fun loadItem(section: ConfigurationSection, id: String): ItemSupplier {
-        val material = section.getString(MATERIAL_KEY)?.let { Material.valueOf(it.uppercase()) }
-            ?: throw IllegalArgumentException("$id item requires $MATERIAL_KEY")
-        val name = section.getString(NAME_KEY)?.parseAsAdventure() ?: ""
-        val lore = section.getStringList(LORE_KEY).map {
-            it.parseAsAdventure()
-        }.toMutableList()
-        val modelData = section.getInt(MODEL_DATA_KEY, -1)
+        try {
+            val material = section.getString(MATERIAL_KEY)?.let { Material.valueOf(it.uppercase()) }
+                ?: throw IllegalArgumentException("$id item requires $MATERIAL_KEY")
+            val name = section.getString(NAME_KEY)?.parseAsAdventure() ?: ""
+            val lore = section.getStringList(LORE_KEY).map {
+                it.parseAsAdventure()
+            }.toMutableList()
+            val modelData = section.getInt(MODEL_DATA_KEY, -1)
 
-        val item = ItemStack(material)
-        val meta = item.itemMeta ?: throw IllegalStateException("Error creating metadata for $material in item $id")
-        meta.setDisplayName(name)
-        meta.lore = lore
-        if (modelData >= 0) {
-            meta.setCustomModelData(modelData)
+            val item = ItemStack(material)
+            val meta = item.itemMeta ?: throw IllegalStateException("Error creating metadata for $material in item $id")
+            meta.setDisplayName(name)
+            meta.lore = lore
+            if (modelData >= 0) {
+                meta.setCustomModelData(modelData)
+            }
+            item.itemMeta = meta
+            val constantSupplier = ConstantItemSupplier(item, id)
+            if (!section.contains(ITEM_ID_KEY)) {
+                return constantSupplier
+            }
+            val hookItemId = section.getString(ITEM_ID_KEY)!!
+            return HookItemSupplier(id, hookItemId, constantSupplier)
+        } catch (exception: Exception) {
+            if (!section.contains(ITEM_ID_KEY)) {
+                throw exception
+            }
+            val hookItemId = section.getString(ITEM_ID_KEY)!!
+            return HookItemSupplier(id, hookItemId)
         }
-        item.itemMeta = meta
-        return ConstantItemSupplier(item, id)
     }
 
     private fun loadDrops(
@@ -535,6 +583,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
     private fun loadMappedBlockDrops(section: ConfigurationSection, id: String, type: BlockType): BlockDrops {
         val replacements: MutableMap<Material, ItemSupplier> = EnumMap(org.bukkit.Material::class.java)
         for (key in section.getKeys(false)) {
+            if (key.equals(DROPS_TYPE_KEY)) continue
             val material = Material.matchMaterial(key.uppercase())
             if (material == null) {
                 this.plugin.logger.warning("$key is not a valid material for block drops of $id")
@@ -569,10 +618,51 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         if (section == null) return type.defaultSettings
         val settings = EnumMap<BlockSetting, Boolean>(BlockSetting::class.java)
         for (key in section.getKeys(false)) {
-            val setting = BlockSetting.valueOf(key.uppercase())
+            val setting = BlockSetting.valueOf(key.replace('-', '_').uppercase())
             settings[setting] = section.getBoolean(key)
         }
         return BlockSettings(settings)
     }
 
+    private fun loadPlaceConditions(section: ConfigurationSection?, id: String): List<PlaceConditions> {
+        if (section == null) return emptyList()
+        if (section.contains(PLACE_CONDITION_ID)) {
+            return PlaceConditions.getById(section.getString(PLACE_CONDITION_ID)!!, id)
+        }
+        val allConditions = arrayListOf<PlaceConditions>()
+        for (key in section.getKeys(false)) {
+            this.plugin.logger.info("Loading section: ${key}")
+            val placeConditionsMap = EnumMap<BlockDirection, List<PlaceCondition>>(BlockDirection::class.java)
+            val conditionsSection = section.getConfigurationSection(key) ?: continue
+            for (directionKey in conditionsSection.getKeys(false)) {
+                this.plugin.logger.info("Loading direction: ${directionKey}")
+                val direction = BlockDirection.valueOf(directionKey.uppercase())
+                val directionSection = conditionsSection.getConfigurationSection(directionKey) ?: continue
+                val conditions = this.loadPlaceCondition(directionSection, id)
+                placeConditionsMap[direction] = conditions
+            }
+            allConditions.add(PlaceConditions(placeConditionsMap))
+        }
+        return allConditions
+    }
+
+    private fun loadPlaceCondition(section: ConfigurationSection, id: String): List<PlaceCondition> {
+        val materials =
+            section.getStringList(PLACE_CONDITION_MATERIALS_KEY).mapNotNull { Material.matchMaterial(it.uppercase()) }
+        val tags = section.getStringList(PLACE_CONDITION_TAGS_KEY).mapNotNull {
+            Bukkit.getTag(Tag.REGISTRY_BLOCKS, NamespacedKey.minecraft(it.lowercase()), Material::class.java)
+        }
+        val ids = section.getStringList(PLACE_CONDITION_IDS_KEY)
+        val conditions = arrayListOf<PlaceCondition>()
+        if (materials.isNotEmpty()) {
+            conditions.add(MaterialPlaceCondition(materials.toHashSet()))
+        }
+        if (tags.isNotEmpty()) {
+            conditions.add(TagPlaceCondition(tags))
+        }
+        if (ids.isNotEmpty()) {
+            conditions.add(BlockIdPlaceCondition(ids.toHashSet()))
+        }
+        return conditions
+    }
 }

@@ -21,7 +21,6 @@ import org.bukkit.Material
 import org.bukkit.Tag
 import org.bukkit.World
 import org.bukkit.block.Block
-import org.bukkit.entity.Item
 import org.bukkit.entity.LivingEntity
 import org.bukkit.event.Cancellable
 import org.bukkit.event.Event
@@ -44,7 +43,6 @@ import org.bukkit.event.entity.ItemSpawnEvent
 import org.bukkit.event.player.PlayerHarvestBlockEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.EquipmentSlot
-import org.bukkit.inventory.ItemStack
 import java.util.EnumSet
 import java.util.LinkedList
 
@@ -77,6 +75,10 @@ class BukkitListeners(
         val world = block.world
         val item = event.itemInHand
         var blockData = this.config.getBlockDataFromItem(item) ?: return
+        if (!checkPlaceConditions(world, block.location, blockData)) {
+            event.isCancelled = true
+            return
+        }
         val worldUUID = world.uid
         val position = block.getPositionInChunk()
         val chunkPosition = block.getChunkPosition()
@@ -85,6 +87,15 @@ class BukkitListeners(
         if (result.type == ListenResultType.CANCEL_EVENT) return
         blockData = result.blockData
         leavesChunk[position] = blockData
+    }
+
+    private fun checkPlaceConditions(world: World, location: Location, blockData: BlockData): Boolean {
+        for (condition in blockData.placeConditions) {
+            if (condition.canBePlaced(this.worldManager, world, location)) {
+                return true
+            }
+        }
+        return blockData.placeConditions.isEmpty()
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
@@ -158,6 +169,9 @@ class BukkitListeners(
 
         if (blockPlaceEvent.isCancelled) {
             relativeBlock.setBlockData(replacedState.blockData, false)
+            event.setUseInteractedBlock(Event.Result.DENY)
+            event.setUseItemInHand(Event.Result.DENY)
+            event.isCancelled = true
             return
         }
 
