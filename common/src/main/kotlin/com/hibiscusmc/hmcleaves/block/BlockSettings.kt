@@ -5,8 +5,7 @@ import java.util.EnumMap
 enum class BlockSetting {
 
     PLACEABLE_IN_ENTITIES,
-    GROWS_BERRIES,
-    SOIL_DOES_NOT_REQUIRE_WATER
+    GROWS_BERRIES
 
 }
 

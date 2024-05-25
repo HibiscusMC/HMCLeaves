@@ -298,7 +298,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             BlockType.SUGAR_CANE.defaultSettings,
-            PlaceConditions.createSugarCane(id)
+            emptyList()
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data

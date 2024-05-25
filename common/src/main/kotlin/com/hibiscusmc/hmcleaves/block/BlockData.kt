@@ -429,7 +429,13 @@ class BlockData(
                 Collections.unmodifiableMap(
                     hashMapOf(
                         BlockPlaceEvent::class.java to SugarCanePlaceListener,
-                        BlockGrowEvent::class.java to SugarCaneGrowListener
+                        BlockGrowEvent::class.java to SugarCaneGrowListener,
+                        BlockBreakEvent::class.java to ConnectedBlockFacingUpBlockBreakListener,
+                        BlockPistonExtendEvent::class.java to ConnectedBlockFacingUpPistonExtendBreakListener,
+                        BlockPistonRetractEvent::class.java to ConnectedBlockFacingUpPistonRetractBreakListener,
+                        BlockExplodeEvent::class.java to ConnectedBlockFacingUpBlockExplodeBreakListener,
+                        EntityExplodeEvent::class.java to ConnectedBlockFacingUpEntityExplodeBreakListener,
+                        RelativeBlockBreakEvent::class.java to PlantFacingUpRelativeBreakListener
                     )
                 ),
                 blockBreakModifier = null,

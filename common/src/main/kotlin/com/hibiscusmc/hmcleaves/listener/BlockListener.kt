@@ -11,8 +11,10 @@ import com.hibiscusmc.hmcleaves.util.getPosition
 import com.hibiscusmc.hmcleaves.util.getPositionInChunk
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
 import com.hibiscusmc.hmcleaves.world.PositionInChunk
+import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
+import org.bukkit.Tag
 import org.bukkit.World
 import org.bukkit.block.BlockFace
 import org.bukkit.event.Event
@@ -158,6 +160,8 @@ data object SugarCanePlaceListener : BlockListener<BlockPlaceEvent>() {
         d != BlockDirection.UP && d != BlockDirection.DOWN
     }.toList()
 
+    private val soilMaterials = Tag.DIRT.values + Tag.SAND.values
+
     override fun handle(
         event: BlockPlaceEvent,
         world: World,
@@ -171,7 +175,11 @@ data object SugarCanePlaceListener : BlockListener<BlockPlaceEvent>() {
         val under = block.getRelative(BlockFace.DOWN)
         val relativeData = leavesChunk[under.getPositionInChunk()]
         val onTopOfOtherCane = relativeData != null && relativeData.id == blockData.id
-        var allowed = onTopOfOtherCane || blockData.settings.isEnabled(BlockSetting.SOIL_DOES_NOT_REQUIRE_WATER)
+        if (!onTopOfOtherCane && !soilMaterials.contains(under.type)) {
+            event.isCancelled = true
+            return ListenResult(blockData, ListenResultType.CANCEL_EVENT)
+        }
+        var allowed = onTopOfOtherCane
         if (!allowed) {
             for (direction in scanDirections) {
                 val relative = under.getRelative(direction.bukkitBlockFace)

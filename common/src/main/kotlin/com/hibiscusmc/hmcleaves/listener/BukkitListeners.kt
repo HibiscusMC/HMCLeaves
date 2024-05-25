@@ -89,9 +89,17 @@ class BukkitListeners(
         leavesChunk[position] = blockData
     }
 
-    private fun checkPlaceConditions(world: World, location: Location, blockData: BlockData): Boolean {
+    private fun checkPlaceConditions(
+        world: World,
+        location: Location,
+        blockData: BlockData,
+        materialGetter: (Location) -> Material = { loc -> loc.block.type },
+        blockDataGetter: (Location, LeavesChunk) -> BlockData? = Getter@{ loc, chunk ->
+            chunk[loc.toPositionInChunk() ?: return@Getter null]
+        }
+    ): Boolean {
         for (condition in blockData.placeConditions) {
-            if (condition.canBePlaced(this.worldManager, world, location)) {
+            if (condition.canBePlaced(this.worldManager, world, location, materialGetter, blockDataGetter)) {
                 return true
             }
         }
@@ -300,6 +308,7 @@ class BukkitListeners(
         val worldUUID = world.uid
         val position = block.getPositionInChunk()
         val chunkPosition = block.getChunkPosition()
+        this.handlePlaceConditionOnBreak(world, event.block.location)
         val leavesChunk = plugin.worldManager[worldUUID]?.get(chunkPosition) ?: return
         val data = leavesChunk[position] ?: run {
             handleRelativeBlockBreak(
@@ -427,6 +436,10 @@ class BukkitListeners(
             movedListAdder(moved, Triple(block.location, data, leavesChunk))
         }
 
+        for (block in blocks) {
+            this.handlePlaceConditionOnBreak(world, block.location)
+        }
+
         for (triple in moved) {
             val oldPosition = triple.first.toPosition() ?: continue
             val oldChunkPos = oldPosition.getChunkPosition()
@@ -480,6 +493,10 @@ class BukkitListeners(
             toRemove.add(Triple(block.location, data, leavesChunk))
         }
 
+        for (block in blockList) {
+            this.handlePlaceConditionOnBreak(world, block.location)
+        }
+
         for (triple in toRemove) {
             val positionInChunk = triple.first.toPositionInChunk() ?: continue
             triple.third.remove(positionInChunk, true)
@@ -487,6 +504,42 @@ class BukkitListeners(
                 world,
                 triple.first
             )
+        }
+    }
+
+    private fun handlePlaceConditionOnBreak(world: World, location: Location) {
+        val position = location.toPosition() ?: return
+        val minHeight = world.minHeight
+        val maxHeight = world.maxHeight
+        val worldUUID = world.uid
+        for (direction in BlockDirection.entries) {
+            val relative = position.relative(direction, minHeight, maxHeight) ?: continue
+            val data = this.worldManager[relative] ?: continue
+            val leavesChunk = this.worldManager[worldUUID]?.get(relative.getChunkPosition()) ?: continue
+            if (checkPlaceConditions(world, relative.toLocation(), data, MaterialGetter@{ loc ->
+                    if (loc == location) {
+                        return@MaterialGetter Material.AIR
+                    }
+                    return@MaterialGetter loc.block.type
+                },
+                    BlockDataGetter@{ loc, chunk ->
+                        if (loc == location) {
+                            return@BlockDataGetter null
+                        }
+                        return@BlockDataGetter chunk[loc.toPositionInChunk() ?: return@BlockDataGetter null]
+                    }
+                )
+            ) {
+                continue
+            }
+            leavesChunk.remove(relative.toPositionInChunk(), false)
+            val relativeLocation = relative.toLocation()
+            relativeLocation.block.type = Material.AIR
+            val drops = data.getDrops(this.config)
+            for (drop in drops) {
+                world.dropItem(relativeLocation, drop)
+            }
+            handlePlaceConditionOnBreak(world, relativeLocation)
         }
     }
 
