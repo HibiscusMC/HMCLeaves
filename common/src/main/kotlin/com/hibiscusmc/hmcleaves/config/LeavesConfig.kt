@@ -15,6 +15,7 @@ import com.hibiscusmc.hmcleaves.block.Property
 import com.hibiscusmc.hmcleaves.block.TagPlaceCondition
 import com.hibiscusmc.hmcleaves.database.DatabaseSettings
 import com.hibiscusmc.hmcleaves.database.DatabaseType
+import com.hibiscusmc.hmcleaves.hook.Hooks
 import com.hibiscusmc.hmcleaves.item.BlockDropType
 import com.hibiscusmc.hmcleaves.item.BlockDrops
 import com.hibiscusmc.hmcleaves.item.ConstantItemSupplier
@@ -101,6 +102,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
 
     private val defaultBlockData: MutableMap<Material, BlockData> = EnumMap(org.bukkit.Material::class.java)
     private val blockData: MutableMap<String, BlockData> = hashMapOf()
+    private val hookIdToBlockDataId: MutableMap<String, String> = hashMapOf()
 
     fun getDebugStick(): ItemStack {
         val item = ItemStack(Material.STICK)
@@ -146,7 +148,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
     }
 
     fun getBlockDataFromItem(item: ItemStack): BlockData? {
-        val id = PDCUtil.getItemId(item) ?: return getDefaultBlockData(item.type)
+        val hookId = Hooks.getIdByItemStack(item)
+        val id = this.hookIdToBlockDataId[hookId] ?: PDCUtil.getItemId(item) ?: return getDefaultBlockData(item.type)
         return this.blockData[id]
     }
 
@@ -555,12 +558,14 @@ class LeavesConfig(private val plugin: HMCLeaves) {
                 return constantSupplier
             }
             val hookItemId = section.getString(ITEM_ID_KEY)!!
+            this.hookIdToBlockDataId[hookItemId] = id
             return HookItemSupplier(id, hookItemId, constantSupplier)
         } catch (exception: Exception) {
             if (!section.contains(ITEM_ID_KEY)) {
                 throw exception
             }
             val hookItemId = section.getString(ITEM_ID_KEY)!!
+            this.hookIdToBlockDataId[hookItemId] = id
             return HookItemSupplier(id, hookItemId)
         }
     }

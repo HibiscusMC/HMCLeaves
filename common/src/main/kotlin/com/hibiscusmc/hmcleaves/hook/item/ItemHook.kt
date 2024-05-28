@@ -19,24 +19,29 @@ abstract class ItemHook(val id: String) : Hook {
 
     abstract fun getItemById(itemId: String, hookItemId: String): ItemStack?
 
+    abstract fun getIdByItemStack(itemStack: ItemStack): String?
+
 }
 
 class OraxenHook : ItemHook("Oraxen") {
 
     override fun getItemById(itemId: String, hookItemId: String): ItemStack? {
-        val item = OraxenItems.getItemById(hookItemId)?.build() ?: return null
-        PDCUtil.setItemId(item, itemId)
-        return item
+        return OraxenItems.getItemById(hookItemId)?.build() ?: return null
     }
 
+    override fun getIdByItemStack(itemStack: ItemStack): String? {
+        return OraxenItems.getIdByItem(itemStack)
+    }
 }
 
 class ItemsAdderHook : ItemHook("ItemsAdder"), Listener {
 
     override fun getItemById(itemId: String, hookItemId: String): ItemStack? {
-        val item = CustomStack.getInstance(hookItemId)?.itemStack ?: return null
-        PDCUtil.setItemId(item, itemId)
-        return item
+        return CustomStack.getInstance(hookItemId)?.itemStack ?: return null
+    }
+
+    override fun getIdByItemStack(itemStack: ItemStack): String? {
+        return CustomStack.byItemStack(itemStack)?.id
     }
 
 }

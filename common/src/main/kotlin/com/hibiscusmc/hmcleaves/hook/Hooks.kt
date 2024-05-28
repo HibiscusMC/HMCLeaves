@@ -32,6 +32,10 @@ class Hooks {
             return itemHook?.getItemById(itemId, hookItemId)
         }
 
+        fun getIdByItemStack(itemStack: ItemStack): String? {
+            return itemHook?.getIdByItemStack(itemStack)
+        }
+
     }
 
 }
