@@ -32,6 +32,7 @@ class Hooks {
                 }
             }
             itemHook?.let {
+                it.load()
                 plugin.server.pluginManager.registerEvents(it, plugin)
             }
         }

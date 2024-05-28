@@ -7,6 +7,7 @@ import dev.lone.itemsadder.api.CustomBlock
 import dev.lone.itemsadder.api.CustomStack
 import dev.lone.itemsadder.api.Events.ItemsAdderLoadDataEvent
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
+import io.th0rgal.oraxen.OraxenPlugin
 import io.th0rgal.oraxen.api.OraxenBlocks
 import io.th0rgal.oraxen.api.OraxenItems
 import io.th0rgal.oraxen.api.events.OraxenItemsLoadedEvent
@@ -27,6 +28,8 @@ abstract class ItemHook(val id: String) : Hook, Listener {
 
     abstract fun getIdByItemStack(itemStack: ItemStack): String?
 
+    abstract fun load()
+
 }
 
 class OraxenHook(private val plugin: HMCLeaves) : ItemHook("Oraxen") {
@@ -41,8 +44,13 @@ class OraxenHook(private val plugin: HMCLeaves) : ItemHook("Oraxen") {
 
     @EventHandler
     fun onItemsLoad(event: OraxenItemsLoadedEvent) {
+        this.load()
+    }
+
+    override fun load() {
         val config = this.plugin.leavesConfig
         val items = config.getHookIdsToBlockIds()
+        this.plugin.getLeavesLogger().info("Loaded Oraxen Items")
         for (entry in items.entries) {
             val hookId = entry.key
             val blockDataId = entry.value
@@ -50,7 +58,7 @@ class OraxenHook(private val plugin: HMCLeaves) : ItemHook("Oraxen") {
             val oraxenBlock = OraxenBlocks.getOraxenBlockData(hookId) ?: continue
             val blockStateId = SpigotConversionUtil.fromBukkitBlockData(oraxenBlock).globalId
             blockData.setOverrideBlockId(blockStateId)
-            plugin.getLeavesLogger().info("Overriding block date state id of $blockDataId with Oraxen ${hookId}: $blockStateId ")
+            this.plugin.getLeavesLogger().info("Overriding block date state id of $blockDataId with Oraxen ${hookId}: $blockStateId ")
         }
     }
 }
@@ -67,8 +75,13 @@ class ItemsAdderHook(private val plugin: HMCLeaves) : ItemHook("ItemsAdder") {
 
     @EventHandler
     fun onItemsLoad(event: ItemsAdderLoadDataEvent) {
+        this.load()
+    }
+
+    override fun load() {
         val config = this.plugin.leavesConfig
         val items = config.getHookIdsToBlockIds()
+        this.plugin.getLeavesLogger().info("Loaded ItemsAdder Items")
         for (entry in items.entries) {
             val hookId = entry.key
             val blockDataId = entry.value
