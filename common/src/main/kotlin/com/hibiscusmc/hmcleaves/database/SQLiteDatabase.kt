@@ -317,7 +317,7 @@ class SQLiteDatabase(
                 val blockData = this.config.getBlockData(id) ?: continue
                 val positionInChunk = PositionInChunk(worldUUID, x, y, z)
                 leavesChunk[positionInChunk] = blockData
-                plugin.logger.info("Loaded block data: (world=${worldUUID}, x=${x}, y=${y},  z=${z}, id=${id})")
+                plugin.getLeavesLogger().info("Loaded block data: (world=${worldUUID}, x=${x}, y=${y},  z=${z}, id=${id})")
             }
             leavesChunk.setLoaded(true)
             Bukkit.getScheduler().runTask(this.plugin) { _ ->
