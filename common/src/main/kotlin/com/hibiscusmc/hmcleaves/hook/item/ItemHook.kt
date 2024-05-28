@@ -15,6 +15,7 @@ import org.bukkit.Bukkit
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.inventory.ItemStack
+import kotlin.math.log
 
 abstract class ItemHook(val id: String) : Hook, Listener {
 
@@ -50,12 +51,22 @@ class OraxenHook(private val plugin: HMCLeaves) : ItemHook("Oraxen") {
     override fun load() {
         val config = this.plugin.leavesConfig
         val items = config.getHookIdsToBlockIds()
-        this.plugin.getLeavesLogger().info("Loaded Oraxen Items")
+        val logger = this.plugin.getLeavesLogger()
+        logger.info("Loaded Oraxen Items")
+        logger.info("Loading ${items.entries.size} hook items")
         for (entry in items.entries) {
             val hookId = entry.key
             val blockDataId = entry.value
-            val blockData = config.getBlockData(blockDataId) ?: continue
-            val oraxenBlock = OraxenBlocks.getOraxenBlockData(hookId) ?: continue
+            val blockData = config.getBlockData(blockDataId)
+            if (blockData == null) {
+                logger.warn("Could not load Oraxen hook item because BlockData $blockDataId was not found")
+                continue
+            }
+            val oraxenBlock = OraxenBlocks.getOraxenBlockData(hookId)
+            if (oraxenBlock == null) {
+                logger.warn("Could not load Oraxen hook item because Oraxen Block $hookId was not found")
+                continue
+            }
             val blockStateId = SpigotConversionUtil.fromBukkitBlockData(oraxenBlock).globalId
             blockData.setOverrideBlockId(blockStateId)
             this.plugin.getLeavesLogger().info("Overriding block date state id of $blockDataId with Oraxen ${hookId}: $blockStateId ")
@@ -81,12 +92,22 @@ class ItemsAdderHook(private val plugin: HMCLeaves) : ItemHook("ItemsAdder") {
     override fun load() {
         val config = this.plugin.leavesConfig
         val items = config.getHookIdsToBlockIds()
+        val logger = this.plugin.getLeavesLogger()
         this.plugin.getLeavesLogger().info("Loaded ItemsAdder Items")
+        logger.info("Loading ${items.entries.size} hook items")
         for (entry in items.entries) {
             val hookId = entry.key
             val blockDataId = entry.value
-            val blockData = config.getBlockData(blockDataId) ?: continue
-            val itemsAdderBlock = CustomBlock.getInstance(hookId) ?: continue
+            val blockData = config.getBlockData(blockDataId)
+            if (blockData == null) {
+                logger.warn("Could not load ItemsAdder hook item because BlockData $blockDataId was not found")
+                continue
+            }
+            val itemsAdderBlock = CustomBlock.getInstance(hookId)
+            if (itemsAdderBlock == null) {
+                logger.warn("Could not load ItemsAdder hook item because ItemsAdder Block $hookId was not found")
+                continue
+            }
             val blockStateId = SpigotConversionUtil.fromBukkitBlockData(itemsAdderBlock.baseBlockData ?: continue).globalId
             blockData.setOverrideBlockId(blockStateId)
             plugin.getLeavesLogger().info("Overriding block date state id of $blockDataId with ItemsAdder ${hookId}: $blockStateId ")
