@@ -136,7 +136,16 @@ enum class BlockType(
         SingleBlockDropReplacement(),
         BlockSettings.EMPTY,
         { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
-            BlockData.createLeaves(id, visualMaterial, properties, itemSupplier, blockDrops, modifier, settings, placeConditions)
+            BlockData.createLeaves(
+                id,
+                visualMaterial,
+                properties,
+                itemSupplier,
+                blockDrops,
+                modifier,
+                settings,
+                placeConditions
+            )
         }),
     LOG(
         LogDropReplacement(),
@@ -158,7 +167,16 @@ enum class BlockType(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
         { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, _, settings, placeConditions ->
-            BlockData.createSugarcane(id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, settings, placeConditions)
+            BlockData.createSugarcane(
+                id,
+                visualMaterial,
+                worldMaterial,
+                properties,
+                itemSupplier,
+                blockDrops,
+                settings,
+                placeConditions
+            )
         }),
     SAPLING(
         SingleBlockDropReplacement(),
@@ -325,17 +343,22 @@ class BlockData(
     private val connectsTo: Set<String> = setOf(),
     val settings: BlockSettings,
     val placeConditions: List<PlaceConditions>,
-    private val packetState: WrappedBlockState = run {
-        val state = WrappedBlockState.getDefaultState(
-            PacketEvents.getAPI().serverManager.version.toClientVersion(),
-            SpigotConversionUtil.fromBukkitBlockData(visualMaterial.createBlockData()).type
-        )
-        for (entry in properties) {
-            val property: Property<Any> = entry.key as Property<Any>
-            val value = entry.value ?: continue
-            property.applyToState(state, value)
+    private var overrideBlockId: Int? = null,
+    private var packetState: WrappedBlockState = run {
+        return@run if (overrideBlockId == null) {
+            val state = WrappedBlockState.getDefaultState(
+                PacketEvents.getAPI().serverManager.version.toClientVersion(),
+                SpigotConversionUtil.fromBukkitBlockData(visualMaterial.createBlockData()).type
+            )
+            for (entry in properties) {
+                val property: Property<Any> = entry.key as Property<Any>
+                val value = entry.value ?: continue
+                property.applyToState(state, value)
+            }
+            state
+        } else {
+            WrappedBlockState.getByGlobalId(overrideBlockId)
         }
-        return@run state
     },
     private val propertyApplier: (BlockData, WrappedBlockState) -> WrappedBlockState = applier@{ blockData, originalState ->
         if (originalState.type != blockData.packetState.type) {
@@ -817,6 +840,12 @@ class BlockData(
                 placeConditions = placeConditions
             )
         }
+    }
+
+    fun setOverrideBlockId(id: Int?) {
+        this.overrideBlockId = id
+        if (id == null) return
+        this.packetState = WrappedBlockState.getByGlobalId(id)
     }
 
     fun <E> listen(

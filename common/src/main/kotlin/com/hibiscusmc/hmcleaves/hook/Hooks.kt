@@ -1,9 +1,11 @@
 package com.hibiscusmc.hmcleaves.hook
 
+import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.hook.item.ItemHook
 import com.hibiscusmc.hmcleaves.hook.item.ItemsAdderHook
 import com.hibiscusmc.hmcleaves.hook.item.OraxenHook
 import org.bukkit.inventory.ItemStack
+import org.bukkit.plugin.java.JavaPlugin
 
 class Hooks {
 
@@ -14,18 +16,32 @@ class Hooks {
         private var itemHook: ItemHook? = null
 
         fun init() {
+            val plugin = JavaPlugin.getPlugin(HMCLeaves::class.java)
             if (initialized) return
             try {
-                itemHook = OraxenHook()
+                itemHook = createOraxenHook(plugin)
             } catch (_: Exception) {
             }
-            if (itemHook == null) {
+            itemHook = if (itemHook != null) {
+                itemHook
+            } else {
                 try {
-                    itemHook = ItemsAdderHook()
+                    ItemsAdderHook(plugin)
                 } catch (_: Exception) {
-
+                    null
                 }
             }
+            itemHook?.let {
+                plugin.server.pluginManager.registerEvents(it, plugin)
+            }
+        }
+
+        private fun createOraxenHook(plugin: HMCLeaves): ItemHook {
+            return OraxenHook(plugin)
+        }
+
+        private fun createItemsAdderHook(plugin: HMCLeaves): ItemHook {
+            return ItemsAdderHook(plugin)
         }
 
         fun getItemStackById(itemId: String, hookItemId: String): ItemStack? {

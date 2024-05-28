@@ -83,6 +83,8 @@ private const val PLACE_CONDITION_MATERIALS_KEY = "materials"
 private const val PLACE_CONDITION_IDS_KEY = "ids"
 private const val PLACE_CONDITION_ID = "id"
 
+private const val SEND_DEBUG_MESSAGES_KEY = "debug"
+
 private const val DEBUG_STICK_ID = "debug_stick"
 
 private const val CURRENT_CHUNK_VERSION = 1
@@ -94,6 +96,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
     private var chunkVersion = CURRENT_CHUNK_VERSION
 
     private lateinit var databaseSettings: DatabaseSettings
+    private var sendDebugMessages = false
     private var customMiningSpeedsForDefaultLogs by Delegates.notNull<Boolean>()
 
     fun getDatabaseSettings(): DatabaseSettings {
@@ -103,6 +106,10 @@ class LeavesConfig(private val plugin: HMCLeaves) {
     private val defaultBlockData: MutableMap<Material, BlockData> = EnumMap(org.bukkit.Material::class.java)
     private val blockData: MutableMap<String, BlockData> = hashMapOf()
     private val hookIdToBlockDataId: MutableMap<String, String> = hashMapOf()
+
+    fun sendDebugMessages(): Boolean {
+        return this.sendDebugMessages
+    }
 
     fun getDebugStick(): ItemStack {
         val item = ItemStack(Material.STICK)
@@ -153,6 +160,10 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         return this.blockData[id]
     }
 
+    fun getHookIdsToBlockIds(): Map<String, String> {
+        return Collections.unmodifiableMap(this.hookIdToBlockDataId)
+    }
+
     fun load() {
         val file = filePath.toFile()
         if (!file.exists()) {
@@ -161,6 +172,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         }
         val config = YamlConfiguration.loadConfiguration(file)
 
+        this.sendDebugMessages = config.getBoolean(SEND_DEBUG_MESSAGES_KEY, false)
         this.customMiningSpeedsForDefaultLogs = config.getBoolean(USE_CUSTOM_MINING_SPEED_FOR_DEFAULT_LOGS, false)
 
         loadDatabase(config)

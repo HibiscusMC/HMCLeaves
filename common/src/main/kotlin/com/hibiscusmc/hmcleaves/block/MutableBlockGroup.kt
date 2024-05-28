@@ -1,10 +1,12 @@
 package com.hibiscusmc.hmcleaves.block
 
+import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
 import com.hibiscusmc.hmcleaves.world.PositionInChunk
 import org.bukkit.ChunkSnapshot
 import org.bukkit.World
+import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
 
 data class BlockGroup(
@@ -39,9 +41,25 @@ class MutableBlockGroup(
     fun toBlockGroup(): BlockGroup {
         return BlockGroup(this.world, this.minX, this.minY, this.minZ, this.maxX, this.maxY, this.maxZ)
     }
+
+    fun getWorld() = this.world
+
+    fun getMinX() = this.minX
+
+    fun getMinY() = this.minY
+
+    fun getMinZ() = this.minZ
+
+    fun getMaxX() = this.maxX
+
+    fun getMaxY() = this.maxY
+
+    fun getMaxZ() = this.maxZ
+
 }
 
 fun findBlockGroupsInChunk(
+    plugin: HMCLeaves,
     config: LeavesConfig,
     world: World,
     chunk: ChunkSnapshot,
@@ -68,6 +86,7 @@ fun findBlockGroupsInChunk(
                 leavesChunk.setDefaultBlock(pos, data)
                 val group = MutableBlockGroup(worldUUID, x, y, z, x, y, z)
                 findConnectedBlocks(
+                    plugin,
                     config,
                     pos,
                     usedBlocks,
@@ -78,6 +97,15 @@ fun findBlockGroupsInChunk(
                     group
                 )
                 found.add(group.toBlockGroup())
+                val logger = plugin.getLeavesLogger()
+                logger.info("Successfully found connected block group:")
+                logger.severe("world: ${group.getWorld()}")
+                logger.severe("minX: ${group.getMinX()}")
+                logger.severe("minY: ${group.getMinY()}")
+                logger.severe("minZ: ${group.getMinZ()}")
+                logger.severe("maxX: ${group.getMaxX()}")
+                logger.severe("maxY: ${group.getMaxY()}")
+                logger.severe("maxZ: ${group.getMaxZ()}")
             }
         }
     }
@@ -86,6 +114,7 @@ fun findBlockGroupsInChunk(
 }
 
 private fun findConnectedBlocks(
+    plugin: HMCLeaves,
     config: LeavesConfig,
     startPos: PositionInChunk,
     used: Array<Array<Array<Boolean>>>,
@@ -106,16 +135,31 @@ private fun findConnectedBlocks(
         val data = config.getDefaultBlockData(block.material) ?: continue
         leavesChunk.setDefaultBlock(relative, data)
         group.add(relative)
-        findConnectedBlocks(
-            config,
-            relative,
-            used,
-            chunk,
-            leavesChunk,
-            minHeight,
-            maxHeight,
-            group
-        )
+        try {
+            findConnectedBlocks(
+                plugin,
+                config,
+                relative,
+                used,
+                chunk,
+                leavesChunk,
+                minHeight,
+                maxHeight,
+                group
+            )
+        } catch (exception: Exception) {
+            val logger = plugin.getLeavesLogger()
+            logger.severe("Error finding connected blocks:")
+            logger.severe("${exception.stackTrace}")
+            logger.severe("Current block group:")
+            logger.severe("world: ${group.getWorld()}")
+            logger.severe("minX: ${group.getMinX()}")
+            logger.severe("minY: ${group.getMinY()}")
+            logger.severe("minZ: ${group.getMinZ()}")
+            logger.severe("maxX: ${group.getMaxX()}")
+            logger.severe("maxY: ${group.getMaxY()}")
+            logger.severe("maxZ: ${group.getMaxZ()}")
+        }
     }
 
 }

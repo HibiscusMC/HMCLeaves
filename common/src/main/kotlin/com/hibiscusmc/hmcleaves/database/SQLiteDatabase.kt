@@ -223,6 +223,7 @@ class SQLiteDatabase(
                         this.saveBlockGroups(connection, chunkPosition, groups)
                         this.setChunkVersion(connection, worldUUIDBytes, chunkX, chunkZ)
                         connection.commit()
+                        this.plugin.getLeavesLogger().info("Saved chunk on first load: (world=${world}, chunkX=${chunkX}, chunkZ=${chunkZ})")
                     }
                 }
                 return@use
@@ -298,6 +299,7 @@ class SQLiteDatabase(
                         maxZ
                     )
                 )
+                plugin.getLeavesLogger().info("Loaded block group: (world=${worldUUID}, minX=${minX}, minY=${minY}, minZ=${minZ}, maxX=${maxX}, maxY=${maxY}, maxZ=${maxZ})")
             }
         }
 
@@ -315,6 +317,7 @@ class SQLiteDatabase(
                 val blockData = this.config.getBlockData(id) ?: continue
                 val positionInChunk = PositionInChunk(worldUUID, x, y, z)
                 leavesChunk[positionInChunk] = blockData
+                plugin.logger.info("Loaded block data: (world=${worldUUID}, x=${x}, y=${y},  z=${z}, id=${id})")
             }
             leavesChunk.setLoaded(true)
             Bukkit.getScheduler().runTask(this.plugin) { _ ->
@@ -360,6 +363,7 @@ class SQLiteDatabase(
                 preparedStatement.setInt(5, position.y)
                 preparedStatement.setInt(6, position.z)
                 preparedStatement.setString(7, data.id)
+                plugin.getLeavesLogger().info("Saving block data: (world=${worldUUID}, chunkX=${chunkX}, chunkZ=${chunkZ}, x=${position.x}, y=${position.y}, z=${position.z}, id=${data.id})")
                 preparedStatement.addBatch()
             }
             preparedStatement.executeBatch()

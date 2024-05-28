@@ -4,13 +4,14 @@ import com.github.retrooper.packetevents.PacketEvents
 import com.hibiscusmc.hmcleaves.command.HMCLeavesCommand
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.database.LeavesDatabase
+import com.hibiscusmc.hmcleaves.debug.ActiveLeavesLogger
+import com.hibiscusmc.hmcleaves.debug.DisabledLeavesLogger
+import com.hibiscusmc.hmcleaves.debug.LeavesLogger
 import com.hibiscusmc.hmcleaves.hook.Hooks
-import com.hibiscusmc.hmcleaves.listener.BlockListener
 import com.hibiscusmc.hmcleaves.listener.BukkitListeners
 import com.hibiscusmc.hmcleaves.listener.ChunkListener
 import com.hibiscusmc.hmcleaves.packet.PacketListener
 import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakManager
-import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakModifier
 import com.hibiscusmc.hmcleaves.user.UserManager
 import com.hibiscusmc.hmcleaves.world.WorldManager
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder
@@ -24,6 +25,7 @@ class HMCLeaves : JavaPlugin() {
     private lateinit var database: LeavesDatabase
     val blockBreakManager: BlockBreakManager by lazy { BlockBreakManager(plugin = this) }
     val userManager: UserManager by lazy { UserManager(this) }
+    private lateinit var leavesLogger: LeavesLogger
 
     override fun onLoad() {
         PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this))
@@ -36,6 +38,12 @@ class HMCLeaves : JavaPlugin() {
 
     override fun onEnable() {
         this.leavesConfig.load()
+        this.leavesLogger = if (this.leavesConfig.sendDebugMessages()) {
+            ActiveLeavesLogger(this)
+        } else {
+            DisabledLeavesLogger
+        }
+        this.leavesLogger.init()
         this.database = LeavesDatabase.createDatabase(this, this.leavesConfig.getDatabaseSettings().type)
 
         val pluginManager = this.server.pluginManager
@@ -61,6 +69,7 @@ class HMCLeaves : JavaPlugin() {
     }
 
     override fun onDisable() {
+        this.leavesLogger.sendSynced(false)
         PacketEvents.getAPI().terminate()
         for (world in Bukkit.getWorlds()) {
             this.database.saveWorld(world, true)
@@ -68,5 +77,9 @@ class HMCLeaves : JavaPlugin() {
     }
 
     fun getDatabase(): LeavesDatabase = this.database
+
+    fun getLeavesLogger(): LeavesLogger {
+        return this.leavesLogger
+    }
 
 }

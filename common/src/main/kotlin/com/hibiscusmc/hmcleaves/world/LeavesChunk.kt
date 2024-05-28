@@ -9,7 +9,7 @@ class LeavesChunk(
     val position: ChunkPosition,
     val world: UUID = position.world,
     private val blocks: MutableMap<PositionInChunk, BlockData?> = ConcurrentHashMap(),
-    private val defaultBlocks: MutableMap<PositionInChunk, BlockData> = HashMap(),
+    private val defaultBlocks: MutableMap<PositionInChunk, BlockData> = ConcurrentHashMap(),
     private val blocksToRemove: MutableMap<PositionInChunk, BlockData> = ConcurrentHashMap(),
     private var dirty: Boolean = false,
     private var loaded: Boolean = false

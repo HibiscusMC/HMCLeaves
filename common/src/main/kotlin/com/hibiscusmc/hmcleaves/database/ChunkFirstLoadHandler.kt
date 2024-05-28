@@ -18,7 +18,9 @@ class ChunkFirstLoadHandler(
         chunk: ChunkSnapshot,
         leavesChunk: LeavesChunk
     ): Collection<BlockGroup> {
+        plugin.getLeavesLogger().info("Loading chunk for the first time (world=${world}, chunkX=${chunk.x}, chunkZ=${chunk.z}) ")
         return findBlockGroupsInChunk(
+            this.plugin,
             this.config,
             world,
             chunk,
