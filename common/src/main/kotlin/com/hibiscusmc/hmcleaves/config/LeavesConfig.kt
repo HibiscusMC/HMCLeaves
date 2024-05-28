@@ -510,15 +510,15 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             val worldMaterial = section.getString(WORLD_MATERIAL_KEY)?.let { Material.valueOf(it.uppercase()) }
                 ?: throw IllegalArgumentException("$id requires $WORLD_MATERIAL_KEY")
 
-            val propertiesSection = section.getConfigurationSection(PROPERTIES_KEY)
-                ?: throw IllegalArgumentException("$id requires $PROPERTIES_KEY")
             val properties: MutableMap<Property<*>, Any> = hashMapOf()
-            for (propertyKey in propertiesSection.getKeys(false)) {
-                val property: Property<Any> = Property.getPropertyByKey(propertyKey)
-                    ?: throw IllegalArgumentException("Invalid property $propertyKey")
-                val value = propertiesSection.getString(propertyKey)?.let { property.converter(it) }
-                    ?: throw IllegalArgumentException("Invalid property for $propertyKey")
-                properties[property] = value
+            section.getConfigurationSection(PROPERTIES_KEY)?.let { propertiesSection ->
+                for (propertyKey in propertiesSection.getKeys(false)) {
+                    val property: Property<Any> = Property.getPropertyByKey(propertyKey)
+                        ?: throw IllegalArgumentException("Invalid property $propertyKey")
+                    val value = propertiesSection.getString(propertyKey)?.let { property.converter(it) }
+                        ?: throw IllegalArgumentException("Invalid property for $propertyKey")
+                    properties[property] = value
+                }
             }
 
             val itemSupplier = section.getConfigurationSection(ITEM_KEY)?.let {

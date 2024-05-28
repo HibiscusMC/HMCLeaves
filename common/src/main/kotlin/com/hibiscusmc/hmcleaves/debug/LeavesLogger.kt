@@ -60,13 +60,14 @@ class ActiveLeavesLogger(private val plugin: HMCLeaves) : LeavesLogger {
             this.filePath = filePath
             return
         }
-        var fileNumber = 0
+        var fileNumber = 1
         while (folderPath.resolve("${formattedDay}-${fileNumber}.txt").toFile().exists()) {
             fileNumber++
         }
         val file = folderPath.resolve("${formattedDay}-${fileNumber}.txt").toFile()
         file.parentFile.mkdirs()
         file.createNewFile()
+        this.filePath = file.toPath()
     }
 
     override fun info(message: String) {
