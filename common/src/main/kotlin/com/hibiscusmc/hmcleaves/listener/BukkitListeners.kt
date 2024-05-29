@@ -6,6 +6,7 @@ import com.hibiscusmc.hmcleaves.block.BlockDirection
 import com.hibiscusmc.hmcleaves.block.BlockSetting
 import com.hibiscusmc.hmcleaves.block.SUPPORTING_DIRECTIONS
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
+import com.hibiscusmc.hmcleaves.hook.Hooks
 import com.hibiscusmc.hmcleaves.util.getChunkPosition
 import com.hibiscusmc.hmcleaves.util.getPositionInChunk
 import com.hibiscusmc.hmcleaves.util.parseAsAdventure
@@ -69,7 +70,7 @@ class BukkitListeners(
     private val worldManager: WorldManager = plugin.worldManager
 ) : Listener {
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGHEST)
     private fun onBlockPlace(event: BlockPlaceEvent) {
         val block = event.block
         val world = block.world
@@ -84,7 +85,11 @@ class BukkitListeners(
         val chunkPosition = block.getChunkPosition()
         val leavesChunk = plugin.worldManager.getOrAdd(worldUUID).getOrAdd(chunkPosition)
         val result = blockData.listen(event::class.java, event, world, block.location, position, leavesChunk, config)
-        if (result.type == ListenResultType.CANCEL_EVENT) return
+        if (result.type == ListenResultType.CANCEL_EVENT) {
+            event.isCancelled = true
+            return
+        }
+        if (Hooks.isHandledByHook(item))
         blockData = result.blockData
         leavesChunk[position] = blockData
     }
@@ -112,6 +117,7 @@ class BukkitListeners(
         val clickedBlock = event.clickedBlock ?: return
         val itemInHand = event.item ?: return
         if (itemInHand.type == Material.AIR) return
+        if (event.hand != EquipmentSlot.HAND) return
 
         val player = event.player
         val worldUUID = player.world.uid
@@ -136,6 +142,8 @@ class BukkitListeners(
             event.isCancelled = true
             return
         }
+
+        if (Hooks.isHandledByHook(itemInHand)) return
 
         val data = this.config.getBlockDataFromItem(itemInHand) ?: return
 
@@ -195,6 +203,7 @@ class BukkitListeners(
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     private fun onBlockDropItem(event: BlockDropItemEvent) {
         val block = event.block
+        if (Hooks.isHandledByHook(block)) return
         val world = block.world
         val worldUUID = world.uid
         val position = block.getPositionInChunk()
@@ -226,6 +235,7 @@ class BukkitListeners(
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     private fun onItemSpawn(event: ItemSpawnEvent) {
         val block = event.location.block
+        if (Hooks.isHandledByHook(block)) return
         val position = block.location.toPosition() ?: return
         val leavesChunk = worldManager[position.world]?.get(position.getChunkPosition()) ?: return
         val positionInChunk = position.toPositionInChunk()
@@ -304,6 +314,7 @@ class BukkitListeners(
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     private fun onBlockBreak(event: BlockBreakEvent) {
         val block = event.block
+        if (Hooks.isHandledByHook(block)) return
         val world = block.world
         val worldUUID = world.uid
         val position = block.getPositionInChunk()

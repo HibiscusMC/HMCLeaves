@@ -57,7 +57,6 @@ fun Location.toPositionInChunk(): PositionInChunk? {
     )
 }
 
-
 fun BlockFace.toBlockDirection(): BlockDirection? {
     return when (this) {
         BlockFace.NORTH -> NORTH

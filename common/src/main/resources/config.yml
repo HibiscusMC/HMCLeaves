@@ -1,7 +1,7 @@
 database-settings:
   type: SQLite
 
-debug: true
+debug: false
 
 custom-mining-speed-for-default-logs: true
 

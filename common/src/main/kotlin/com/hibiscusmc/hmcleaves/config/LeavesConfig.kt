@@ -164,6 +164,10 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         return Collections.unmodifiableMap(this.hookIdToBlockDataId)
     }
 
+    fun getBlockDataIdFromHookId(hookId: String): String? {
+        return this.hookIdToBlockDataId[hookId]
+    }
+
     fun load() {
         val file = filePath.toFile()
         if (!file.exists()) {

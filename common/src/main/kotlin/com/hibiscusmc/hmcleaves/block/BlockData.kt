@@ -60,9 +60,15 @@ sealed class Property<T>(val key: String, val converter: (String) -> T) {
 
     abstract fun applyToState(state: WrappedBlockState, value: T)
 
+    abstract fun getFromState(state: WrappedBlockState): T
+
     data object DISTANCE : Property<Int>("distance", { it.toInt() }) {
         override fun applyToState(state: WrappedBlockState, value: Int) {
             state.distance = value
+        }
+
+        override fun getFromState(state: WrappedBlockState): Int {
+            return state.distance
         }
     }
 
@@ -70,11 +76,19 @@ sealed class Property<T>(val key: String, val converter: (String) -> T) {
         override fun applyToState(state: WrappedBlockState, value: Boolean) {
             state.isPersistent = value
         }
+
+        override fun getFromState(state: WrappedBlockState): Boolean {
+            return state.isPersistent
+        }
     }
 
     data object INSTRUMENT : Property<Instrument>("instrument", { Instrument.valueOf(it.uppercase()) }) {
         override fun applyToState(state: WrappedBlockState, value: Instrument) {
             state.instrument = value
+        }
+
+        override fun getFromState(state: WrappedBlockState): Instrument {
+            return state.instrument
         }
     }
 
@@ -82,17 +96,29 @@ sealed class Property<T>(val key: String, val converter: (String) -> T) {
         override fun applyToState(state: WrappedBlockState, value: Int) {
             state.note = value
         }
+
+        override fun getFromState(state: WrappedBlockState): Int {
+            return state.note
+        }
     }
 
     data object POWERED : Property<Boolean>("powered", { it.toBoolean() }) {
         override fun applyToState(state: WrappedBlockState, value: Boolean) {
             state.isPowered = value
         }
+
+        override fun getFromState(state: WrappedBlockState): Boolean {
+            return state.isPowered
+        }
     }
 
     data object AGE : Property<Int>("age", { it.toInt() }) {
         override fun applyToState(state: WrappedBlockState, value: Int) {
             state.age = value
+        }
+
+        override fun getFromState(state: WrappedBlockState): Int {
+            return state.age
         }
     }
 
@@ -364,9 +390,15 @@ class BlockData(
         if (originalState.type != blockData.packetState.type) {
             return@applier blockData.packetState.clone()
         }
+        if (properties.isEmpty()) {
+            return@applier blockData.packetState
+        }
+        val blockOverrideId = blockData.overrideBlockId
         for (entry in properties) {
             val property: Property<Any> = entry.key as Property<Any>
-            val value = entry.value ?: continue
+            val value =
+                blockOverrideId?.let { property.getFromState(blockData.packetState) }
+                    ?: entry.value ?: continue
             property.applyToState(originalState, value)
         }
         return@applier originalState
@@ -887,15 +919,6 @@ class BlockData(
 
     fun applyPropertiesToState(originalState: WrappedBlockState): WrappedBlockState {
         return this.propertyApplier(this, originalState)
-//        if (originalState.type != this.packetState.type) {
-//            return this.packetState.clone()
-//        }
-//        for (entry in properties) {
-//            val property: Property<Any> = entry.key as Property<Any>
-//            val value = entry.value ?: continue
-//            property.applyToState(originalState, value)
-//        }
-//        return originalState
     }
 
     fun getBlockGlobalId(): Int {

@@ -4,6 +4,9 @@ import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.hook.item.ItemHook
 import com.hibiscusmc.hmcleaves.hook.item.ItemsAdderHook
 import com.hibiscusmc.hmcleaves.hook.item.OraxenHook
+import org.bukkit.Location
+import org.bukkit.Material
+import org.bukkit.block.Block
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
 
@@ -11,12 +14,14 @@ class Hooks {
 
     companion object {
 
+        private lateinit var plugin: HMCLeaves
+
         private var initialized = false
 
         private var itemHook: ItemHook? = null
 
         fun init() {
-            val plugin = JavaPlugin.getPlugin(HMCLeaves::class.java)
+            plugin = JavaPlugin.getPlugin(HMCLeaves::class.java)
             if (initialized) return
             try {
                 itemHook = createOraxenHook(plugin)
@@ -51,6 +56,20 @@ class Hooks {
 
         fun getIdByItemStack(itemStack: ItemStack): String? {
             return itemHook?.getIdByItemStack(itemStack)
+        }
+
+        fun isHandledByHook(block: Block): Boolean {
+            val hookId = itemHook?.getIDFromBlock(block) ?: return false
+            val blockDataId = plugin.leavesConfig.getBlockDataIdFromHookId(hookId) ?: return false
+            val blockData = plugin.leavesConfig.getBlockData(blockDataId) ?: return false
+            return blockData.worldMaterial == Material.NOTE_BLOCK
+        }
+
+        fun isHandledByHook(itemStack: ItemStack): Boolean {
+            val hookId = getIdByItemStack(itemStack) ?: return false
+            val blockDataId = plugin.leavesConfig.getBlockDataIdFromHookId(hookId) ?: return false
+            val blockData = plugin.leavesConfig.getBlockData(blockDataId) ?: return false
+            return blockData.worldMaterial == Material.NOTE_BLOCK
         }
 
     }
