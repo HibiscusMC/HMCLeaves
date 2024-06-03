@@ -7,6 +7,7 @@ import com.hibiscusmc.hmcleaves.world.PositionInChunk
 import org.bukkit.ChunkSnapshot
 import org.bukkit.World
 import org.bukkit.plugin.java.JavaPlugin
+import java.util.ArrayDeque
 import java.util.UUID
 
 data class BlockGroup(
@@ -97,15 +98,6 @@ fun findBlockGroupsInChunk(
                     group
                 )
                 found.add(group.toBlockGroup())
-                val logger = plugin.getLeavesLogger()
-                logger.info("Successfully found connected block group:")
-                logger.severe("world: ${group.getWorld()}")
-                logger.severe("minX: ${group.getMinX()}")
-                logger.severe("minY: ${group.getMinY()}")
-                logger.severe("minZ: ${group.getMinZ()}")
-                logger.severe("maxX: ${group.getMaxX()}")
-                logger.severe("maxY: ${group.getMaxY()}")
-                logger.severe("maxZ: ${group.getMaxZ()}")
             }
         }
     }
@@ -116,7 +108,7 @@ fun findBlockGroupsInChunk(
 private fun findConnectedBlocks(
     plugin: HMCLeaves,
     config: LeavesConfig,
-    startPos: PositionInChunk,
+    originalPos: PositionInChunk,
     used: Array<Array<Array<Boolean>>>,
     chunk: ChunkSnapshot,
     leavesChunk: LeavesChunk,
@@ -124,42 +116,22 @@ private fun findConnectedBlocks(
     maxHeight: Int,
     group: MutableBlockGroup
 ) {
-    for (direction in BLOCK_DIRECTIONS) {
-        val relative = startPos.relative(direction, minHeight, maxHeight) ?: continue
-        val x = relative.x
-        val y = relative.y
-        val z = relative.z
-        if (used[x][z][y - minHeight]) continue
-        used[x][z][y - minHeight] = true
-        val block = chunk.getBlockData(x, y, z)
-        val data = config.getDefaultBlockData(block.material) ?: continue
-        leavesChunk.setDefaultBlock(relative, data)
-        group.add(relative)
-        try {
-            findConnectedBlocks(
-                plugin,
-                config,
-                relative,
-                used,
-                chunk,
-                leavesChunk,
-                minHeight,
-                maxHeight,
-                group
-            )
-        } catch (exception: Exception) {
-            val logger = plugin.getLeavesLogger()
-            logger.severe("Error finding connected blocks:")
-            logger.severe("${exception.stackTrace}")
-            logger.severe("Current block group:")
-            logger.severe("world: ${group.getWorld()}")
-            logger.severe("minX: ${group.getMinX()}")
-            logger.severe("minY: ${group.getMinY()}")
-            logger.severe("minZ: ${group.getMinZ()}")
-            logger.severe("maxX: ${group.getMaxX()}")
-            logger.severe("maxY: ${group.getMaxY()}")
-            logger.severe("maxZ: ${group.getMaxZ()}")
+    val stack = ArrayDeque<PositionInChunk>()
+    stack.push(originalPos)
+    while (!stack.isEmpty()) {
+        val startPos = stack.removeFirst()
+        for (direction in BLOCK_DIRECTIONS) {
+            val relative = startPos.relative(direction, minHeight, maxHeight) ?: continue
+            val x = relative.x
+            val y = relative.y
+            val z = relative.z
+            if (used[x][z][y - minHeight]) continue
+            used[x][z][y - minHeight] = true
+            val block = chunk.getBlockData(x, y, z)
+            val data = config.getDefaultBlockData(block.material) ?: continue
+            leavesChunk.setDefaultBlock(relative, data)
+            group.add(relative)
+            stack.push(relative)
         }
     }
-
 }
