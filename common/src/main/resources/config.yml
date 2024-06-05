@@ -5,6 +5,10 @@ debug: false
 
 custom-mining-speed-for-default-logs: true
 
+whitelisted-worlds:
+  - "world"
+use-world-whitelist: false
+
 blocks:
   aspen_leaves:
     type: leaves

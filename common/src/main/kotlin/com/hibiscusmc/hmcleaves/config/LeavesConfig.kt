@@ -83,6 +83,9 @@ private const val PLACE_CONDITION_MATERIALS_KEY = "materials"
 private const val PLACE_CONDITION_IDS_KEY = "ids"
 private const val PLACE_CONDITION_ID = "id"
 
+private const val WHITELISTED_WORLDS_KEY = "whitelisted-worlds"
+private const val USE_WORLD_WHITELIST_KEY = "use-world-whitelist"
+
 private const val SEND_DEBUG_MESSAGES_KEY = "debug"
 
 private const val DEBUG_STICK_ID = "debug_stick"
@@ -98,6 +101,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
     private lateinit var databaseSettings: DatabaseSettings
     private var sendDebugMessages = false
     private var customMiningSpeedsForDefaultLogs by Delegates.notNull<Boolean>()
+    private val whitelistedWorlds = hashSetOf<String>()
+    private var useWorldWhitelist = true
 
     fun getDatabaseSettings(): DatabaseSettings {
         return this.databaseSettings
@@ -178,6 +183,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
 
         this.sendDebugMessages = config.getBoolean(SEND_DEBUG_MESSAGES_KEY, false)
         this.customMiningSpeedsForDefaultLogs = config.getBoolean(USE_CUSTOM_MINING_SPEED_FOR_DEFAULT_LOGS, false)
+        this.useWorldWhitelist = config.getBoolean(USE_WORLD_WHITELIST_KEY, this.useWorldWhitelist)
+        this.whitelistedWorlds.addAll(config.getStringList(WHITELISTED_WORLDS_KEY))
 
         loadDatabase(config)
         loadDefaults()
@@ -205,6 +212,20 @@ class LeavesConfig(private val plugin: HMCLeaves) {
     fun getChunkVersion(): Int {
         return this.chunkVersion
     }
+
+    fun isWorldWhitelisted(worldName: String): Boolean {
+        return !this.useWorldWhitelist || this.whitelistedWorlds.contains(worldName)
+    }
+
+    fun addWhitelistedWorld(worldName: String) {
+        this.whitelistedWorlds.add(worldName)
+    }
+
+    fun removeWhitelistedWorld(worldName: String) {
+        this.whitelistedWorlds.remove(worldName)
+    }
+
+    fun isWorldWhitelistEnabled(): Boolean = this.useWorldWhitelist
 
     private fun getDefaultIdFromMaterial(material: Material): String {
         return "default_${material.toString().lowercase()}"
