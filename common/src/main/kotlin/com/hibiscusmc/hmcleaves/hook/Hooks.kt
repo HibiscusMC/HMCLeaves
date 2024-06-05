@@ -42,6 +42,17 @@ class Hooks {
             }
         }
 
+        fun unload() {
+            initialized = false
+            itemHook = null
+            init()
+        }
+
+        fun reload() {
+            unload()
+            init()
+        }
+
         private fun createOraxenHook(plugin: HMCLeaves): ItemHook {
             return OraxenHook(plugin)
         }

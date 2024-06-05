@@ -2,15 +2,22 @@ package com.hibiscusmc.hmcleaves.command
 
 import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
+import com.hibiscusmc.hmcleaves.util.MINI_MESAGE
 import com.hibiscusmc.hmcleaves.util.parseAsAdventure
+import org.bukkit.ChatColor
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabExecutor
 import org.bukkit.entity.Player
 
-private const val GIVE_COMMAND = "give"
-private const val DEBUG_STICK = "debugstick"
+private data class CommandArg(val name: String, val permission: String? = null)
+
+private val GIVE_COMMAND = CommandArg("give")
+private val DEBUG_STICK_COMMAND = CommandArg("debugstick", "hmcleaves.command.debugstick")
+private val RELOAD_COMMAND = CommandArg("reload", "hmcleaves.command.reload")
+
+private val COMMANDS = listOf(GIVE_COMMAND, DEBUG_STICK_COMMAND, RELOAD_COMMAND)
 
 class HMCLeavesCommand(
     private var plugin: HMCLeaves,
@@ -24,7 +31,7 @@ class HMCLeavesCommand(
         }
 
         when (args[0]) {
-            GIVE_COMMAND -> {
+            GIVE_COMMAND.name -> {
                 if (args.size < 2) {
                     sender.sendMessage("<red>Usage: /hmcleaves give <item>".parseAsAdventure())
                     return true
@@ -32,12 +39,20 @@ class HMCLeavesCommand(
                 handleGive(sender as? Player ?: return true, args)
                 return true
             }
-            DEBUG_STICK -> {
+
+            DEBUG_STICK_COMMAND.name -> {
                 if (sender !is Player) return true
+                if (!sender.hasPermission(DEBUG_STICK_COMMAND.permission ?: return true)) return true
                 sender.inventory.addItem(this.config.getDebugStick())
                 return true
             }
 
+            RELOAD_COMMAND.name -> {
+                if (!sender.hasPermission(RELOAD_COMMAND.permission ?: return true)) return true
+                this.config.reload()
+                sender.sendMessage("${ChatColor.RED}Config successfully reloaded")
+                return true
+            }
         }
         return true
     }
@@ -47,7 +62,17 @@ class HMCLeavesCommand(
         val data = this.config.getBlockData(id) ?: run {
             return
         }
+        val amount = if (args.size > 2) {
+            try {
+                args[2].toInt()
+            } catch (exception: NumberFormatException) {
+                1
+            }
+        } else {
+            1
+        }
         val item = data.createItem()
+        item?.amount = amount
         sender.inventory.addItem(item)
     }
 
@@ -56,15 +81,12 @@ class HMCLeavesCommand(
         command: Command,
         label: String,
         args: Array<String>
-    ): MutableList<String> {
+    ): MutableList<String>? {
         val output = mutableListOf<String>()
 
         if (args.size <= 1) {
-            output.addAll(
-                listOf(
-                    GIVE_COMMAND
-                )
-            )
+            output.addAll(COMMANDS.filter { cmd -> sender.hasPermission(cmd.permission ?: return@filter true) }
+                .map { cmd -> cmd.name })
 
             if (args.isEmpty()) {
                 return output
@@ -74,8 +96,11 @@ class HMCLeavesCommand(
             }.toMutableList()
         }
 
-        return config.getBlockDataIds().filter {
-            it.startsWith(args[1])
-        }.toMutableList()
+        if (args.size == 2 && args[0] == GIVE_COMMAND.name) {
+            return config.getBlockDataIds().filter {
+                it.startsWith(args[1])
+            }.toMutableList()
+        }
+        return null
     }
 }

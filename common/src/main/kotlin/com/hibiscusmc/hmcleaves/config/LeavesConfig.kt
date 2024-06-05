@@ -191,6 +191,15 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         loadBlocks(config)
     }
 
+    fun reload() {
+        this.whitelistedWorlds.clear()
+        this.defaultBlockData.clear()
+        this.blockData.clear()
+        this.hookIdToBlockDataId.clear()
+        this.load()
+        Hooks.reload()
+    }
+
     private fun loadDatabase(config: FileConfiguration) {
         this.databaseSettings = this.loadDatabaseSettings(config)
 
