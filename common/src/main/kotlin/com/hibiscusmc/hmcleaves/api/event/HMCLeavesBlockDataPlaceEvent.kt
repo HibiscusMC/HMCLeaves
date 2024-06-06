@@ -12,7 +12,7 @@ class HMCLeavesBlockDataPlaceEvent(
     var position: Position,
     val previousData: BlockData?,
     var blockData: BlockData,
-    var cancelled: Boolean = false
+    private var cancelled: Boolean = false
 ) : Event(), Cancellable {
 
     companion object {

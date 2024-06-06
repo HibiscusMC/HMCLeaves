@@ -9,7 +9,7 @@ import org.bukkit.event.HandlerList
 class HMCLeavesBlockDataRemoveEvent(
     var position: Position,
     var blockData: BlockData,
-    var cancelled: Boolean = false
+    private var cancelled: Boolean = false
 ) : Event(), Cancellable {
 
     companion object {
