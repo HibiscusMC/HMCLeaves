@@ -5,6 +5,7 @@ import com.hibiscusmc.hmcleaves.block.BLOCK_DIRECTIONS
 import com.hibiscusmc.hmcleaves.block.BlockData
 import com.hibiscusmc.hmcleaves.block.BlockDirection
 import com.hibiscusmc.hmcleaves.block.BlockSetting
+import com.hibiscusmc.hmcleaves.block.BlockType
 import com.hibiscusmc.hmcleaves.block.getDirectionTo
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.util.getPosition
@@ -18,6 +19,7 @@ import org.bukkit.Tag
 import org.bukkit.World
 import org.bukkit.block.BlockFace
 import org.bukkit.event.Event
+import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockExplodeEvent
 import org.bukkit.event.block.BlockGrowEvent
@@ -27,6 +29,9 @@ import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.block.BlockSpreadEvent
 import org.bukkit.event.block.LeavesDecayEvent
 import org.bukkit.event.entity.EntityExplodeEvent
+import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.inventory.EquipmentSlot
+import org.bukkit.inventory.meta.Damageable
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.EnumSet
 
@@ -150,6 +155,36 @@ data object LogPlaceListener : BlockListener<BlockPlaceEvent>() {
         )
         return ListenResult(newData, ListenResultType.PASS_THROUGH)
 
+    }
+
+}
+
+data object LogStripListener : BlockListener<PlayerInteractEvent>() {
+
+    private val AXES = Material.entries.filter { it.name.contains("AXE") }
+
+    override fun handle(
+        event: PlayerInteractEvent,
+        world: World,
+        startLocation: Location,
+        position: PositionInChunk,
+        blockData: BlockData,
+        leavesChunk: LeavesChunk,
+        config: LeavesConfig
+    ): ListenResult {
+        if (event.action != Action.RIGHT_CLICK_BLOCK) {
+            return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+        }
+        if (blockData.blockType != BlockType.LOG) return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+        event.clickedBlock ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+        val player = event.player;
+        val itemInHand = player.inventory.getItem(EquipmentSlot.HAND)
+        if (!AXES.contains(itemInHand.type)) {
+            return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+        }
+        val strippedData =
+            config.getStrippedBlockData(blockData) ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+        return ListenResult(strippedData, ListenResultType.PASS_THROUGH)
     }
 
 }

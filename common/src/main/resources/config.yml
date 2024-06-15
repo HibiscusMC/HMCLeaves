@@ -17,6 +17,7 @@ blocks:
     properties:
       distance: 3
       persistent: true
+
   aspen_log:
     type: log
     world-material: oak_log
@@ -28,39 +29,19 @@ blocks:
       material: PAPER
       name: "<red>Aspen Log"
       model-data: 1
-  aspen_log_x:
-    type: log
-    world-material: oak_log
+
+  stripped_aspen_log:
+    type: stripped_log
+    world-material: stripped_oak_log
     visual-material: note_block
     properties:
       instrument: flute
-      note: 6
+      note: 9
     item:
       material: PAPER
-      name: "<red>Aspen Log (x)"
-      model-data: 2
-  aspen_log_y:
-    type: log
-    world-material: oak_log
-    visual-material: note_block
-    properties:
-      instrument: flute
-      note: 7
-    item:
-      material: PAPER
-      name: "<red>Aspen Log (y)"
-      model-data: 3
-  aspen_log_z:
-    type: log
-    world-material: oak_log
-    visual-material: note_block
-    properties:
-      instrument: flute
-      note: 8
-    item:
-      material: PAPER
-      name: "<red>Aspen Log (z)"
-      model-data: 4
+      name: "<red>Stripped Aspen Log"
+      model-data: 1
+
   sugar_cane:
     type: sugar_cane
     world-material: sugar_cane

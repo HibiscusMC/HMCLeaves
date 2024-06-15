@@ -89,7 +89,9 @@ class BukkitListeners(
             event.isCancelled = true
             return
         }
-        if (Hooks.isHandledByHook(item))
+        if (Hooks.isHandledByHook(item)) {
+            return
+        }
         blockData = result.blockData
         leavesChunk[position] = blockData
     }
@@ -145,14 +147,33 @@ class BukkitListeners(
 
         if (Hooks.isHandledByHook(itemInHand)) return
 
-        val data = this.config.getBlockDataFromItem(itemInHand) ?: return
-
         if (clickedBlockData == null && itemInHand.type.isBlock) {
             return
         }
         if (clickedBlockData == null && clickedBlock.type.isInteractable && !player.isSneaking) {
             return
         }
+
+        val leavesChunk = this.worldManager[worldUUID]?.get(clickedBlock.getChunkPosition())
+        if (clickedBlockData != null && leavesChunk != null) {
+            val clickedLocation = clickedBlock.location
+            val position = clickedLocation.toPositionInChunk()
+            if (position != null) {
+                val result = clickedBlockData.listen(
+                    event::class.java,
+                    event,
+                    clickedBlock.world,
+                    clickedLocation,
+                    position,
+                    leavesChunk,
+                    config
+                )
+                val newData = result.blockData
+                leavesChunk[position] = newData
+            }
+        }
+
+        val data = this.config.getBlockDataFromItem(itemInHand) ?: return
 
         val replacedState = relativeBlock.state
         val material = data.worldMaterial

@@ -26,6 +26,7 @@ import com.hibiscusmc.hmcleaves.listener.LeavesPistonRetractListener
 import com.hibiscusmc.hmcleaves.listener.ListenResult
 import com.hibiscusmc.hmcleaves.listener.ListenResultType
 import com.hibiscusmc.hmcleaves.listener.LogPlaceListener
+import com.hibiscusmc.hmcleaves.listener.LogStripListener
 import com.hibiscusmc.hmcleaves.listener.PlantFacingDownGrowListener
 import com.hibiscusmc.hmcleaves.listener.PlantFacingDownPlaceListener
 import com.hibiscusmc.hmcleaves.listener.PlantFacingDownRelativeBreakListener
@@ -53,6 +54,7 @@ import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.block.BlockSpreadEvent
 import org.bukkit.event.block.LeavesDecayEvent
 import org.bukkit.event.entity.EntityExplodeEvent
+import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.ItemStack
 import java.util.Collections
 
@@ -178,6 +180,22 @@ enum class BlockType(
         BlockSettings.EMPTY,
         { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
             BlockData.createLog(
+                id,
+                visualMaterial,
+                worldMaterial,
+                properties,
+                itemSupplier,
+                blockDrops,
+                modifier,
+                settings,
+                placeConditions
+            )
+        }),
+    STRIPPED_LOG(
+        LogDropReplacement(),
+        BlockSettings.EMPTY,
+        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
+            BlockData.createStrippedLog(
                 id,
                 visualMaterial,
                 worldMaterial,
@@ -455,6 +473,35 @@ class BlockData(
                 itemSupplier,
                 blockDrops,
                 hashMapOf(
+                    BlockPlaceEvent::class.java to LogPlaceListener,
+                    PlayerInteractEvent::class.java to LogStripListener
+                ),
+                blockBreakModifier = blockBreakModifier,
+                settings = settings,
+                placeConditions = placeConditions
+            )
+        }
+
+        fun createStrippedLog(
+            id: String,
+            visualMaterial: Material,
+            worldMaterial: Material,
+            properties: Map<Property<*>, *>,
+            itemSupplier: ItemSupplier,
+            blockDrops: BlockDrops,
+            blockBreakModifier: BlockBreakModifier?,
+            settings: BlockSettings,
+            placeConditions: List<PlaceConditions>
+        ): BlockData {
+            return BlockData(
+                id,
+                visualMaterial,
+                worldMaterial,
+                BlockType.STRIPPED_LOG,
+                properties,
+                itemSupplier,
+                blockDrops,
+                hashMapOf(
                     BlockPlaceEvent::class.java to LogPlaceListener
                 ),
                 blockBreakModifier = blockBreakModifier,
@@ -462,6 +509,7 @@ class BlockData(
                 placeConditions = placeConditions
             )
         }
+
 
         fun createSugarcane(
             id: String,

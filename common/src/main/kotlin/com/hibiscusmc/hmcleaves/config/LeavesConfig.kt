@@ -1,5 +1,6 @@
 package com.hibiscusmc.hmcleaves.config
 
+import com.github.retrooper.packetevents.protocol.world.states.enums.Instrument
 import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.block.BlockAxis
 import com.hibiscusmc.hmcleaves.block.BlockData
@@ -28,6 +29,7 @@ import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakModifier
 import com.hibiscusmc.hmcleaves.packet.mining.ToolType
 import com.hibiscusmc.hmcleaves.pdc.PDCUtil
 import com.hibiscusmc.hmcleaves.util.parseAsAdventure
+import org.bukkit.Axis
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
@@ -42,7 +44,9 @@ import java.util.EnumMap
 import kotlin.properties.Delegates
 
 private val LEAVES_MATERIALS = Material.entries.filter { Tag.LEAVES.isTagged(it) }.toList()
-private val LOG_MATERIALS = Material.entries.filter { Tag.LOGS.isTagged(it) }.toList()
+private val LOG_MATERIALS = Material.entries.filter { Tag.LOGS.isTagged(it) && !it.name.contains("STRIPPED") }.toList()
+private val STRIPPED_LOG_MATERIALS =
+    Material.entries.filter { Tag.LOGS.isTagged(it) && it.name.contains("STRIPPED") }.toList()
 private val SAPLING_MATERIALS = Material.entries.filter { Tag.SAPLINGS.isTagged(it) }.toList()
 
 private const val DATABASE_SETTINGS_KEY = "database-settings"
@@ -92,6 +96,10 @@ private const val DEBUG_STICK_ID = "debug_stick"
 
 private const val CURRENT_CHUNK_VERSION = 1
 
+private val INSTRUMENTS = Instrument.entries.toList()
+
+private const val MAX_NOTE = 24;
+
 class LeavesConfig(private val plugin: HMCLeaves) {
 
     private val filePath = plugin.dataFolder.toPath().resolve("config.yml")
@@ -111,6 +119,9 @@ class LeavesConfig(private val plugin: HMCLeaves) {
     private val defaultBlockData: MutableMap<Material, BlockData> = EnumMap(org.bukkit.Material::class.java)
     private val blockData: MutableMap<String, BlockData> = hashMapOf()
     private val hookIdToBlockDataId: MutableMap<String, String> = hashMapOf()
+
+    private var instrumentIndex = 0
+    private var noteIndex = 0
 
     fun sendDebugMessages(): Boolean {
         return this.sendDebugMessages
@@ -157,6 +168,10 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         }
         val id = original.id.substring(0, index)
         return getBlockData(id)
+    }
+
+    fun getStrippedBlockData(original: BlockData): BlockData? {
+        return getBlockData("stripped_${original.id}");
     }
 
     fun getBlockDataFromItem(item: ItemStack): BlockData? {
@@ -277,6 +292,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
     private fun loadDefaults() {
         this.loadDefaultLeaves()
         this.loadDefaultLogs()
+        this.loadDefaultStrippedLogs()
         this.loadDefaultSugarcane()
         this.loadDefaultSaplings()
         this.loadDefaultCaveVines()
@@ -317,6 +333,27 @@ class LeavesConfig(private val plugin: HMCLeaves) {
 
         for (material in LOG_MATERIALS) {
             val id = getDefaultIdFromMaterial(material)
+            val data = BlockData.createLog(
+                id,
+                material,
+                material,
+                properties,
+                ConstantItemSupplier(ItemStack(material), id),
+                SingleBlockDropReplacement(),
+                if (this.customMiningSpeedsForDefaultLogs) BlockBreakManager.LOG_BREAK_MODIFIER else null,
+                BlockType.LOG.defaultSettings,
+                emptyList()
+            )
+            this.defaultBlockData[material] = data
+            this.blockData[id] = data
+        }
+    }
+
+    private fun loadDefaultStrippedLogs() {
+        val properties: Map<Property<*>, Any> = hashMapOf()
+
+        for (material in STRIPPED_LOG_MATERIALS) {
+            val id = "stripped_${getDefaultIdFromMaterial(material).replace("_stripped", "")}"
             val data = BlockData.createLog(
                 id,
                 material,
@@ -543,18 +580,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
                 ?: throw IllegalArgumentException("$id requires $VISUAL_MATERIAL_KEY")
             val worldMaterial = section.getString(WORLD_MATERIAL_KEY)?.let { Material.valueOf(it.uppercase()) }
                 ?: throw IllegalArgumentException("$id requires $WORLD_MATERIAL_KEY")
-
-            val properties: MutableMap<Property<*>, Any> = hashMapOf()
-            section.getConfigurationSection(PROPERTIES_KEY)?.let { propertiesSection ->
-                for (propertyKey in propertiesSection.getKeys(false)) {
-                    val property: Property<Any> = Property.getPropertyByKey(propertyKey)
-                        ?: throw IllegalArgumentException("Invalid property $propertyKey")
-                    val value = propertiesSection.getString(propertyKey)?.let { property.converter(it) }
-                        ?: throw IllegalArgumentException("Invalid property for $propertyKey")
-                    properties[property] = value
-                }
-            }
-
+            val properties = this.loadProperties(section, type)
             val itemSupplier = section.getConfigurationSection(ITEM_KEY)?.let {
                 this.loadItem(it, id)
             } ?: ConstantItemSupplier(ItemStack(worldMaterial), id)
@@ -578,7 +604,58 @@ class LeavesConfig(private val plugin: HMCLeaves) {
                 placeConditions
             )
             blockData[id] = data
+
+            var axisNum = 0 // Only blocks with axes will be in the world, so the first axis can be the same so
+            // an extra note isn't used for no reason
+            if (type == BlockType.LOG || type == BlockType.STRIPPED_LOG) {
+                for (axis in Axis.entries) {
+                    val newProperties = if (axisNum == 0) properties else this.loadProperties(section, type);
+                    axisNum++
+                    val newId =
+                        "${id}_${axis.name.lowercase()}"
+                    val newData = type.blockSupplier(
+                        newId,
+                        visualMaterial,
+                        worldMaterial,
+                        newProperties,
+                        itemSupplier,
+                        blockDrops,
+                        connectsTo,
+                        blockBreakModifier,
+                        settings,
+                        placeConditions
+                    )
+                    blockData[newId] = newData
+                }
+            }
         }
+    }
+
+    private fun loadProperties(section: ConfigurationSection, type: BlockType): Map<Property<*>, Any> {
+        val properties: MutableMap<Property<*>, Any> = hashMapOf()
+        if (type == BlockType.LOG || type == BlockType.STRIPPED_LOG) {
+            val note = this.noteIndex
+            val instrument = INSTRUMENTS[this.instrumentIndex]
+            if (this.noteIndex > MAX_NOTE) {
+                this.noteIndex = 0
+                this.instrumentIndex++
+            } else {
+                this.noteIndex++
+            }
+            properties[Property.INSTRUMENT] = instrument
+            properties[Property.NOTE] = note
+            return properties
+        }
+        section.getConfigurationSection(PROPERTIES_KEY)?.let { propertiesSection ->
+            for (propertyKey in propertiesSection.getKeys(false)) {
+                val property: Property<Any> = Property.getPropertyByKey(propertyKey)
+                    ?: throw IllegalArgumentException("Invalid property $propertyKey")
+                val value = propertiesSection.getString(propertyKey)?.let { property.converter(it) }
+                    ?: throw IllegalArgumentException("Invalid property for $propertyKey")
+                properties[property] = value
+            }
+        }
+        return properties
     }
 
     private fun loadItem(section: ConfigurationSection, id: String): ItemSupplier {
@@ -682,11 +759,9 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         }
         val allConditions = arrayListOf<PlaceConditions>()
         for (key in section.getKeys(false)) {
-            this.plugin.logger.info("Loading section: ${key}")
             val placeConditionsMap = EnumMap<BlockDirection, List<PlaceCondition>>(BlockDirection::class.java)
             val conditionsSection = section.getConfigurationSection(key) ?: continue
             for (directionKey in conditionsSection.getKeys(false)) {
-                this.plugin.logger.info("Loading direction: ${directionKey}")
                 val direction = BlockDirection.valueOf(directionKey.uppercase())
                 val directionSection = conditionsSection.getConfigurationSection(directionKey) ?: continue
                 val conditions = this.loadPlaceCondition(directionSection, id)
