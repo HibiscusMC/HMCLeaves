@@ -1,6 +1,7 @@
 package com.hibiscusmc.hmcleaves
 
 import com.github.retrooper.packetevents.PacketEvents
+import com.hibiscusmc.hmcleaves.block.BlockChecker
 import com.hibiscusmc.hmcleaves.command.HMCLeavesCommand
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.database.LeavesDatabase
@@ -26,6 +27,7 @@ class HMCLeaves : JavaPlugin() {
     val blockBreakManager: BlockBreakManager by lazy { BlockBreakManager(plugin = this) }
     val userManager: UserManager by lazy { UserManager(this) }
     private lateinit var leavesLogger: LeavesLogger
+    private val blockChecker = BlockChecker(this, worldManager)
 
     override fun onLoad() {
         PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this))
@@ -50,12 +52,14 @@ class HMCLeaves : JavaPlugin() {
         pluginManager.registerEvents(BukkitListeners(this), this)
         pluginManager.registerEvents(ChunkListener(this), this)
 
-        PacketEvents.getAPI().eventManager.registerListener(PacketListener(this))
+        PacketEvents.getAPI().eventManager.registerListener(PacketListener(this, this.blockChecker))
         PacketEvents.getAPI().init()
 
         this.registerCommands()
 
         this.database.init()
+
+        this.blockChecker.start()
 
         // load hooks after all plugins have been loaded, cannot use
         // softdepend because HMCLeaves must load before the world loads
@@ -69,6 +73,7 @@ class HMCLeaves : JavaPlugin() {
     }
 
     override fun onDisable() {
+        this.blockChecker.stop()
         this.leavesLogger.sendSynced(false)
         PacketEvents.getAPI().terminate()
         for (world in Bukkit.getWorlds()) {
@@ -81,5 +86,7 @@ class HMCLeaves : JavaPlugin() {
     fun getLeavesLogger(): LeavesLogger {
         return this.leavesLogger
     }
+
+    fun getBlockChecker(): BlockChecker = this.blockChecker
 
 }

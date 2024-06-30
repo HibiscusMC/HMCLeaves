@@ -50,6 +50,15 @@ data class Position(val world: UUID, val x: Int, val y: Int, val z: Int) {
         )
     }
 
+    fun getIndexedChunkPosition(): IndexedChunkPosition {
+        return IndexedChunkPosition(
+            this.world,
+            convertCoordToChunkCoord(this.x),
+            this.y / 16,
+            convertCoordToChunkCoord(this.z)
+        )
+    }
+
     private fun calculateHash(): Int {
         var result = world.hashCode()
         result = 31 * result + x
@@ -160,6 +169,38 @@ data class ChunkPosition(val world: UUID, val x: Int, val z: Int) {
         other as ChunkPosition
 
         if (x != other.x) return false
+        if (z != other.z) return false
+        if (world != other.world) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return hash
+    }
+
+}
+
+data class IndexedChunkPosition(val world: UUID, val x: Int, val yIndex: Int, val z: Int) {
+
+    private var hash = calculateHash()
+
+    private fun calculateHash(): Int {
+        var result = world.hashCode()
+        result = 31 * result + x
+        result = 31 * result + yIndex
+        result = 31 * result + z
+        return result
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as IndexedChunkPosition
+
+        if (x != other.x) return false
+        if (yIndex != other.yIndex) return false
         if (z != other.z) return false
         if (world != other.world) return false
 

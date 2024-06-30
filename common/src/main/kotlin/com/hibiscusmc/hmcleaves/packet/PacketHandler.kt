@@ -8,11 +8,13 @@ import com.github.retrooper.packetevents.protocol.packettype.PacketType
 import com.github.retrooper.packetevents.protocol.player.DiggingAction
 import com.github.retrooper.packetevents.protocol.potion.PotionTypes
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState
+import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes
 import com.github.retrooper.packetevents.util.Vector3i
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerDigging
 import com.github.retrooper.packetevents.wrapper.play.server.*
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMultiBlockChange.EncodedBlock
 import com.hibiscusmc.hmcleaves.HMCLeaves
+import com.hibiscusmc.hmcleaves.block.BlockChecker
 import com.hibiscusmc.hmcleaves.block.BlockType
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.packet.wrapper.WrapperPlayServerWorldEvent
@@ -22,6 +24,7 @@ import com.hibiscusmc.hmcleaves.util.toVector3i
 import com.hibiscusmc.hmcleaves.world.*
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
 import org.bukkit.GameMode
+import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.block.data.BlockData
 import org.bukkit.entity.Player
@@ -31,6 +34,7 @@ import kotlin.math.abs
 
 class PacketListener(
     private val plugin: HMCLeaves,
+    private val blockChecker: BlockChecker,
     private val config: LeavesConfig = plugin.leavesConfig,
     private val woldManager: WorldManager = plugin.worldManager
 ) : PacketListenerAbstract() {
@@ -101,7 +105,7 @@ class PacketListener(
             val actualY = abs(convertCoordToCoordInChunk(position.y))
             val actualZ = position.z
             val state = data.applyPropertiesToState(chunk.get(actualX, actualY, actualZ))
-
+            this.blockChecker.addPositionToCheck(position.toPosition(chunkPos))
             chunk.set(
                 PacketEvents.getAPI().serverManager.version.toClientVersion(),
                 actualX,
@@ -125,12 +129,20 @@ class PacketListener(
         val blocks = packet.blocks
 
         for (block in blocks) {
-            val position = Position(worldUUID, block.x, block.y, block.z).toPositionInChunk()
-            val data = leavesChunk[position] ?: continue
+            val position = Position(worldUUID, block.x, block.y, block.z)
+            val positionInChunk = position.toPositionInChunk()
+            val blockState = block.getBlockState(PacketEvents.getAPI().serverManager.version.toClientVersion())
+            this.blockChecker.addPositionToCheck(position)
+            val material = SpigotConversionUtil.toBukkitBlockData(blockState).material
+            val defaultData = this.config.getDefaultBlockData(material)
+            val data = leavesChunk[positionInChunk] ?: run {
+                if (defaultData == null) return@run null
+                leavesChunk[positionInChunk] = defaultData
+                return@run defaultData
+            }
+            if (data == null) continue
             val state =
-                data.applyPropertiesToState(
-                    block.getBlockState(PacketEvents.getAPI().serverManager.version.toClientVersion())
-                )
+                data.applyPropertiesToState(blockState)
             block.setBlockState(state)
         }
     }
@@ -142,10 +154,20 @@ class PacketListener(
         val worldUUID = world.uid
         val packet = WrapperPlayServerBlockChange(event)
         val position = packet.blockPosition.toPosition(worldUUID)
+        val positionInChunk = position.toPositionInChunk()
         val chunkPos = position.getChunkPosition()
+        val material = SpigotConversionUtil.toBukkitBlockData(packet.blockState).material
+        val defaultData = this.config.getDefaultBlockData(material)
+        var leavesChunk = this.woldManager[worldUUID]?.get(chunkPos)
+        if (defaultData == null && leavesChunk == null) return
+        if (leavesChunk == null) {
+            leavesChunk = this.woldManager.getOrAdd(worldUUID).getOrAdd(chunkPos)
+            leavesChunk[positionInChunk] = defaultData!!
+        }
+        val data = leavesChunk[positionInChunk] ?: return
 
-        val leavesChunk = this.woldManager[worldUUID]?.get(chunkPos) ?: return
-        val data = leavesChunk[position.toPositionInChunk()] ?: return
+        this.blockChecker.addPositionToCheck(position)
+
         event.isCancelled = true
 
         val state = data.applyPropertiesToState(packet.blockState)
@@ -212,6 +234,27 @@ fun sendSingleBlockChange(
     ).globalId
     val packet = WrapperPlayServerBlockChange(position.toVector3i(), id)
     PacketEvents.getAPI().playerManager.sendPacketSilently(player, packet);
+}
+
+fun sendBlocksInChunk(
+    chunkPosition: IndexedChunkPosition,
+    positions: Map<PositionInChunk, BlockData>,
+    players: Collection<Player>
+) {
+    val blocks = arrayOfNulls<EncodedBlock>(positions.size)
+    var index = 0;
+    for (entry in positions) {
+        val position = entry.key
+        blocks[index] =
+            EncodedBlock(SpigotConversionUtil.fromBukkitBlockData(entry.value), position.x, position.y, position.z)
+        index++
+    }
+    val playerManager = PacketEvents.getAPI().playerManager
+    for (player in players) {
+        val packet =
+            WrapperPlayServerMultiBlockChange(Vector3i(chunkPosition.x, chunkPosition.yIndex, chunkPosition.z), true, blocks)
+        playerManager.sendPacket(player, packet)
+    }
 }
 
 fun sendChunk(
