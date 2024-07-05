@@ -43,7 +43,6 @@ import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.event.entity.ItemSpawnEvent
 import org.bukkit.event.player.PlayerHarvestBlockEvent
 import org.bukkit.event.player.PlayerInteractEvent
-import org.bukkit.event.world.StructureGrowEvent
 import org.bukkit.inventory.EquipmentSlot
 import java.util.EnumSet
 import java.util.LinkedList
@@ -121,6 +120,7 @@ class BukkitListeners(
         val itemInHand = event.item ?: return
         if (itemInHand.type == Material.AIR) return
         if (event.hand != EquipmentSlot.HAND) return
+        if (itemInHand.type.isBlock) return
 
         val player = event.player
         val worldUUID = player.world.uid

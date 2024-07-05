@@ -42,8 +42,6 @@ tasks {
         relocate("com.github.retrooper.packetevents", "com.hibiscusmc.hmcleaves.packetevents")
         relocate("com.github.benmanes.caffeine", "com.hibiscusmc.hmcleaves.caffeine")
 
-//        minimize()
-
         dependencies {
             exclude(dependency("org.yaml:snakeyaml"))
         }

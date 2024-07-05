@@ -205,19 +205,14 @@ class PacketListener(
             )
             return
         }
-//        val heldMaterial = player.inventory.itemInMainHand.type
         if (diggingAction == DiggingAction.CANCELLED_DIGGING) {
             blockBreakManager.cancelBlockBreak(player)
-//            if (!ItemUtil.isQuickMiningTool(heldMaterial)) {
             removeMiningFatigue(player)
-//            }
             return
         }
         if (diggingAction == DiggingAction.FINISHED_DIGGING) {
             blockBreakManager.cancelBlockBreak(player)
-//            if (!ItemUtil.isQuickMiningTool(heldMaterial)) {
             removeMiningFatigue(player)
-//            }
         }
     }
 
