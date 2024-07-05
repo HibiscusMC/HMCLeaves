@@ -9,11 +9,14 @@ whitelisted-worlds:
   - "world"
 use-world-whitelist: false
 
+use-texture-hook: true
+
 blocks:
   aspen_leaves:
     type: leaves
     world-material: oak_leaves
     visual-material: oak_leaves
+    model-path: "aspen_leaves"
     properties:
       distance: 3
       persistent: true
@@ -22,6 +25,7 @@ blocks:
     type: log
     world-material: oak_log
     visual-material: note_block
+    model-path: "aspen_log"
     properties:
       instrument: flute
       note: 5

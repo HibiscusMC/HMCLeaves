@@ -41,7 +41,9 @@ import org.bukkit.enchantments.Enchantment
 import org.bukkit.inventory.ItemStack
 import java.util.Collections
 import java.util.EnumMap
+import java.util.stream.Collectors
 import kotlin.properties.Delegates
+
 
 private val LEAVES_MATERIALS = Material.entries.filter { Tag.LEAVES.isTagged(it) }.toList()
 private val LOG_MATERIALS = Material.entries.filter { Tag.LOGS.isTagged(it) && !it.name.contains("STRIPPED") }.toList()
@@ -62,6 +64,7 @@ private const val CHUNK_VERSION_KEY = "chunk-version-key"
 private const val USE_CUSTOM_MINING_SPEED_FOR_DEFAULT_LOGS = "custom-mining-speed-for-default-logs"
 private const val BLOCKS_KEY = "blocks"
 private const val TYPE_KEY = "type"
+private const val MODEL_PATH_KEY = "model-path"
 private const val VISUAL_MATERIAL_KEY = "visual-material"
 private const val WORLD_MATERIAL_KEY = "world-material"
 private const val PROPERTIES_KEY = "properties"
@@ -94,13 +97,18 @@ private const val SEND_DEBUG_MESSAGES_KEY = "debug"
 
 private const val DEBUG_STICK_ID = "debug_stick"
 
+private const val USE_TEXTURE_HOOK_KEY = "use-texture-hook"
+
 private const val CURRENT_CHUNK_VERSION = 1
 
 private val INSTRUMENTS = Instrument.entries.toList()
 
 private const val MAX_NOTE = 24;
 
-class LeavesConfig(private val plugin: HMCLeaves) {
+class LeavesConfig(
+    private val plugin: HMCLeaves,
+    private val textureFileGenerator: TextureFileGenerator = TextureFileGenerator(plugin)
+) {
 
     private val filePath = plugin.dataFolder.toPath().resolve("config.yml")
     private val doNotTouchPath = plugin.dataFolder.toPath().resolve("do-not-touch.yml")
@@ -111,6 +119,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
     private var customMiningSpeedsForDefaultLogs by Delegates.notNull<Boolean>()
     private val whitelistedWorlds = hashSetOf<String>()
     private var useWorldWhitelist = true
+
+    private var useTextureHook = false
 
     fun getDatabaseSettings(): DatabaseSettings {
         return this.databaseSettings
@@ -156,9 +166,19 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         return Collections.unmodifiableMap(this.blockData)
     }
 
-    fun getDirectionalBlockData(original: BlockData, axis: BlockAxis): BlockData? {
+    fun getDirectionalBlockData(original: BlockData, axis: BlockAxis): BlockData {
         val newId = "${original.id}_${axis.toString().lowercase()}"
         return this.getBlockData(newId) ?: original
+    }
+
+    fun getAxisFromId(id: String): Axis? {
+        val parts = id.split('_')
+        if (parts.isEmpty()) return null
+        return try {
+            Axis.valueOf(parts[parts.size - 1].uppercase())
+        } catch (exception: IllegalArgumentException) {
+            null
+        }
     }
 
     fun getNonDirectionalBlockData(original: BlockData): BlockData? {
@@ -200,10 +220,12 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         this.customMiningSpeedsForDefaultLogs = config.getBoolean(USE_CUSTOM_MINING_SPEED_FOR_DEFAULT_LOGS, false)
         this.useWorldWhitelist = config.getBoolean(USE_WORLD_WHITELIST_KEY, this.useWorldWhitelist)
         this.whitelistedWorlds.addAll(config.getStringList(WHITELISTED_WORLDS_KEY))
+        this.useTextureHook = config.getBoolean(USE_TEXTURE_HOOK_KEY, false)
 
-        loadDatabase(config)
-        loadDefaults()
-        loadBlocks(config)
+        this.loadDatabase(config)
+        this.loadDefaults()
+        this.loadBlocks(config)
+        this.loadTextures()
     }
 
     fun reload() {
@@ -248,6 +270,8 @@ class LeavesConfig(private val plugin: HMCLeaves) {
     fun removeWhitelistedWorld(worldName: String) {
         this.whitelistedWorlds.remove(worldName)
     }
+
+    fun useTextureHook() = this.useTextureHook
 
     fun isWorldWhitelistEnabled(): Boolean = this.useWorldWhitelist
 
@@ -315,6 +339,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             val id = getDefaultIdFromMaterial(material)
             val data = BlockData.createLeaves(
                 id,
+                null,
                 material,
                 properties,
                 ConstantItemSupplier(ItemStack(material), id),
@@ -335,6 +360,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             val id = getDefaultIdFromMaterial(material)
             val data = BlockData.createLog(
                 id,
+                null,
                 material,
                 material,
                 properties,
@@ -356,6 +382,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             val id = "stripped_${getDefaultIdFromMaterial(material).replace("_stripped", "")}"
             val data = BlockData.createLog(
                 id,
+                null,
                 material,
                 material,
                 properties,
@@ -378,6 +405,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createSugarcane(
             id,
+            null,
             material,
             material,
             properties,
@@ -397,6 +425,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
             val id = getDefaultIdFromMaterial(material)
             val data = BlockData.createSapling(
                 id,
+                null,
                 material,
                 properties,
                 ConstantItemSupplier(ItemStack(material), id),
@@ -417,6 +446,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createCaveVines(
             id,
+            null,
             material,
             material,
             properties,
@@ -437,6 +467,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createCaveVinesPlant(
             id,
+            null,
             material,
             material,
             properties,
@@ -458,6 +489,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createWeepingVines(
             id,
+            null,
             material,
             material,
             properties,
@@ -477,6 +509,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createWeepingVinesPlant(
             id,
+            null,
             material,
             material,
             properties,
@@ -498,6 +531,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createTwistingVines(
             id,
+            null,
             material,
             material,
             properties,
@@ -517,6 +551,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createTwistingVinesPlant(
             id,
+            null,
             material,
             material,
             properties,
@@ -538,6 +573,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createKelp(
             id,
+            null,
             material,
             material,
             properties,
@@ -557,6 +593,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createKelpPlant(
             id,
+            null,
             material,
             material,
             properties,
@@ -568,6 +605,42 @@ class LeavesConfig(private val plugin: HMCLeaves) {
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
+    }
+
+    private fun loadTextures() {
+        if (!this.useTextureHook) return
+        this.loadTextures(LEAVES_MATERIALS)
+        this.loadTextures(LOG_MATERIALS, Material.NOTE_BLOCK)
+        this.loadTextures(STRIPPED_LOG_MATERIALS)
+        this.loadTextures(SAPLING_MATERIALS)
+        this.loadTextures(
+            listOf(
+                Material.SUGAR_CANE,
+                Material.STRING,
+                Material.NOTE_BLOCK,
+                Material.CAVE_VINES,
+                Material.CAVE_VINES_PLANT,
+                Material.WEEPING_VINES,
+                Material.WEEPING_VINES_PLANT,
+                Material.TWISTING_VINES,
+                Material.TWISTING_VINES_PLANT,
+                Material.KELP,
+                Material.KELP_PLANT,
+            )
+        )
+    }
+
+    private fun loadTextures(materials: Collection<Material>, overrideMaterial: Material? = null) {
+        for (material in materials) {
+            this.textureFileGenerator.generateFile(
+                overrideMaterial ?: material,
+                this.blockData.values
+                    .filter { blockData -> blockData.worldMaterial == material }
+                    .filter { blockData -> blockData.modelPath != null }
+                    .toList(),
+                this
+            )
+        }
     }
 
     private fun loadBlocks(config: YamlConfiguration) {
@@ -591,8 +664,10 @@ class LeavesConfig(private val plugin: HMCLeaves) {
                 loadBlockBreakModifier(section.getConfigurationSection(BLOCK_BREAK_MODIFIER_KEY), id)
             val settings = loadBlockSettings(section.getConfigurationSection(BLOCK_SETTINGS_KEY), id, type)
             val placeConditions = loadPlaceConditions(section.getConfigurationSection(PLACE_CONDITIONS_KEY), id)
+            val modelPath = section.getString(MODEL_PATH_KEY)
             val data = type.blockSupplier(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
@@ -615,6 +690,7 @@ class LeavesConfig(private val plugin: HMCLeaves) {
                         "${id}_${axis.name.lowercase()}"
                     val newData = type.blockSupplier(
                         newId,
+                        modelPath,
                         visualMaterial,
                         worldMaterial,
                         newProperties,

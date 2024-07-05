@@ -9,6 +9,7 @@ import org.bukkit.Material
 import org.bukkit.block.Block
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
+import java.io.File
 
 class Hooks {
 
@@ -81,6 +82,10 @@ class Hooks {
             val blockDataId = plugin.leavesConfig.getBlockDataIdFromHookId(hookId) ?: return false
             val blockData = plugin.leavesConfig.getBlockData(blockDataId) ?: return false
             return blockData.worldMaterial == Material.NOTE_BLOCK
+        }
+
+        fun transferTextures(file: File) {
+            itemHook?.transferTextures(file)
         }
 
     }

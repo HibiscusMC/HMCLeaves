@@ -1,10 +1,8 @@
 package com.hibiscusmc.hmcleaves.hook.item
 
-import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState
 import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.hook.Hook
 import com.hibiscusmc.hmcleaves.util.getChunkPosition
-import com.hibiscusmc.hmcleaves.util.toPosition
 import com.hibiscusmc.hmcleaves.util.toPositionInChunk
 import dev.lone.itemsadder.api.CustomBlock
 import dev.lone.itemsadder.api.CustomStack
@@ -26,7 +24,12 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.inventory.ItemStack
-import kotlin.math.log
+import java.io.File
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardCopyOption
+
 
 abstract class ItemHook(val id: String) : Hook, Listener {
 
@@ -46,9 +49,18 @@ abstract class ItemHook(val id: String) : Hook, Listener {
 
     abstract fun load()
 
+    abstract fun transferTextures(file: File)
+
 }
 
 class OraxenHook(private val plugin: HMCLeaves) : ItemHook("Oraxen") {
+
+    private val texturesPath: Path = OraxenPlugin.get().dataFolder
+        .toPath()
+        .resolve("pack")
+        .resolve("assets")
+        .resolve("minecraft")
+        .resolve("blockstates");
 
     override fun getItemById(itemId: String, hookItemId: String): ItemStack? {
         return ItemUpdater.updateItem(OraxenItems.getItemById(hookItemId)?.build() ?: return null)
@@ -115,6 +127,23 @@ class OraxenHook(private val plugin: HMCLeaves) : ItemHook("Oraxen") {
             blockData.setOverrideBlockId(blockStateId)
             this.plugin.getLeavesLogger()
                 .info("Overriding block date state id of $blockDataId with Oraxen ${hookId}: $blockStateId ")
+        }
+    }
+
+    override fun transferTextures(file: File) {
+        val texturesFolder: File = this.texturesPath.toFile()
+        if (!texturesFolder.exists()) {
+            plugin.logger.warning("Oraxen textures folder does not exist, creating it now")
+            if (!texturesFolder.mkdirs()) {
+                plugin.logger.warning("Failed to create Oraxen textures folder")
+                return
+            }
+        }
+        try {
+            Files.copy(file.toPath(), this.texturesPath.resolve(file.name), StandardCopyOption.REPLACE_EXISTING)
+            plugin.logger.info("Successfully transferred " + file.name + " to Oraxen textures folder")
+        } catch (e: IOException) {
+            e.printStackTrace()
         }
     }
 }
@@ -189,4 +218,7 @@ class ItemsAdderHook(private val plugin: HMCLeaves) : ItemHook("ItemsAdder") {
         }
     }
 
+    override fun transferTextures(file: File) {
+
+    }
 }

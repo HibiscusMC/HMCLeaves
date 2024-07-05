@@ -149,6 +149,7 @@ enum class BlockType(
     val defaultSettings: BlockSettings,
     val blockSupplier: (
         id: String,
+        modelPath: String?,
         visualMaterial: Material,
         worldMaterial: Material,
         properties: Map<Property<*>, *>,
@@ -163,9 +164,10 @@ enum class BlockType(
     LEAVES(
         SingleBlockDropReplacement(),
         BlockSettings.EMPTY,
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
+        { id, modelPath, visualMaterial, _, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
             BlockData.createLeaves(
                 id,
+                modelPath,
                 visualMaterial,
                 properties,
                 itemSupplier,
@@ -178,9 +180,10 @@ enum class BlockType(
     LOG(
         LogDropReplacement(),
         BlockSettings.EMPTY,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
             BlockData.createLog(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
@@ -194,9 +197,10 @@ enum class BlockType(
     STRIPPED_LOG(
         LogDropReplacement(),
         BlockSettings.EMPTY,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
             BlockData.createStrippedLog(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
@@ -210,9 +214,10 @@ enum class BlockType(
     SUGAR_CANE(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, _, settings, placeConditions ->
             BlockData.createSugarcane(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
@@ -225,15 +230,16 @@ enum class BlockType(
     SAPLING(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, _, properties, itemSupplier, blockDrops, _, _, settings, placeConditions ->
-            BlockData.createSapling(id, visualMaterial, properties, itemSupplier, blockDrops, settings, placeConditions)
+        { id, modelPath, visualMaterial, _, properties, itemSupplier, blockDrops, _, _, settings, placeConditions ->
+            BlockData.createSapling(id, modelPath, visualMaterial, properties, itemSupplier, blockDrops, settings, placeConditions)
         }),
     CAVE_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.ALL,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createCaveVines(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
@@ -247,9 +253,10 @@ enum class BlockType(
     CAVE_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.ALL,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createCaveVinesPlant(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
@@ -263,9 +270,10 @@ enum class BlockType(
     WEEPING_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createWeepingVines(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
@@ -279,9 +287,10 @@ enum class BlockType(
     WEEPING_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createWeepingVinesPlant(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
@@ -295,9 +304,10 @@ enum class BlockType(
     TWISTING_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createTwistingVines(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
@@ -311,9 +321,10 @@ enum class BlockType(
     TWISTING_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createTwistingVinesPlant(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
@@ -327,9 +338,10 @@ enum class BlockType(
     KELP(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createKelp(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
@@ -343,9 +355,10 @@ enum class BlockType(
     KELP_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createKelpPlant(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
@@ -359,9 +372,10 @@ enum class BlockType(
     SERVER_SIDE_BLOCK(
         SingleBlockDropReplacement(),
         BlockSettings.EMPTY,
-        { id, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
             BlockData.createServerSideBlock(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
@@ -376,6 +390,7 @@ enum class BlockType(
 
 class BlockData(
     val id: String,
+    val modelPath: String?,
     val visualMaterial: Material,
     val worldMaterial: Material,
     val blockType: BlockType,
@@ -426,6 +441,7 @@ class BlockData(
     companion object {
         fun createLeaves(
             id: String,
+            modelPath: String?,
             visualMaterial: Material,
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
@@ -436,6 +452,7 @@ class BlockData(
         ): BlockData {
             return BlockData(
                 id,
+                modelPath,
                 visualMaterial,
                 visualMaterial,
                 BlockType.LEAVES,
@@ -455,6 +472,7 @@ class BlockData(
 
         fun createLog(
             id: String,
+            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
@@ -466,6 +484,7 @@ class BlockData(
         ): BlockData {
             return BlockData(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.LOG,
@@ -484,6 +503,7 @@ class BlockData(
 
         fun createStrippedLog(
             id: String,
+            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
@@ -495,6 +515,7 @@ class BlockData(
         ): BlockData {
             return BlockData(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.STRIPPED_LOG,
@@ -513,6 +534,7 @@ class BlockData(
 
         fun createSugarcane(
             id: String,
+            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
@@ -523,6 +545,7 @@ class BlockData(
         ): BlockData {
             return BlockData(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.SUGAR_CANE,
@@ -549,6 +572,7 @@ class BlockData(
 
         fun createSapling(
             id: String,
+            modelPath: String?,
             visualMaterial: Material,
             properties: Map<Property<*>, *>,
             itemSupplier: ItemSupplier,
@@ -558,6 +582,7 @@ class BlockData(
         ): BlockData {
             return BlockData(
                 id,
+                modelPath,
                 visualMaterial,
                 visualMaterial,
                 BlockType.SAPLING,
@@ -577,6 +602,7 @@ class BlockData(
 
         fun createCaveVines(
             id: String,
+            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
@@ -603,6 +629,7 @@ class BlockData(
         ): BlockData {
             return BlockData(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.CAVE_VINES,
@@ -629,6 +656,7 @@ class BlockData(
 
         fun createCaveVinesPlant(
             id: String,
+            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
@@ -655,6 +683,7 @@ class BlockData(
         ): BlockData {
             return BlockData(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.CAVE_VINES_PLANT,
@@ -681,6 +710,7 @@ class BlockData(
 
         fun createWeepingVines(
             id: String,
+            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
@@ -692,6 +722,7 @@ class BlockData(
         ): BlockData {
             return BlockData(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.WEEPING_VINES,
@@ -717,6 +748,7 @@ class BlockData(
 
         fun createWeepingVinesPlant(
             id: String,
+            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
@@ -728,6 +760,7 @@ class BlockData(
         ): BlockData {
             return BlockData(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.WEEPING_VINES_PLANT,
@@ -753,6 +786,7 @@ class BlockData(
 
         fun createTwistingVines(
             id: String,
+            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
@@ -764,6 +798,7 @@ class BlockData(
         ): BlockData {
             return BlockData(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.TWISTING_VINES,
@@ -789,6 +824,7 @@ class BlockData(
 
         fun createTwistingVinesPlant(
             id: String,
+            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
@@ -800,6 +836,7 @@ class BlockData(
         ): BlockData {
             return BlockData(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.TWISTING_VINES_PLANT,
@@ -825,6 +862,7 @@ class BlockData(
 
         fun createKelp(
             id: String,
+            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
@@ -836,6 +874,7 @@ class BlockData(
         ): BlockData {
             return BlockData(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.KELP,
@@ -861,6 +900,7 @@ class BlockData(
 
         fun createKelpPlant(
             id: String,
+            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
@@ -872,6 +912,7 @@ class BlockData(
         ): BlockData {
             return BlockData(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.KELP_PLANT,
@@ -897,6 +938,7 @@ class BlockData(
 
         fun createServerSideBlock(
             id: String,
+            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
@@ -908,6 +950,7 @@ class BlockData(
         ): BlockData {
             return BlockData(
                 id,
+                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.SERVER_SIDE_BLOCK,
