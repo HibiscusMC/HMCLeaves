@@ -2,9 +2,9 @@ package com.hibiscusmc.hmcleaves.config
 
 import com.github.retrooper.packetevents.protocol.world.states.enums.Instrument
 import com.hibiscusmc.hmcleaves.HMCLeaves
-import com.hibiscusmc.hmcleaves.block.BlockAxis
 import com.hibiscusmc.hmcleaves.block.BlockData
 import com.hibiscusmc.hmcleaves.block.BlockDirection
+import com.hibiscusmc.hmcleaves.block.BlockFamily
 import com.hibiscusmc.hmcleaves.block.BlockIdPlaceCondition
 import com.hibiscusmc.hmcleaves.block.BlockSetting
 import com.hibiscusmc.hmcleaves.block.BlockSettings
@@ -41,7 +41,6 @@ import org.bukkit.enchantments.Enchantment
 import org.bukkit.inventory.ItemStack
 import java.util.Collections
 import java.util.EnumMap
-import java.util.stream.Collectors
 import kotlin.properties.Delegates
 
 
@@ -83,6 +82,7 @@ private const val REQUIRES_TOOL_KEY = "requires-tool"
 private const val REQUIRED_TOOLS_KEY = "tool-types"
 private const val REQUIRED_ENCHANTMENTS_KEY = "required-enchantments"
 private const val BLOCK_SETTINGS_KEY = "settings"
+private const val BLOCK_FAMILY_KEY = "block-family"
 
 private const val PLACE_CONDITIONS_KEY = "place-conditions"
 private const val PLACE_CONDITION_TAGS_KEY = "tags"
@@ -164,34 +164,6 @@ class LeavesConfig(
 
     fun getAllBlockData(): Map<String, BlockData> {
         return Collections.unmodifiableMap(this.blockData)
-    }
-
-    fun getDirectionalBlockData(original: BlockData, axis: BlockAxis): BlockData {
-        val newId = "${original.id}_${axis.toString().lowercase()}"
-        return this.getBlockData(newId) ?: original
-    }
-
-    fun getAxisFromId(id: String): Axis? {
-        val parts = id.split('_')
-        if (parts.isEmpty()) return null
-        return try {
-            Axis.valueOf(parts[parts.size - 1].uppercase())
-        } catch (exception: IllegalArgumentException) {
-            null
-        }
-    }
-
-    fun getNonDirectionalBlockData(original: BlockData): BlockData? {
-        val index = original.id.lastIndexOf('_')
-        if (index == -1) {
-            return original
-        }
-        val id = original.id.substring(0, index)
-        return getBlockData(id)
-    }
-
-    fun getStrippedBlockData(original: BlockData): BlockData? {
-        return getBlockData("stripped_${original.id}");
     }
 
     fun getBlockDataFromItem(item: ItemStack): BlockData? {
@@ -279,16 +251,42 @@ class LeavesConfig(
         return "default_${material.toString().lowercase()}"
     }
 
-    // example: default_cave_vines -> default_cave_vines_plant
-    fun getPlantFromId(id: String): BlockData? {
-        return this.getBlockData("${id}_plant")
+    private fun getAxisType(blockData: BlockData): BlockFamily.Type? {
+        for (type in BlockFamily.Type.AXIS_TYPES) {
+            val axisId = blockData.blockFamily.getFamilyId(type)
+            if (axisId != blockData.id) continue
+            return type
+        }
+        return null
     }
 
-    // example: default_cave_vines_plant -> default_cave_vines
-    fun getNonPlantFromId(id: String): BlockData? {
-        val index = id.indexOf("_plant")
-        if (index == -1) return this.getBlockData(id)
-        return this.getBlockData(id.substring(0, index))
+    fun getDirectionalBlockData(blockData: BlockData, axis: Axis): BlockData? {
+        val directionalId = blockData.blockFamily.getFamilyId(BlockFamily.Type.fromAxis(axis)) ?: return null
+        return this.getBlockData(directionalId)
+    }
+
+    fun getNonDirectionalBlockData(blockData: BlockData): BlockData? {
+        val nonDirectionalId = blockData.blockFamily.getFamilyId(BlockFamily.Type.NO_AXIS) ?: return null
+        return this.getBlockData(nonDirectionalId)
+    }
+
+    fun getStrippedBlockData(blockData: BlockData): BlockData? {
+        val strippedId = blockData.blockFamily.getFamilyId(BlockFamily.Type.STRIPPED) ?: return null
+        val axis = getAxisType(blockData) ?: return this.getBlockData(strippedId)
+        val strippedData = this.getBlockData(strippedId) ?: return null
+        val strippedDirectionalId = strippedData.blockFamily.getFamilyId(axis) ?: return null
+        return this.getBlockData(strippedDirectionalId)
+    }
+
+    fun getPlant(blockData: BlockData): BlockData? {
+        val plantId = blockData.blockFamily.getFamilyId(BlockFamily.Type.PLANT) ?: return null
+        Bukkit.broadcastMessage("plantId: $plantId thisId: ${blockData.id}" )
+        return this.getBlockData(plantId)
+    }
+
+    fun getNonPlant(blockData: BlockData): BlockData? {
+        val nonPlantId = blockData.blockFamily.getFamilyId(BlockFamily.Type.NOT_PLANT) ?: return null
+        return this.getBlockData(nonPlantId)
     }
 
     private fun loadDatabaseSettings(config: FileConfiguration): DatabaseSettings {
@@ -342,6 +340,7 @@ class LeavesConfig(
                 null,
                 material,
                 properties,
+                BlockFamily(),
                 ConstantItemSupplier(ItemStack(material), id),
                 SingleBlockDropReplacement(),
                 null,
@@ -364,6 +363,7 @@ class LeavesConfig(
                 material,
                 material,
                 properties,
+                BlockFamily(Pair(BlockFamily.Type.STRIPPED, "stripped_${id}")),
                 ConstantItemSupplier(ItemStack(material), id),
                 SingleBlockDropReplacement(),
                 if (this.customMiningSpeedsForDefaultLogs) BlockBreakManager.LOG_BREAK_MODIFIER else null,
@@ -379,13 +379,15 @@ class LeavesConfig(
         val properties: Map<Property<*>, Any> = hashMapOf()
 
         for (material in STRIPPED_LOG_MATERIALS) {
-            val id = "stripped_${getDefaultIdFromMaterial(material).replace("_stripped", "")}"
+            val notStrippedId = getDefaultIdFromMaterial(material).replace("_stripped", "")
+            val id = "stripped_${notStrippedId}"
             val data = BlockData.createLog(
                 id,
                 null,
                 material,
                 material,
                 properties,
+                BlockFamily(Pair(BlockFamily.Type.NOT_STRIPPED, notStrippedId)),
                 ConstantItemSupplier(ItemStack(material), id),
                 SingleBlockDropReplacement(),
                 if (this.customMiningSpeedsForDefaultLogs) BlockBreakManager.LOG_BREAK_MODIFIER else null,
@@ -409,6 +411,7 @@ class LeavesConfig(
             material,
             material,
             properties,
+            BlockFamily(),
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             BlockType.SUGAR_CANE.defaultSettings,
@@ -428,6 +431,7 @@ class LeavesConfig(
                 null,
                 material,
                 properties,
+                BlockFamily(),
                 ConstantItemSupplier(ItemStack(material), id),
                 SingleBlockDropReplacement(),
                 BlockType.SAPLING.defaultSettings,
@@ -450,6 +454,7 @@ class LeavesConfig(
             material,
             material,
             properties,
+            BlockFamily(Pair(BlockFamily.Type.PLANT, getDefaultIdFromMaterial(Material.CAVE_VINES_PLANT))),
             ConstantItemSupplier(ItemStack(Material.GLOW_BERRIES), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.CAVE_VINES_PLANT)),
@@ -471,6 +476,7 @@ class LeavesConfig(
             material,
             material,
             properties,
+            BlockFamily(Pair(BlockFamily.Type.NOT_PLANT, getDefaultIdFromMaterial(Material.CAVE_VINES))),
             ConstantItemSupplier(ItemStack(Material.GLOW_BERRIES), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.CAVE_VINES)),
@@ -493,6 +499,7 @@ class LeavesConfig(
             material,
             material,
             properties,
+            BlockFamily(Pair(BlockFamily.Type.PLANT, getDefaultIdFromMaterial(Material.WEEPING_VINES_PLANT))),
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.WEEPING_VINES_PLANT)),
@@ -513,6 +520,7 @@ class LeavesConfig(
             material,
             material,
             properties,
+            BlockFamily(Pair(BlockFamily.Type.NOT_PLANT, getDefaultIdFromMaterial(Material.WEEPING_VINES))),
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.WEEPING_VINES)),
@@ -535,6 +543,7 @@ class LeavesConfig(
             material,
             material,
             properties,
+            BlockFamily(Pair(BlockFamily.Type.PLANT, getDefaultIdFromMaterial(Material.TWISTING_VINES_PLANT))),
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.TWISTING_VINES_PLANT)),
@@ -555,6 +564,7 @@ class LeavesConfig(
             material,
             material,
             properties,
+            BlockFamily(Pair(BlockFamily.Type.NOT_PLANT, getDefaultIdFromMaterial(Material.TWISTING_VINES))),
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.TWISTING_VINES)),
@@ -577,6 +587,7 @@ class LeavesConfig(
             material,
             material,
             properties,
+            BlockFamily(Pair(BlockFamily.Type.PLANT, getDefaultIdFromMaterial(Material.KELP_PLANT))),
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.KELP_PLANT)),
@@ -597,6 +608,7 @@ class LeavesConfig(
             material,
             material,
             properties,
+            BlockFamily(Pair(BlockFamily.Type.NOT_PLANT, getDefaultIdFromMaterial(Material.KELP))),
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.KELP)),
@@ -608,7 +620,6 @@ class LeavesConfig(
     }
 
     private fun loadTextures() {
-        if (!this.useTextureHook) return
         this.loadTextures(LEAVES_MATERIALS)
         this.loadTextures(LOG_MATERIALS, Material.NOTE_BLOCK)
         this.loadTextures(STRIPPED_LOG_MATERIALS)
@@ -654,6 +665,7 @@ class LeavesConfig(
             val worldMaterial = section.getString(WORLD_MATERIAL_KEY)?.let { Material.valueOf(it.uppercase()) }
                 ?: throw IllegalArgumentException("$id requires $WORLD_MATERIAL_KEY")
             val properties = this.loadProperties(section, type)
+            val blockFamily = this.loadBlockFamily(section)
             val itemSupplier = section.getConfigurationSection(ITEM_KEY)?.let {
                 this.loadItem(it, id)
             } ?: ConstantItemSupplier(ItemStack(worldMaterial), id)
@@ -671,6 +683,7 @@ class LeavesConfig(
                 visualMaterial,
                 worldMaterial,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 connectsTo,
@@ -683,17 +696,20 @@ class LeavesConfig(
             var axisNum = 0 // Only blocks with axes will be in the world, so the first axis can be the same so
             // an extra note isn't used for no reason
             if (type == BlockType.LOG || type == BlockType.STRIPPED_LOG) {
+                blockFamily.addFamilyType(BlockFamily.Type.NO_AXIS, id)
                 for (axis in Axis.entries) {
                     val newProperties = if (axisNum == 0) properties else this.loadProperties(section, type);
                     axisNum++
                     val newId =
                         "${id}_${axis.name.lowercase()}"
+                    blockFamily.addFamilyType(BlockFamily.Type.fromAxis(axis), newId)
                     val newData = type.blockSupplier(
                         newId,
                         modelPath,
                         visualMaterial,
                         worldMaterial,
                         newProperties,
+                        blockFamily,
                         itemSupplier,
                         blockDrops,
                         connectsTo,
@@ -732,6 +748,22 @@ class LeavesConfig(
             }
         }
         return properties
+    }
+
+    private fun loadBlockFamily(section: ConfigurationSection): BlockFamily {
+        val family = BlockFamily()
+        section.getConfigurationSection(BLOCK_FAMILY_KEY)?.let { blockFamilySection ->
+            for (key in blockFamilySection.getKeys(false)) {
+                try {
+                    val type = BlockFamily.Type.valueOf(key.uppercase())
+                    val blockId = blockFamilySection.getString(key)!!
+                    family.addFamilyType(type, blockId)
+                } catch (exception: IllegalArgumentException) {
+                    this.plugin.logger.severe("$key is not a valid block family type")
+                }
+            }
+        }
+        return family
     }
 
     private fun loadItem(section: ConfigurationSection, id: String): ItemSupplier {

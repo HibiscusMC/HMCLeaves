@@ -1,6 +1,8 @@
 package com.hibiscusmc.hmcleaves.world
 
 import com.hibiscusmc.hmcleaves.block.BlockData
+import com.hibiscusmc.hmcleaves.block.BlockType
+import org.bukkit.Bukkit
 import java.util.Collections
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -25,11 +27,11 @@ class LeavesChunk(
         this.dirty = true
     }
 
-    operator fun get(position: PositionInChunk) : BlockData? {
+    operator fun get(position: PositionInChunk): BlockData? {
         return this.blocks[position] ?: this.defaultBlocks[position]
     }
 
-    fun remove(position: PositionInChunk, addToRemoved: Boolean) : BlockData? {
+    fun remove(position: PositionInChunk, addToRemoved: Boolean): BlockData? {
         val removed = this.blocks.remove(position) ?: this.defaultBlocks.remove(position)
         if (addToRemoved && removed != null) {
             this.blocksToRemove[position] = removed

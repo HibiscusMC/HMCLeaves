@@ -1,7 +1,6 @@
 package com.hibiscusmc.hmcleaves.util
 
 import com.github.retrooper.packetevents.util.Vector3i
-import com.hibiscusmc.hmcleaves.block.BlockAxis
 import com.hibiscusmc.hmcleaves.block.BlockDirection
 import com.hibiscusmc.hmcleaves.block.BlockDirection.*
 import com.hibiscusmc.hmcleaves.world.*
@@ -69,11 +68,11 @@ fun BlockFace.toBlockDirection(): BlockDirection? {
     }
 }
 
-fun Axis.asBlockAxis(): BlockAxis {
+fun Axis.asAxis(): Axis {
     return when (this) {
-        Axis.X -> BlockAxis.X
-        Axis.Y -> BlockAxis.Y
-        Axis.Z -> BlockAxis.Z
+        Axis.X -> Axis.X
+        Axis.Y -> Axis.Y
+        Axis.Z -> Axis.Z
     }
 }
 

@@ -1,6 +1,7 @@
 package com.hibiscusmc.hmcleaves.block
 
 import com.hibiscusmc.hmcleaves.world.Position
+import org.bukkit.Axis
 import org.bukkit.block.BlockFace
 import java.util.*
 
@@ -19,11 +20,11 @@ enum class BlockDirection(
     UP(0, 1, 0, BlockFace.UP, lazy { DOWN }),
     DOWN(0, -1, 0, BlockFace.DOWN, lazy { UP });
 
-    fun toAxis(): BlockAxis {
+    fun toAxis(): Axis {
         return when (this) {
-            NORTH, SOUTH -> BlockAxis.X
-            EAST, WEST -> BlockAxis.Z
-            UP, DOWN -> BlockAxis.Y
+            NORTH, SOUTH -> Axis.X
+            EAST, WEST -> Axis.Z
+            UP, DOWN -> Axis.Y
         }
     }
 

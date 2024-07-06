@@ -153,6 +153,7 @@ enum class BlockType(
         visualMaterial: Material,
         worldMaterial: Material,
         properties: Map<Property<*>, *>,
+        blockFamily: BlockFamily,
         itemSupplier: ItemSupplier,
         blockDrops: BlockDrops,
         connectsTo: Set<String>,
@@ -164,12 +165,13 @@ enum class BlockType(
     LEAVES(
         SingleBlockDropReplacement(),
         BlockSettings.EMPTY,
-        { id, modelPath, visualMaterial, _, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
+        { id, modelPath, visualMaterial, _, properties, blockFamily, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
             BlockData.createLeaves(
                 id,
                 modelPath,
                 visualMaterial,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 modifier,
@@ -180,13 +182,14 @@ enum class BlockType(
     LOG(
         LogDropReplacement(),
         BlockSettings.EMPTY,
-        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
             BlockData.createLog(
                 id,
                 modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 modifier,
@@ -197,13 +200,14 @@ enum class BlockType(
     STRIPPED_LOG(
         LogDropReplacement(),
         BlockSettings.EMPTY,
-        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
             BlockData.createStrippedLog(
                 id,
                 modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 modifier,
@@ -214,13 +218,14 @@ enum class BlockType(
     SUGAR_CANE(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, itemSupplier, blockDrops, _, _, settings, placeConditions ->
             BlockData.createSugarcane(
                 id,
                 modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 settings,
@@ -230,19 +235,30 @@ enum class BlockType(
     SAPLING(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, modelPath, visualMaterial, _, properties, itemSupplier, blockDrops, _, _, settings, placeConditions ->
-            BlockData.createSapling(id, modelPath, visualMaterial, properties, itemSupplier, blockDrops, settings, placeConditions)
+        { id, modelPath, visualMaterial, _, properties, blockFamily, itemSupplier, blockDrops, _, _, settings, placeConditions ->
+            BlockData.createSapling(
+                id,
+                modelPath,
+                visualMaterial,
+                properties,
+                blockFamily,
+                itemSupplier,
+                blockDrops,
+                settings,
+                placeConditions
+            )
         }),
     CAVE_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.ALL,
-        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createCaveVines(
                 id,
                 modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 connectsTo,
@@ -253,13 +269,14 @@ enum class BlockType(
     CAVE_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.ALL,
-        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createCaveVinesPlant(
                 id,
                 modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 connectsTo,
@@ -270,13 +287,14 @@ enum class BlockType(
     WEEPING_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createWeepingVines(
                 id,
                 modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 connectsTo,
@@ -287,13 +305,14 @@ enum class BlockType(
     WEEPING_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createWeepingVinesPlant(
                 id,
                 modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 connectsTo,
@@ -304,13 +323,14 @@ enum class BlockType(
     TWISTING_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createTwistingVines(
                 id,
                 modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 connectsTo,
@@ -321,13 +341,14 @@ enum class BlockType(
     TWISTING_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createTwistingVinesPlant(
                 id,
                 modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 connectsTo,
@@ -338,13 +359,14 @@ enum class BlockType(
     KELP(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createKelp(
                 id,
                 modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 connectsTo,
@@ -355,13 +377,14 @@ enum class BlockType(
     KELP_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
             BlockData.createKelpPlant(
                 id,
                 modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 connectsTo,
@@ -372,13 +395,14 @@ enum class BlockType(
     SERVER_SIDE_BLOCK(
         SingleBlockDropReplacement(),
         BlockSettings.EMPTY,
-        { id, modelPath, visualMaterial, worldMaterial, properties, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
+        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
             BlockData.createServerSideBlock(
                 id,
                 modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 modifier,
@@ -395,6 +419,7 @@ class BlockData(
     val worldMaterial: Material,
     val blockType: BlockType,
     val properties: Map<Property<*>, *>,
+    val blockFamily: BlockFamily,
     private val itemSupplier: ItemSupplier,
     private val blockDrops: BlockDrops,
     private val listeners: Map<Class<*>, BlockListener<*>>,
@@ -444,6 +469,7 @@ class BlockData(
             modelPath: String?,
             visualMaterial: Material,
             properties: Map<Property<*>, *>,
+            blockFamily: BlockFamily,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             blockBreakModifier: BlockBreakModifier?,
@@ -457,6 +483,7 @@ class BlockData(
                 visualMaterial,
                 BlockType.LEAVES,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 hashMapOf(
@@ -476,6 +503,7 @@ class BlockData(
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
+            blockFamily: BlockFamily,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             blockBreakModifier: BlockBreakModifier?,
@@ -489,6 +517,7 @@ class BlockData(
                 worldMaterial,
                 BlockType.LOG,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 hashMapOf(
@@ -507,6 +536,7 @@ class BlockData(
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
+            blockFamily: BlockFamily,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             blockBreakModifier: BlockBreakModifier?,
@@ -520,6 +550,7 @@ class BlockData(
                 worldMaterial,
                 BlockType.STRIPPED_LOG,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 hashMapOf(
@@ -538,6 +569,7 @@ class BlockData(
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
+            blockFamily: BlockFamily,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             settings: BlockSettings,
@@ -550,6 +582,7 @@ class BlockData(
                 worldMaterial,
                 BlockType.SUGAR_CANE,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 Collections.unmodifiableMap(
@@ -575,6 +608,7 @@ class BlockData(
             modelPath: String?,
             visualMaterial: Material,
             properties: Map<Property<*>, *>,
+            blockFamily: BlockFamily,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             settings: BlockSettings,
@@ -587,6 +621,7 @@ class BlockData(
                 visualMaterial,
                 BlockType.SAPLING,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 Collections.unmodifiableMap(
@@ -606,6 +641,7 @@ class BlockData(
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
+            blockFamily: BlockFamily,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
@@ -634,6 +670,7 @@ class BlockData(
                 worldMaterial,
                 BlockType.CAVE_VINES,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 mapOf(
@@ -660,6 +697,7 @@ class BlockData(
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
+            blockFamily: BlockFamily,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
@@ -688,6 +726,7 @@ class BlockData(
                 worldMaterial,
                 BlockType.CAVE_VINES_PLANT,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 mapOf(
@@ -714,6 +753,7 @@ class BlockData(
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
+            blockFamily: BlockFamily,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
@@ -727,6 +767,7 @@ class BlockData(
                 worldMaterial,
                 BlockType.WEEPING_VINES,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 mapOf(
@@ -752,6 +793,7 @@ class BlockData(
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
+            blockFamily: BlockFamily,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
@@ -765,6 +807,7 @@ class BlockData(
                 worldMaterial,
                 BlockType.WEEPING_VINES_PLANT,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 mapOf(
@@ -790,6 +833,7 @@ class BlockData(
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
+            blockFamily: BlockFamily,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
@@ -803,6 +847,7 @@ class BlockData(
                 worldMaterial,
                 BlockType.TWISTING_VINES,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 mapOf(
@@ -828,6 +873,7 @@ class BlockData(
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
+            blockFamily: BlockFamily,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
@@ -841,6 +887,7 @@ class BlockData(
                 worldMaterial,
                 BlockType.TWISTING_VINES_PLANT,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 mapOf(
@@ -866,6 +913,7 @@ class BlockData(
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
+            blockFamily: BlockFamily,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
@@ -879,6 +927,7 @@ class BlockData(
                 worldMaterial,
                 BlockType.KELP,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 mapOf(
@@ -904,6 +953,7 @@ class BlockData(
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
+            blockFamily: BlockFamily,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             connectsTo: Set<String>,
@@ -917,6 +967,7 @@ class BlockData(
                 worldMaterial,
                 BlockType.KELP_PLANT,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 mapOf(
@@ -942,6 +993,7 @@ class BlockData(
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
+            blockFamily: BlockFamily,
             itemSupplier: ItemSupplier,
             blockDrops: BlockDrops,
             blockBreakModifier: BlockBreakModifier?,
@@ -955,6 +1007,7 @@ class BlockData(
                 worldMaterial,
                 BlockType.SERVER_SIDE_BLOCK,
                 properties,
+                blockFamily,
                 itemSupplier,
                 blockDrops,
                 mapOf(),

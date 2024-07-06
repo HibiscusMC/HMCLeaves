@@ -4,6 +4,7 @@ import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.block.BLOCK_DIRECTIONS
 import com.hibiscusmc.hmcleaves.block.BlockData
 import com.hibiscusmc.hmcleaves.block.BlockDirection
+import com.hibiscusmc.hmcleaves.block.BlockFamily
 import com.hibiscusmc.hmcleaves.block.BlockSetting
 import com.hibiscusmc.hmcleaves.block.BlockType
 import com.hibiscusmc.hmcleaves.block.getDirectionTo
@@ -184,6 +185,7 @@ data object LogStripListener : BlockListener<PlayerInteractEvent>() {
         }
         val strippedData =
             config.getStrippedBlockData(blockData) ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+
         return ListenResult(strippedData, ListenResultType.PASS_THROUGH)
     }
 
@@ -325,7 +327,7 @@ sealed class ConnectedBlockFacingUpDestroyListener<T : Event> : BlockListener<T>
         leavesChunk: LeavesChunk,
         config: LeavesConfig
     ): ListenResult {
-        val supportingBlockData = config.getNonPlantFromId(blockData.id)
+        val supportingBlockData = config.getNonPlant(blockData)
             ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
         markConnectedBlocksRemoved(
             startLocation,
@@ -350,7 +352,7 @@ sealed class ConnectedBlockFacingDownDestroyListener<T : Event> : BlockListener<
         leavesChunk: LeavesChunk,
         config: LeavesConfig
     ): ListenResult {
-        val supportingBlockData = config.getNonPlantFromId(blockData.id)
+        val supportingBlockData = config.getNonPlant(blockData)
             ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
         markConnectedBlocksRemoved(
             startLocation,
@@ -385,14 +387,14 @@ sealed class PlantFacingPlaceListener(private val direction: BlockDirection) : B
                 event.isCancelled = true
                 return ListenResult(blockData, ListenResultType.CANCEL_EVENT)
             }
-            val newData = config.getNonPlantFromId(blockData.id) ?: blockData
+            val newData = config.getNonPlant(blockData) ?: blockData
             return ListenResult(newData, ListenResultType.PASS_THROUGH)
         }
         if (!blockData.canConnectTo(relativeData)) {
             event.isCancelled = true
             return ListenResult(blockData, ListenResultType.CANCEL_EVENT)
         }
-        val plantData = config.getPlantFromId(relativeData.id)
+        val plantData = config.getPlant(relativeData)
             ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
         leavesChunk[relative] = plantData
         return ListenResult(blockData, ListenResultType.PASS_THROUGH)
@@ -416,7 +418,7 @@ sealed class PlantRelativeBreakListener(
         if (event.direction != this.direction) {
             return ListenResult(blockData, ListenResultType.PASS_THROUGH)
         }
-        val supportingBlockData = config.getNonPlantFromId(blockData.id)
+        val supportingBlockData = config.getNonPlant(blockData)
             ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
         leavesChunk.remove(position, true)
         markConnectedBlocksRemoved(
@@ -449,10 +451,12 @@ sealed class PlantGrowListener(
         val supportingBlock = event.block.getRelative(supportDirection.bukkitBlockFace)
         val supportingData = leavesChunk[supportingBlock.getPositionInChunk()]
             ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
-        val plant = config.getPlantFromId(supportingData.id)
+
+        val plant = config.getPlant(supportingData)
             ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+        Bukkit.broadcastMessage("Plant: $plant")
         leavesChunk[supportingBlock.getPositionInChunk()] = plant
-        return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+        return ListenResult(supportingData, ListenResultType.PASS_THROUGH)
     }
 }
 

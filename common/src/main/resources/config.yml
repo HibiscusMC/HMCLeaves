@@ -26,6 +26,11 @@ blocks:
     world-material: oak_log
     visual-material: note_block
     model-path: "aspen_log"
+    block-family:
+      AXIS_X: "aspen_log_x"
+      AXIS_Y: "aspen_log_y"
+      AXIS_Z: "aspen_log_z"
+      STRIPPED: "stripped_aspen_log"
     properties:
       instrument: flute
       note: 5
@@ -38,6 +43,12 @@ blocks:
     type: stripped_log
     world-material: stripped_oak_log
     visual-material: note_block
+    model-path: "stripped_aspen_log"
+    block-family:
+      AXIS_X: "aspen_log_x"
+      AXIS_Y: "aspen_log_y"
+      AXIS_Z: "aspen_log_z"
+      NOT_STRIPPED: "aspen_log"
     properties:
       instrument: flute
       note: 9
@@ -74,9 +85,14 @@ blocks:
       tool-types:
         - shovel
   custom_cave_vines_plant:
+    item:
+      material: PAPER
+      name: "<blue>Custom Cave Vines Plant"
     type: cave_vines_plant
     world-material: cave_vines_plant
     visual-material: cave_vines
+    block-family:
+      NOT_PLANT: "custom_cave_vines"
     connects-to:
       - custom_cave_vines
     properties:
@@ -88,9 +104,14 @@ blocks:
         name: <aqua>Paper Glow Berries
         model-data: 5
   custom_cave_vines:
+    item:
+      material: PAPER
+      name: "<blue>Custom Cave Vines"
     type: cave_vines
     visual-material: cave_vines
     world-material: cave_vines
+    block-family:
+      PLANT: "custom_cave_vines_plant"
     connects-to:
       - custom_cave_vines_plant
     properties:

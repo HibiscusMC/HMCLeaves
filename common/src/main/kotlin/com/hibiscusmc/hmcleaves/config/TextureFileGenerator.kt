@@ -7,9 +7,11 @@ import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
 import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.block.BlockData
+import com.hibiscusmc.hmcleaves.block.BlockFamily
 import com.hibiscusmc.hmcleaves.block.BlockType
 import com.hibiscusmc.hmcleaves.block.Property
 import com.hibiscusmc.hmcleaves.hook.Hooks
+import org.bukkit.Axis
 import org.bukkit.Material
 import java.io.IOException
 import java.nio.file.Files
@@ -92,7 +94,15 @@ class TextureFileGenerator(
                         )
                     }
                     if (blockData.blockType == BlockType.LOG || blockData.blockType == BlockType.STRIPPED_LOG) {
-                        val axis = config.getAxisFromId(blockData.id) ?: return@map null
+                        val family = blockData.blockFamily
+                        var axis = if (blockData.id == family.getFamilyId(BlockFamily.Type.AXIS_X)) Axis.X else null
+                        if (axis == null) {
+                            axis = if (blockData.id == family.getFamilyId(BlockFamily.Type.AXIS_Y)) Axis.Y else null
+                        }
+                        if (axis == null) {
+                            axis = if (blockData.id == family.getFamilyId(BlockFamily.Type.AXIS_Z)) Axis.Z else null
+                        }
+                        if (axis == null) return@map null
                         return@map JSONData(
                             convertDataToString(blockData),
                             blockData.id,
@@ -119,6 +129,7 @@ class TextureFileGenerator(
             e.printStackTrace()
             return
         }
+        if (!config.useTextureHook()) return
         Hooks.transferTextures(file)
     }
 
