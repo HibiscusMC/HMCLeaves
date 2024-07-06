@@ -33,6 +33,8 @@ blocks:
       distance: 7
       persistent: false
   aspen_leaves:
+    # below is an example of how to use an Oraxen item to place the block
+#    item-id: some-oraxen-item
     item:
       material: PAPER
       name: "<blue>Aspen Leaves"
