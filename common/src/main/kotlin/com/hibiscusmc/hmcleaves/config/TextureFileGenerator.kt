@@ -31,7 +31,7 @@ class TextureFileGenerator(
         private const val VARIANTS_PATH: String = "variants"
         private const val MODEL_PATH: String = "model"
 
-        private class Variants(internal val jsonData: List<JSONData>)
+        private class Variants(val jsonData: List<JSONData>)
 
         private class JSONData(val key: String, private val id: String, val path: String?)
 

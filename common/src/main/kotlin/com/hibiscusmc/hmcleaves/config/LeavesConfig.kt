@@ -621,8 +621,7 @@ class LeavesConfig(
 
     private fun loadTextures() {
         this.loadTextures(LEAVES_MATERIALS)
-        this.loadTextures(LOG_MATERIALS, Material.NOTE_BLOCK)
-        this.loadTextures(STRIPPED_LOG_MATERIALS, Material.NOTE_BLOCK)
+        this.loadTextures(LOG_MATERIALS + STRIPPED_LOG_MATERIALS, Material.NOTE_BLOCK)
         this.loadTextures(SAPLING_MATERIALS)
         this.loadTextures(
             listOf(
@@ -642,16 +641,25 @@ class LeavesConfig(
     }
 
     private fun loadTextures(materials: Collection<Material>, overrideMaterial: Material? = null) {
-        for (material in materials) {
-            this.textureFileGenerator.generateFile(
-                overrideMaterial ?: material,
-                this.blockData.values
-                    .filter { blockData -> blockData.worldMaterial == material }
-                    .filter { blockData -> blockData.modelPath != null }
-                    .toList(),
-                this
-            )
+        if (overrideMaterial != null) {
+            this.loadTextures(overrideMaterial, materials)
+            return
         }
+        for (material in materials) {
+            this.loadTextures(material, listOf(material))
+        }
+    }
+
+    private fun loadTextures(material: Material, matchMaterials: Collection<Material>) {
+        this.textureFileGenerator.generateFile(
+            material,
+            this.blockData.values
+                .filter { blockData -> matchMaterials.contains(blockData.worldMaterial) }
+                .filter { blockData -> blockData.modelPath != null
+                }
+                .toList(),
+            this
+        )
     }
 
     private fun loadBlocks(config: YamlConfiguration) {
