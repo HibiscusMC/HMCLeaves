@@ -22,6 +22,7 @@ import org.bukkit.Material
 import org.bukkit.Tag
 import org.bukkit.World
 import org.bukkit.block.Block
+import org.bukkit.block.data.type.Leaves
 import org.bukkit.entity.LivingEntity
 import org.bukkit.event.Cancellable
 import org.bukkit.event.Event
@@ -94,6 +95,7 @@ class BukkitListeners(
         }
         blockData = result.blockData
         leavesChunk[position] = blockData
+        val worldBlockData = block.blockData
     }
 
     private fun checkPlaceConditions(

@@ -19,6 +19,7 @@ import org.bukkit.Material
 import org.bukkit.Tag
 import org.bukkit.World
 import org.bukkit.block.BlockFace
+import org.bukkit.block.data.type.Leaves
 import org.bukkit.event.Event
 import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockBreakEvent
@@ -80,6 +81,27 @@ sealed class BlockListener<E> {
         config: LeavesConfig
     ): ListenResult
 
+}
+
+data object LeavesPlaceListener: BlockListener<BlockPlaceEvent>() {
+
+    override fun handle(
+        event: BlockPlaceEvent,
+        world: World,
+        startLocation: Location,
+        position: PositionInChunk,
+        blockData: BlockData,
+        leavesChunk: LeavesChunk,
+        config: LeavesConfig
+    ): ListenResult {
+        val block = event.block
+        val worldBlockData = block.blockData
+        if (worldBlockData is Leaves) {
+            worldBlockData.isPersistent = true
+            block.blockData = worldBlockData
+        }
+        return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+    }
 }
 
 data object LeavesDecayListener : BlockListener<LeavesDecayEvent>() {

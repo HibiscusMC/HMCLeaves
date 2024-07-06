@@ -12,14 +12,39 @@ use-world-whitelist: false
 use-texture-hook: true
 
 blocks:
+  palm_leaves:
+    item:
+      material: PAPER
+      name: "<blue>Palm Leaves"
+    type: leaves
+    world-material: oak_leaves
+    visual-material: oak_leaves
+    model-path: "palm_leaves"
+    properties:
+      distance: 7
+      persistent: false
   aspen_leaves:
+    item:
+      material: PAPER
+      name: "<blue>Aspen Leaves"
     type: leaves
     world-material: oak_leaves
     visual-material: oak_leaves
     model-path: "aspen_leaves"
     properties:
-      distance: 3
-      persistent: true
+      distance: 6
+      persistent: false
+  pine_leaves:
+    item:
+      material: PAPER
+      name: "<blue>Pine Leaves"
+    type: leaves
+    world-material: oak_leaves
+    visual-material: oak_leaves
+    model-path: "pine_leaves"
+    properties:
+      distance: 5
+      persistent: false
 
   aspen_log:
     type: log

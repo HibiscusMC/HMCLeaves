@@ -23,6 +23,7 @@ import com.hibiscusmc.hmcleaves.listener.ConnectedBlockFacingUpPistonRetractBrea
 import com.hibiscusmc.hmcleaves.listener.LeavesDecayListener
 import com.hibiscusmc.hmcleaves.listener.LeavesPistonExtendListener
 import com.hibiscusmc.hmcleaves.listener.LeavesPistonRetractListener
+import com.hibiscusmc.hmcleaves.listener.LeavesPlaceListener
 import com.hibiscusmc.hmcleaves.listener.ListenResult
 import com.hibiscusmc.hmcleaves.listener.ListenResultType
 import com.hibiscusmc.hmcleaves.listener.LogPlaceListener
@@ -487,6 +488,7 @@ class BlockData(
                 itemSupplier,
                 blockDrops,
                 hashMapOf(
+                    BlockPlaceEvent::class.java to LeavesPlaceListener,
                     LeavesDecayEvent::class.java to LeavesDecayListener,
                     BlockPistonExtendEvent::class.java to LeavesPistonExtendListener,
                     BlockPistonRetractEvent::class.java to LeavesPistonRetractListener,

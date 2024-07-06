@@ -622,7 +622,7 @@ class LeavesConfig(
     private fun loadTextures() {
         this.loadTextures(LEAVES_MATERIALS)
         this.loadTextures(LOG_MATERIALS, Material.NOTE_BLOCK)
-        this.loadTextures(STRIPPED_LOG_MATERIALS)
+        this.loadTextures(STRIPPED_LOG_MATERIALS, Material.NOTE_BLOCK)
         this.loadTextures(SAPLING_MATERIALS)
         this.loadTextures(
             listOf(
