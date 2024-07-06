@@ -1,6 +1,7 @@
 database-settings:
   type: SQLite
 
+# adds debug messages
 debug: false
 
 custom-mining-speed-for-default-logs: true
@@ -9,17 +10,25 @@ whitelisted-worlds:
   - "world"
 use-world-whitelist: false
 
+# if the texture files should be transferred to Oraxen
 use-texture-hook: true
 
 blocks:
+  # block id
   palm_leaves:
+    # item that is used in the inventory
     item:
       material: PAPER
       name: "<blue>Palm Leaves"
+    # type of block
     type: leaves
+    # what block is actually placed in the world
     world-material: oak_leaves
+    # what block is sent to the player
     visual-material: oak_leaves
+    # model path used for texture packs
     model-path: "palm_leaves"
+    # properties that are displayed to the player
     properties:
       distance: 7
       persistent: false
@@ -51,6 +60,8 @@ blocks:
     world-material: oak_log
     visual-material: note_block
     model-path: "aspen_log"
+    # allows directional blocks to be generated,
+    # the below values are required for logs
     block-family:
       AXIS_X: "aspen_log_x"
       AXIS_Y: "aspen_log_y"
@@ -69,6 +80,8 @@ blocks:
     world-material: stripped_oak_log
     visual-material: note_block
     model-path: "stripped_aspen_log"
+    # allows directional blocks to be generated,
+    # the below values are required for stripped logs
     block-family:
       AXIS_X: "aspen_log_x"
       AXIS_Y: "aspen_log_y"
