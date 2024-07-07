@@ -1,15 +1,19 @@
 package com.hibiscusmc.hmcleaves.hook
 
 import com.hibiscusmc.hmcleaves.HMCLeaves
+import com.hibiscusmc.hmcleaves.block.SaplingData
 import com.hibiscusmc.hmcleaves.hook.item.ItemHook
 import com.hibiscusmc.hmcleaves.hook.item.ItemsAdderHook
 import com.hibiscusmc.hmcleaves.hook.item.OraxenHook
-import org.bukkit.Location
+import com.hibiscusmc.hmcleaves.hook.worldedit.WorldEditHook
+import com.hibiscusmc.hmcleaves.world.Position
 import org.bukkit.Material
 import org.bukkit.block.Block
+import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
+
 
 class Hooks {
 
@@ -20,27 +24,35 @@ class Hooks {
         private var initialized = false
 
         private var itemHook: ItemHook? = null
+        private var worldEditHook: WorldEditHook? = null
 
         fun init() {
             plugin = JavaPlugin.getPlugin(HMCLeaves::class.java)
             if (initialized) return
-            try {
-                itemHook = createOraxenHook(plugin)
-            } catch (_: Exception) {
-            }
-            itemHook = if (itemHook != null) {
-                itemHook
-            } else {
-                try {
-                    ItemsAdderHook(plugin)
-                } catch (_: Exception) {
-                    null
-                }
-            }
+            this.itemHook = this.createItemHook()
             itemHook?.let {
                 it.load()
                 plugin.server.pluginManager.registerEvents(it, plugin)
             }
+            if (plugin.server.pluginManager.getPlugin("WorldEdit") != null) {
+                plugin.logger.info("World edit found")
+                worldEditHook = WorldEditHook(plugin)
+                worldEditHook?.load()
+            } else {
+                plugin.logger.info("World edit not found")
+            }
+        }
+
+        private fun createItemHook(): ItemHook? {
+            val pluginManager = plugin.server.pluginManager
+            if (pluginManager.getPlugin("Oraxen") != null) {
+                return createOraxenHook(plugin)
+
+            }
+            if (pluginManager.getPlugin("ItemsAdder") != null) {
+                return createItemsAdderHook(plugin)
+            }
+            return null
         }
 
         fun unload() {
@@ -86,6 +98,16 @@ class Hooks {
 
         fun transferTextures(file: File) {
             itemHook?.transferTextures(file)
+        }
+
+        fun trySaveSchematic(player: Player) {
+            if (worldEditHook == null) return
+            worldEditHook?.trySaveSchematic(player)
+        }
+
+        fun pasteSaplingSchematic(saplingData: SaplingData, position: Position) {
+            if (worldEditHook == null) return
+            worldEditHook?.pasteSaplingSchematic(saplingData, position)
         }
 
     }

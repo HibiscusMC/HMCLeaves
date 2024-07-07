@@ -44,6 +44,7 @@ import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.event.entity.ItemSpawnEvent
 import org.bukkit.event.player.PlayerHarvestBlockEvent
 import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.event.world.StructureGrowEvent
 import org.bukkit.inventory.EquipmentSlot
 import java.util.EnumSet
 import java.util.LinkedList
@@ -74,6 +75,7 @@ class BukkitListeners(
     @EventHandler(priority = EventPriority.HIGHEST)
     private fun onBlockPlace(event: BlockPlaceEvent) {
         val block = event.block
+        if (!this.config.isWorldWhitelisted(block.world)) return
         val world = block.world
         val item = event.itemInHand
         var blockData = this.config.getBlockDataFromItem(item) ?: return
@@ -119,6 +121,7 @@ class BukkitListeners(
     fun onPlayerInteract(event: PlayerInteractEvent) {
         if (event.action != Action.RIGHT_CLICK_BLOCK) return
         val clickedBlock = event.clickedBlock ?: return
+        if (!this.config.isWorldWhitelisted(clickedBlock.world)) return
         val itemInHand = event.item ?: return
         if (itemInHand.type == Material.AIR) return
         if (event.hand != EquipmentSlot.HAND) return
@@ -227,6 +230,7 @@ class BukkitListeners(
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     private fun onBlockDropItem(event: BlockDropItemEvent) {
         val block = event.block
+        if (!this.config.isWorldWhitelisted(block.world)) return
         if (Hooks.isHandledByHook(block)) return
         val world = block.world
         val worldUUID = world.uid
@@ -244,6 +248,7 @@ class BukkitListeners(
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     private fun onBlockHarvest(event: PlayerHarvestBlockEvent) {
         val block = event.harvestedBlock
+        if (!this.config.isWorldWhitelisted(block.world)) return
         val world = block.world
         val worldUUID = world.uid
         val position = block.getPositionInChunk()
@@ -259,6 +264,7 @@ class BukkitListeners(
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     private fun onItemSpawn(event: ItemSpawnEvent) {
         val block = event.location.block
+        if (!this.config.isWorldWhitelisted(block.world)) return
         if (Hooks.isHandledByHook(block)) return
         val position = block.location.toPosition() ?: return
         val leavesChunk = worldManager[position.world]?.get(position.getChunkPosition()) ?: return
@@ -305,6 +311,7 @@ class BukkitListeners(
     private fun onBlockGrow(event: BlockGrowEvent) {
         val state = event.newState
         val world = state.world
+        if (!this.config.isWorldWhitelisted(world)) return
         val worldUUID = world.uid
         val position = event.block.getPositionInChunk()
         val chunkPosition = event.block.getChunkPosition()
@@ -319,9 +326,27 @@ class BukkitListeners(
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    private fun onStructureGrow(event: StructureGrowEvent) {
+        val world = event.world
+        if (!this.config.isWorldWhitelisted(event.world)) return
+        val location = event.location
+        val position = location.toPosition()?.toPositionInChunk() ?: return
+        val chunkPosition = location.getChunkPosition() ?: return
+        val leavesChunk = plugin.worldManager.getOrAdd(world.uid).getOrAdd(chunkPosition)
+        var data = leavesChunk[position] ?: config.getDefaultBlockData(location.block.type) ?: return
+        val result = data.listen(event::class.java, event, world, location, position, leavesChunk, config)
+        if (result.type == ListenResultType.CANCEL_EVENT) {
+            return
+        }
+        data = result.blockData
+        leavesChunk[position] = data
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     private fun onBlockSpread(event: BlockSpreadEvent) {
         val state = event.newState
         val world = state.world
+        if (!this.config.isWorldWhitelisted(world)) return
         val worldUUID = world.uid
         val position = event.block.getPositionInChunk()
         val chunkPosition = event.block.getChunkPosition()
@@ -338,6 +363,7 @@ class BukkitListeners(
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     private fun onBlockBreak(event: BlockBreakEvent) {
         val block = event.block
+        if (!this.config.isWorldWhitelisted(block.world)) return
         if (Hooks.isHandledByHook(block)) return
         val world = block.world
         val worldUUID = world.uid
@@ -365,6 +391,7 @@ class BukkitListeners(
     private fun onLeavesDecay(event: LeavesDecayEvent) {
         val block = event.block
         val world = block.world
+        if (!this.config.isWorldWhitelisted(world)) return
         val worldUUID = world.uid
         val position = block.getPositionInChunk()
         val chunkPosition = block.getChunkPosition()
@@ -389,6 +416,7 @@ class BukkitListeners(
     private fun onBlockExplode(event: BlockExplodeEvent) {
         val explodedBlock = event.block
         val world = explodedBlock.world
+        if (!this.config.isWorldWhitelisted(world)) return
         handleExplosion(event, world, event.blockList())
     }
 
@@ -396,12 +424,14 @@ class BukkitListeners(
     private fun onEntityExplode(event: EntityExplodeEvent) {
         val entity = event.entity
         val world = entity.world
+        if (!this.config.isWorldWhitelisted(world)) return
         handleExplosion(event, world, event.blockList())
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     private fun onPistonExtend(event: BlockPistonExtendEvent) {
         val world = event.block.world
+        if (!this.config.isWorldWhitelisted(world)) return
         val direction = event.direction
         handlePistonMove(
             event,
@@ -414,6 +444,7 @@ class BukkitListeners(
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     private fun onPistonRetract(event: BlockPistonRetractEvent) {
         val world = event.block.world
+        if (!this.config.isWorldWhitelisted(world)) return
         val direction = event.direction
         handlePistonMove(
             event,

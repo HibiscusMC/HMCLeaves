@@ -13,6 +13,7 @@ import com.hibiscusmc.hmcleaves.block.MaterialPlaceCondition
 import com.hibiscusmc.hmcleaves.block.PlaceCondition
 import com.hibiscusmc.hmcleaves.block.PlaceConditions
 import com.hibiscusmc.hmcleaves.block.Property
+import com.hibiscusmc.hmcleaves.block.SaplingData
 import com.hibiscusmc.hmcleaves.block.TagPlaceCondition
 import com.hibiscusmc.hmcleaves.database.DatabaseSettings
 import com.hibiscusmc.hmcleaves.database.DatabaseType
@@ -34,6 +35,7 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.Tag
+import org.bukkit.World
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
@@ -83,6 +85,9 @@ private const val REQUIRED_TOOLS_KEY = "tool-types"
 private const val REQUIRED_ENCHANTMENTS_KEY = "required-enchantments"
 private const val BLOCK_SETTINGS_KEY = "settings"
 private const val BLOCK_FAMILY_KEY = "block-family"
+private const val SAPLING_SCHEMATICS_KEY = "schematic"
+private const val SAPLING_SCHEMATIC_FILES_KEY = "files"
+private const val SAPLING_SCHEMATIC_RANDOM_ROTATION_KEY = "random-rotation"
 
 private const val PLACE_CONDITIONS_KEY = "place-conditions"
 private const val PLACE_CONDITION_TAGS_KEY = "tags"
@@ -129,6 +134,7 @@ class LeavesConfig(
     private val defaultBlockData: MutableMap<Material, BlockData> = EnumMap(org.bukkit.Material::class.java)
     private val blockData: MutableMap<String, BlockData> = hashMapOf()
     private val hookIdToBlockDataId: MutableMap<String, String> = hashMapOf()
+    private val saplingData: MutableMap<String, SaplingData> = hashMapOf()
 
     private var instrumentIndex = 0
     private var noteIndex = 0
@@ -156,6 +162,10 @@ class LeavesConfig(
 
     fun getBlockData(id: String): BlockData? {
         return this.blockData[id]
+    }
+
+    fun getSaplingData(id: String): SaplingData? {
+        return this.saplingData[id]
     }
 
     fun getBlockDataIds(): Collection<String> {
@@ -231,6 +241,10 @@ class LeavesConfig(
         return this.chunkVersion
     }
 
+    fun isWorldWhitelisted(world: World): Boolean {
+        return !this.useWorldWhitelist || this.whitelistedWorlds.contains(world.name)
+    }
+
     fun isWorldWhitelisted(worldName: String): Boolean {
         return !this.useWorldWhitelist || this.whitelistedWorlds.contains(worldName)
     }
@@ -260,6 +274,11 @@ class LeavesConfig(
         return null
     }
 
+    fun getDefaultDirectionalBlockData(material: Material, axis: Axis): BlockData? {
+        val blockData = this.getDefaultBlockData(material) ?: return null
+        return this.getDirectionalBlockData(blockData, axis)
+    }
+
     fun getDirectionalBlockData(blockData: BlockData, axis: Axis): BlockData? {
         val directionalId = blockData.blockFamily.getFamilyId(BlockFamily.Type.fromAxis(axis)) ?: return null
         return this.getBlockData(directionalId)
@@ -280,7 +299,6 @@ class LeavesConfig(
 
     fun getPlant(blockData: BlockData): BlockData? {
         val plantId = blockData.blockFamily.getFamilyId(BlockFamily.Type.PLANT) ?: return null
-        Bukkit.broadcastMessage("plantId: $plantId thisId: ${blockData.id}" )
         return this.getBlockData(plantId)
     }
 
@@ -700,6 +718,16 @@ class LeavesConfig(
                 placeConditions
             )
             blockData[id] = data
+
+            if (type == BlockType.SAPLING) {
+                section.getConfigurationSection(SAPLING_SCHEMATICS_KEY)?.let { schematicsSection ->
+                    this.saplingData[id] = SaplingData(
+                        id,
+                        schematicsSection.getStringList(SAPLING_SCHEMATIC_FILES_KEY),
+                        schematicsSection.getBoolean(SAPLING_SCHEMATIC_RANDOM_ROTATION_KEY)
+                    )
+                }
+            }
 
             var axisNum = 0 // Only blocks with axes will be in the world, so the first axis can be the same so
             // an extra note isn't used for no reason

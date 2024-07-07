@@ -2,6 +2,7 @@ package com.hibiscusmc.hmcleaves.command
 
 import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
+import com.hibiscusmc.hmcleaves.hook.Hooks
 import com.hibiscusmc.hmcleaves.util.MINI_MESAGE
 import com.hibiscusmc.hmcleaves.util.parseAsAdventure
 import org.bukkit.ChatColor
@@ -16,8 +17,14 @@ private data class CommandArg(val name: String, val permission: String? = null)
 private val GIVE_COMMAND = CommandArg("give")
 private val DEBUG_STICK_COMMAND = CommandArg("debugstick", "hmcleaves.command.debugstick")
 private val RELOAD_COMMAND = CommandArg("reload", "hmcleaves.command.reload")
+private val TRANSFORM_SCHEM_COMMAND = CommandArg("transformschem", "hmcleaves.command.transformschem");
 
-private val COMMANDS = listOf(GIVE_COMMAND, DEBUG_STICK_COMMAND, RELOAD_COMMAND)
+private val COMMANDS = listOf(
+    GIVE_COMMAND,
+    DEBUG_STICK_COMMAND,
+    RELOAD_COMMAND,
+    TRANSFORM_SCHEM_COMMAND
+)
 
 class HMCLeavesCommand(
     private var plugin: HMCLeaves,
@@ -53,6 +60,12 @@ class HMCLeavesCommand(
                 sender.sendMessage("${ChatColor.RED}Config successfully reloaded")
                 return true
             }
+
+            TRANSFORM_SCHEM_COMMAND.name -> {
+                if (!sender.hasPermission(TRANSFORM_SCHEM_COMMAND.permission ?: return true)) return true
+                Hooks.trySaveSchematic(sender as? Player ?: return true)
+                return true
+            }
         }
         return true
     }
@@ -60,6 +73,7 @@ class HMCLeavesCommand(
     private fun handleGive(sender: Player, args: Array<String>) {
         val id = args[1]
         val data = this.config.getBlockData(id) ?: run {
+            sender.sendMessage("${ChatColor.RED}No block data found for $id")
             return
         }
         val amount = if (args.size > 2) {
@@ -71,7 +85,10 @@ class HMCLeavesCommand(
         } else {
             1
         }
-        val item = data.createItem()
+        val item = data.createItem() ?: run {
+            sender.sendMessage("${ChatColor.RED}No item found for $id")
+            return
+        }
         item?.amount = amount
         sender.inventory.addItem(item)
     }
@@ -83,7 +100,6 @@ class HMCLeavesCommand(
         args: Array<String>
     ): MutableList<String>? {
         val output = mutableListOf<String>()
-
         if (args.size <= 1) {
             output.addAll(COMMANDS.filter { cmd -> sender.hasPermission(cmd.permission ?: return@filter true) }
                 .map { cmd -> cmd.name })

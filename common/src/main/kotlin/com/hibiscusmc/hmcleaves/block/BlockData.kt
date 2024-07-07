@@ -35,6 +35,7 @@ import com.hibiscusmc.hmcleaves.listener.PlantFacingUpGrowListener
 import com.hibiscusmc.hmcleaves.listener.PlantFacingUpPlaceListener
 import com.hibiscusmc.hmcleaves.listener.PlantFacingUpRelativeBreakListener
 import com.hibiscusmc.hmcleaves.listener.RelativeBlockBreakEvent
+import com.hibiscusmc.hmcleaves.listener.SaplingGrowListener
 import com.hibiscusmc.hmcleaves.listener.SaplingPlaceListener
 import com.hibiscusmc.hmcleaves.listener.SugarCaneGrowListener
 import com.hibiscusmc.hmcleaves.listener.SugarCanePlaceListener
@@ -56,6 +57,7 @@ import org.bukkit.event.block.BlockSpreadEvent
 import org.bukkit.event.block.LeavesDecayEvent
 import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.event.world.StructureGrowEvent
 import org.bukkit.inventory.ItemStack
 import java.util.Collections
 
@@ -628,7 +630,8 @@ class BlockData(
                 blockDrops,
                 Collections.unmodifiableMap(
                     hashMapOf(
-                        BlockPlaceEvent::class.java to SaplingPlaceListener
+                        BlockPlaceEvent::class.java to SaplingPlaceListener,
+                        StructureGrowEvent::class.java to SaplingGrowListener
                     )
                 ),
                 blockBreakModifier = null,

@@ -38,6 +38,10 @@ fun Block.getPositionInChunk(): PositionInChunk {
     )
 }
 
+fun Location.getChunkPosition(): ChunkPosition? {
+    return ChunkPosition(this.world?.uid ?: return null, convertCoordToChunkCoord(this.blockX), convertCoordToChunkCoord(this.blockZ))
+}
+
 fun Location.toPosition(): Position? {
     return Position(
         this.world?.uid ?: return null,

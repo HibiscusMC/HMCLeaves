@@ -22,4 +22,9 @@ class WorldManager(
             ?.get(position.toPositionInChunk())
     }
 
+    operator fun set(position: Position, blockData: BlockData) {
+        this.worlds.computeIfAbsent(position.world) {_ ->  LeavesWorld(position.world)}
+            .getOrAdd(position.getChunkPosition())[position.toPositionInChunk()] = blockData
+    }
+
 }

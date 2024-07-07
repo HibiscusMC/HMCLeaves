@@ -57,6 +57,23 @@ blocks:
       distance: 5
       persistent: false
 
+  aspen_sapling:
+    type: sapling
+    world-material: oak_sapling
+    visual-material: oak_sapling
+    model-path: "aspen_sapling"
+    schematic:
+      files:
+        - "aspen_tree_1.schem"
+        - "aspen_tree_2.schem"
+      random-rotation: true
+    properties:
+      age: 1
+    item:
+      material: PAPER
+      name: "<red>Aspen Sapling"
+      model-data: 1
+
   aspen_log:
     type: log
     world-material: oak_log

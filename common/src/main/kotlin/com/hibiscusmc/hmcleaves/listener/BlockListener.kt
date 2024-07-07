@@ -4,14 +4,16 @@ import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.block.BLOCK_DIRECTIONS
 import com.hibiscusmc.hmcleaves.block.BlockData
 import com.hibiscusmc.hmcleaves.block.BlockDirection
-import com.hibiscusmc.hmcleaves.block.BlockFamily
-import com.hibiscusmc.hmcleaves.block.BlockSetting
 import com.hibiscusmc.hmcleaves.block.BlockType
+import com.hibiscusmc.hmcleaves.block.SaplingData
 import com.hibiscusmc.hmcleaves.block.getDirectionTo
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
+import com.hibiscusmc.hmcleaves.hook.Hooks
 import com.hibiscusmc.hmcleaves.util.getPosition
 import com.hibiscusmc.hmcleaves.util.getPositionInChunk
+import com.hibiscusmc.hmcleaves.util.toPosition
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
+import com.hibiscusmc.hmcleaves.world.Position
 import com.hibiscusmc.hmcleaves.world.PositionInChunk
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -19,6 +21,7 @@ import org.bukkit.Material
 import org.bukkit.Tag
 import org.bukkit.World
 import org.bukkit.block.BlockFace
+import org.bukkit.block.data.Orientable
 import org.bukkit.block.data.type.Leaves
 import org.bukkit.event.Event
 import org.bukkit.event.block.Action
@@ -32,10 +35,11 @@ import org.bukkit.event.block.BlockSpreadEvent
 import org.bukkit.event.block.LeavesDecayEvent
 import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.event.world.StructureGrowEvent
 import org.bukkit.inventory.EquipmentSlot
-import org.bukkit.inventory.meta.Damageable
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.EnumSet
+
 
 data class ListenResult(val blockData: BlockData, val type: ListenResultType)
 
@@ -154,6 +158,47 @@ data object LeavesPistonRetractListener : BlockListener<BlockPistonRetractEvent>
 
 }
 
+data object SaplingGrowListener: BlockListener<StructureGrowEvent>() {
+
+    override fun handle(
+        event: StructureGrowEvent,
+        world: World,
+        startLocation: Location,
+        position: PositionInChunk,
+        blockData: BlockData,
+        leavesChunk: LeavesChunk,
+        config: LeavesConfig
+    ): ListenResult {
+        if (event.blocks.size == 1) {
+            return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+        }
+        val sourcePosition = event.location.toPosition() ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+        val sourceBlockData = leavesChunk[sourcePosition.toPositionInChunk()]
+        if (sourceBlockData?.blockType == BlockType.SAPLING) {
+            val saplingData = config.getSaplingData(sourceBlockData.id)
+            if (saplingData?.schematicFiles?.isNotEmpty() == true) {
+                event.isCancelled = true
+                Hooks.pasteSaplingSchematic(saplingData, sourcePosition)
+                return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+            }
+            leavesChunk.remove(sourcePosition.toPositionInChunk(), false)
+        }
+        for (blockState in event.blocks) {
+            val newPosition = blockState.location.toPosition() ?: continue
+            val newBlockData: BlockData?
+            if (Tag.LOGS.isTagged(blockState.type)) {
+                val orientable = blockState.blockData as? Orientable ?: continue
+                newBlockData = config.getDefaultDirectionalBlockData(blockState.type, orientable.axis)
+            } else {
+                newBlockData = config.getDefaultBlockData(blockState.type)
+            }
+            if (newBlockData == null) continue
+            plugin.worldManager[newPosition] = newBlockData
+        }
+        return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+    }
+}
+
 data object LogPlaceListener : BlockListener<BlockPlaceEvent>() {
 
     override fun handle(
@@ -201,7 +246,7 @@ data object LogStripListener : BlockListener<PlayerInteractEvent>() {
         if (blockData.blockType != BlockType.LOG) return ListenResult(blockData, ListenResultType.PASS_THROUGH)
         event.clickedBlock ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
         val player = event.player;
-        val itemInHand = player.inventory.getItem(EquipmentSlot.HAND)
+        val itemInHand = player.inventory.getItem(EquipmentSlot.HAND) ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
         if (!AXES.contains(itemInHand.type)) {
             return ListenResult(blockData, ListenResultType.PASS_THROUGH)
         }
@@ -476,7 +521,6 @@ sealed class PlantGrowListener(
 
         val plant = config.getPlant(supportingData)
             ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
-        Bukkit.broadcastMessage("Plant: $plant")
         leavesChunk[supportingBlock.getPositionInChunk()] = plant
         return ListenResult(supportingData, ListenResultType.PASS_THROUGH)
     }

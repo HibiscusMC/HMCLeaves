@@ -17,18 +17,22 @@ repositories {
     maven("https://oss.sonatype.org/content/repositories/central")
     maven("https://repo.codemc.io/repository/maven-releases/")
     maven("https://repo.oraxen.com/releases")
+    maven("https://maven.enginehub.org/repo/")
     maven("https://jitpack.io")
 }
 
 dependencies {
     testImplementation(kotlin("test"))
     compileOnly("org.spigotmc:spigot-api:1.18.1-R0.1-SNAPSHOT")
-    implementation("com.github.retrooper.packetevents:spigot:2.2.1")
+    implementation("com.github.retrooper:packetevents-spigot:2.4.0")
     implementation("net.kyori:adventure-text-minimessage:4.16.0")
     implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
     implementation("com.zaxxer:HikariCP:5.1.0")
     compileOnly("io.th0rgal:oraxen:1.175.0")
     compileOnly("com.github.LoneDev6:api-itemsadder:3.6.1")
+    compileOnly("com.sk89q.worldedit:worldedit-core:7.2.14-SNAPSHOT")
+    compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.14-SNAPSHOT")
+    implementation("net.kyori:adventure-text-serializer-legacy:4.17.0")
 }
 
 tasks {
@@ -41,6 +45,7 @@ tasks {
         archiveFileName.set("hmcleaves-${project.version}.jar")
         relocate("com.github.retrooper.packetevents", "com.hibiscusmc.hmcleaves.packetevents")
         relocate("com.github.benmanes.caffeine", "com.hibiscusmc.hmcleaves.caffeine")
+        relocate("net.kyori.adventure.text.serializer.legacy", "com.hibiscusmc.hmcleaves.adventure.text.serializer.legacy")
 
         dependencies {
             exclude(dependency("org.yaml:snakeyaml"))
@@ -71,7 +76,7 @@ bukkit {
     main = "com.hibiscusmc.hmcleaves.HMCLeaves"
 
 
-    apiVersion = "1.17"
+    apiVersion = "1.18"
 
     load = BukkitPluginDescription.PluginLoadOrder.STARTUP
     prefix = "HMCLeaves"
@@ -82,7 +87,8 @@ bukkit {
         "ViaVersion",
         "ViaBackwards",
         "ViaRewind",
-        "Geyser-Spigot"
+        "Geyser-Spigot",
+        "WorldEdit"
         )
 
     commands {
