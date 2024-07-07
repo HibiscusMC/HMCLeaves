@@ -118,6 +118,11 @@ blocks:
       material: PAPER
       name: "<red>Stripped Aspen Log"
       model-data: 1
+    block-break-modifier:
+      hardness: 2.0
+      requires-tool: false
+      tool-types:
+        - AXE
 
   sugar_cane:
     type: sugar_cane
