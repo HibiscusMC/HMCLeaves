@@ -127,6 +127,16 @@ sealed class Property<T>(val key: String, val converter: (String) -> T) {
         }
     }
 
+    data object STAGE : Property<Int>("stage", { it.toInt() }) {
+        override fun applyToState(state: WrappedBlockState, value: Int) {
+            state.stage = value
+        }
+
+        override fun getFromState(state: WrappedBlockState): Int {
+            return state.stage
+        }
+    }
+
     companion object {
         private val PROPERTY_KEYS by lazy {
             hashMapOf(
@@ -135,7 +145,8 @@ sealed class Property<T>(val key: String, val converter: (String) -> T) {
                 INSTRUMENT.key to INSTRUMENT,
                 NOTE.key to NOTE,
                 AGE.key to AGE,
-                POWERED.key to POWERED
+                POWERED.key to POWERED,
+                STAGE.key to STAGE
             )
         }
 

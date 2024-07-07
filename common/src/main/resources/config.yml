@@ -68,7 +68,7 @@ blocks:
         - "aspen_tree_2.schem"
       random-rotation: true
     properties:
-      age: 1
+      stage: 1
     item:
       material: PAPER
       name: "<red>Aspen Sapling"
