@@ -93,6 +93,11 @@ blocks:
       material: PAPER
       name: "<red>Aspen Log"
       model-data: 1
+    block-break-modifier:
+      hardness: 2.0
+      requires-tool: false
+      tool-types:
+        - AXE
 
   stripped_aspen_log:
     type: stripped_log

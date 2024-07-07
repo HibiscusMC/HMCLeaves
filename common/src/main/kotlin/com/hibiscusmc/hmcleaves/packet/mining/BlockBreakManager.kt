@@ -42,8 +42,8 @@ class BlockBreakManager(
         player: Player,
         position: Position,
         blockData: BlockData
-    ) {
-        if (blockData.blockBreakModifier == null) return
+    ): Boolean {
+        if (blockData.blockBreakModifier == null) return false
         val blockBreakTime = this.calculateBlockBreakTimeInTicks(
             player,
             player.inventory.itemInMainHand,
@@ -59,6 +59,7 @@ class BlockBreakManager(
             this.createScheduler(blockBreakTime, player.uniqueId)
         )
         blockBreakDataMap[player.uniqueId] = blockBreakData
+        return true
     }
 
     fun cancelBlockBreak(player: Player) {

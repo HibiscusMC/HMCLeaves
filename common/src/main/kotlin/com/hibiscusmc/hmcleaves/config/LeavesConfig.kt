@@ -81,7 +81,7 @@ private const val CONNECTS_TO_KEY = "connects-to"
 private const val BLOCK_BREAK_MODIFIER_KEY = "block-break-modifier"
 private const val BLOCK_HARDNESS_KEY = "hardness"
 private const val REQUIRES_TOOL_KEY = "requires-tool"
-private const val REQUIRED_TOOLS_KEY = "tool-types"
+private const val TOOL_TYPES_KEY = "tool-types"
 private const val REQUIRED_ENCHANTMENTS_KEY = "required-enchantments"
 private const val BLOCK_SETTINGS_KEY = "settings"
 private const val BLOCK_FAMILY_KEY = "block-family"
@@ -877,7 +877,7 @@ class LeavesConfig(
         val hardness = section.getDouble(BLOCK_HARDNESS_KEY, -1.0)
         if (hardness <= 0) throw IllegalArgumentException("$BLOCK_HARDNESS_KEY cannot be $hardness for $id")
         val requiresToolToDrop = section.getBoolean(REQUIRES_TOOL_KEY, false)
-        val toolTypes = section.getStringList(REQUIRED_TOOLS_KEY).map { ToolType.valueOf(it.uppercase()) }
+        val toolTypes = section.getStringList(TOOL_TYPES_KEY).map { ToolType.valueOf(it.uppercase()) }
             .toSet()
         val enchantments = section.getStringList(REQUIRED_ENCHANTMENTS_KEY).map {
             Enchantment.getByKey(NamespacedKey.minecraft(it))

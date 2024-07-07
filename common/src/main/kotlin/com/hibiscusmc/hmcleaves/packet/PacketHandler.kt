@@ -197,12 +197,14 @@ class PacketListener(
         val blockBreakManager = this.plugin.blockBreakManager
 
         if (diggingAction == DiggingAction.START_DIGGING) {
-            sendMiningFatigue(player)
-            blockBreakManager.startBlockBreak(
-                player,
-                position,
-                blockData
-            )
+            if (blockBreakManager.startBlockBreak(
+                    player,
+                    position,
+                    blockData
+                )
+            ) {
+                sendMiningFatigue(player)
+            }
             return
         }
         if (diggingAction == DiggingAction.CANCELLED_DIGGING) {
@@ -247,7 +249,11 @@ fun sendBlocksInChunk(
     val playerManager = PacketEvents.getAPI().playerManager
     for (player in players) {
         val packet =
-            WrapperPlayServerMultiBlockChange(Vector3i(chunkPosition.x, chunkPosition.yIndex, chunkPosition.z), true, blocks)
+            WrapperPlayServerMultiBlockChange(
+                Vector3i(chunkPosition.x, chunkPosition.yIndex, chunkPosition.z),
+                true,
+                blocks
+            )
         playerManager.sendPacket(player, packet)
     }
 }

@@ -28,7 +28,7 @@ dependencies {
     implementation("net.kyori:adventure-text-minimessage:4.16.0")
     implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
     implementation("com.zaxxer:HikariCP:5.1.0")
-    compileOnly("io.th0rgal:oraxen:1.175.0")
+    compileOnly("io.th0rgal:oraxen:1.178.0")
     compileOnly("com.github.LoneDev6:api-itemsadder:3.6.1")
     compileOnly("com.sk89q.worldedit:worldedit-core:7.2.14-SNAPSHOT")
     compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.14-SNAPSHOT")
