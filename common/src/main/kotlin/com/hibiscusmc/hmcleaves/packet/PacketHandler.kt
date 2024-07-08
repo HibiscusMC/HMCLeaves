@@ -325,3 +325,15 @@ fun removeMiningFatigue(player: Player) {
         packet
     )
 }
+
+fun sendArmSwing(playerToSwing: Player, players: Collection<Player>) {
+    for (player in players) {
+        PacketEvents.getAPI().getPlayerManager().sendPacketSilently(
+            player,
+            WrapperPlayServerEntityAnimation(
+                playerToSwing.entityId,
+                WrapperPlayServerEntityAnimation.EntityAnimationType.SWING_MAIN_ARM
+            )
+        );
+    }
+}

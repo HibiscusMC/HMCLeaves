@@ -7,6 +7,7 @@ import com.hibiscusmc.hmcleaves.block.BlockSetting
 import com.hibiscusmc.hmcleaves.block.SUPPORTING_DIRECTIONS
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.hook.Hooks
+import com.hibiscusmc.hmcleaves.packet.sendArmSwing
 import com.hibiscusmc.hmcleaves.util.getChunkPosition
 import com.hibiscusmc.hmcleaves.util.getPositionInChunk
 import com.hibiscusmc.hmcleaves.util.parseAsAdventure
@@ -208,6 +209,7 @@ class BukkitListeners(
             event.useItemInHand() != Event.Result.DENY,
             event.hand ?: EquipmentSlot.HAND
         )
+
         Bukkit.getServer().pluginManager.callEvent(blockPlaceEvent)
 
         if (blockPlaceEvent.isCancelled) {
@@ -217,6 +219,7 @@ class BukkitListeners(
             event.isCancelled = true
             return
         }
+        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, Runnable { sendArmSwing(player, listOf(player)) })
 
         if (player.gameMode != GameMode.CREATIVE) {
             val hand = event.hand
