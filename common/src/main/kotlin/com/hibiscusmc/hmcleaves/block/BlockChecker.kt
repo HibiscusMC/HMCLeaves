@@ -23,9 +23,10 @@ class BlockChecker(
         if (this::ticker.isInitialized) {
             throw IllegalStateException("Already started")
         }
-        val blocksToSend =
-            hashMapOf<IndexedChunkPosition, MutableMap<PositionInChunk, org.bukkit.block.data.BlockData>>()
+
         this.ticker = Bukkit.getScheduler().runTaskTimer(this.plugin, Runnable {
+            val blocksToSend =
+                hashMapOf<IndexedChunkPosition, MutableMap<PositionInChunk, org.bukkit.block.data.BlockData>>()
             this.blocksToTick.removeIf { position ->
                 val indexedChunkPosition = position.getIndexedChunkPosition()
                 val chunkPosition = position.getChunkPosition()
@@ -41,6 +42,7 @@ class BlockChecker(
             }
 
             for (entry in blocksToSend) {
+                if (entry.value.isEmpty()) continue
                 sendBlocksInChunk(entry.key, entry.value, Bukkit.getOnlinePlayers())
             }
 

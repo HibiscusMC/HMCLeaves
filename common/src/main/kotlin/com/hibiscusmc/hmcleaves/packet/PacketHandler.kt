@@ -23,6 +23,7 @@ import com.hibiscusmc.hmcleaves.util.toPosition
 import com.hibiscusmc.hmcleaves.util.toVector3i
 import com.hibiscusmc.hmcleaves.world.*
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
+import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.Material
 import org.bukkit.World
@@ -164,6 +165,7 @@ class PacketListener(
             leavesChunk = this.woldManager.getOrAdd(worldUUID).getOrAdd(chunkPos)
             leavesChunk[positionInChunk] = defaultData!!
         }
+
         val data = leavesChunk[positionInChunk] ?: return
 
         this.blockChecker.addPositionToCheck(position)
@@ -254,7 +256,7 @@ fun sendBlocksInChunk(
                 true,
                 blocks
             )
-        playerManager.sendPacket(player, packet)
+        playerManager.sendPacketSilently(player, packet)
     }
 }
 
@@ -262,10 +264,6 @@ fun sendChunk(
     player: Player,
     leavesChunk: LeavesChunk
 ) {
-    val worldUUID = leavesChunk.world
-//    val packet = WrapperPlayServerMultiBlockChange()
-//    val chunkPos = packet.chunkPosition.toChunkPosition(worldUUID)
-
     val chunkBlocks = leavesChunk.getBlocks().toMutableMap()
     chunkBlocks.putAll(leavesChunk.getDefaultBlocks())
     val chunkPosition = leavesChunk.position
