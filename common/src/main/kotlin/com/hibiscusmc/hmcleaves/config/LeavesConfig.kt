@@ -112,6 +112,7 @@ private const val SOUND_CATEGORY_PATH = "category"
 private const val SOUND_VOLUME_PATH = "volume"
 private const val SOUND_PITCH_PATH = "pitch"
 
+private const val GENERATE_DIRECTIONS_PATH = "generate-directions"
 
 private const val SEND_DEBUG_MESSAGES_KEY = "debug"
 
@@ -701,7 +702,8 @@ class LeavesConfig(
             material,
             this.blockData.values
                 .filter { blockData -> matchMaterials.contains(blockData.worldMaterial) }
-                .filter { blockData -> blockData.modelPath != null
+                .filter { blockData ->
+                    blockData.modelPath != null
                 }
                 .toList(),
             this
@@ -750,43 +752,87 @@ class LeavesConfig(
             blockData[id] = data
 
             if (type == BlockType.SAPLING) {
-                section.getConfigurationSection(SAPLING_SCHEMATICS_KEY)?.let { schematicsSection ->
-                    this.saplingData[id] = SaplingData(
-                        id,
-                        schematicsSection.getStringList(SAPLING_SCHEMATIC_FILES_KEY),
-                        schematicsSection.getBoolean(SAPLING_SCHEMATIC_RANDOM_ROTATION_KEY)
-                    )
-                }
+                this.loadSaplingSchematicData(id, type, section)
             }
 
-            var axisNum = 0 // Only blocks with axes will be in the world, so the first axis can be the same so
-            // an extra note isn't used for no reason
+
             if (type == BlockType.LOG || type == BlockType.STRIPPED_LOG) {
-                blockFamily.addFamilyType(BlockFamily.Type.NO_AXIS, id)
-                for (axis in Axis.entries) {
-                    val newProperties = if (axisNum == 0) properties else this.loadProperties(section, type);
-                    axisNum++
-                    val newId =
-                        "${id}_${axis.name.lowercase()}"
-                    blockFamily.addFamilyType(BlockFamily.Type.fromAxis(axis), newId)
-                    val newData = type.blockSupplier(
-                        newId,
-                        modelPath,
-                        visualMaterial,
-                        worldMaterial,
-                        newProperties,
-                        blockFamily,
-                        blockSoundData,
-                        itemSupplier,
-                        blockDrops,
-                        connectsTo,
-                        blockBreakModifier,
-                        settings,
-                        placeConditions
-                    )
-                    blockData[newId] = newData
-                }
+                this.loadLogDirectionals(
+                    section,
+                    id,
+                    type,
+                    modelPath,
+                    visualMaterial,
+                    worldMaterial,
+                    properties,
+                    blockFamily,
+                    blockSoundData,
+                    itemSupplier,
+                    blockDrops,
+                    connectsTo,
+                    blockBreakModifier,
+                    settings,
+                    placeConditions
+                )
             }
+        }
+    }
+
+    private fun loadSaplingSchematicData(id: String, type: BlockType, section: ConfigurationSection) {
+        if (type == BlockType.SAPLING) {
+            section.getConfigurationSection(SAPLING_SCHEMATICS_KEY)?.let { schematicsSection ->
+                this.saplingData[id] = SaplingData(
+                    id,
+                    schematicsSection.getStringList(SAPLING_SCHEMATIC_FILES_KEY),
+                    schematicsSection.getBoolean(SAPLING_SCHEMATIC_RANDOM_ROTATION_KEY)
+                )
+            }
+        }
+    }
+
+    private fun loadLogDirectionals(
+        section: ConfigurationSection,
+        id: String,
+        type: BlockType,
+        modelPath: String?,
+        visualMaterial: Material,
+        worldMaterial: Material,
+        properties: Map<Property<*>, Any>,
+        blockFamily: BlockFamily,
+        blockSoundData: BlockSoundData,
+        itemSupplier: ItemSupplier,
+        blockDrops: BlockDrops,
+        connectsTo: Set<String>,
+        blockBreakModifier: BlockBreakModifier?,
+        settings: BlockSettings,
+        placeConditions: List<PlaceConditions>
+    ) {
+        if (!section.getBoolean(GENERATE_DIRECTIONS_PATH, false)) {
+            return
+        }
+        // an extra note isn't used for no reason
+        blockFamily.addFamilyType(BlockFamily.Type.NO_AXIS, id)
+        for ((axisNum, axis) in Axis.entries.withIndex()) {
+            val newProperties = if (axisNum == 0) properties else this.loadProperties(section, type);
+            val newId =
+                "${id}_${axis.name.lowercase()}"
+            blockFamily.addFamilyType(BlockFamily.Type.fromAxis(axis), newId)
+            val newData = type.blockSupplier(
+                newId,
+                modelPath,
+                visualMaterial,
+                worldMaterial,
+                newProperties,
+                blockFamily,
+                blockSoundData,
+                itemSupplier,
+                blockDrops,
+                connectsTo,
+                blockBreakModifier,
+                settings,
+                placeConditions
+            )
+            blockData[newId] = newData
         }
     }
 

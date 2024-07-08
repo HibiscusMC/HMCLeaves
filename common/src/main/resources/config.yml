@@ -122,10 +122,11 @@ blocks:
     # allows directional blocks to be generated,
     # the below values are required for stripped logs
     block-family:
-      AXIS_X: "aspen_log_x"
-      AXIS_Y: "aspen_log_y"
-      AXIS_Z: "aspen_log_z"
+      AXIS_X: "stripped_aspen_log"
+      AXIS_Y: "stripped_aspen_log"
+      AXIS_Z: "stripped_aspen_log"
       NOT_STRIPPED: "aspen_log"
+    generate-directions: false
     properties:
       instrument: flute
       note: 9
