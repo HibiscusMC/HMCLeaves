@@ -7,25 +7,24 @@ import com.github.retrooper.packetevents.event.PacketSendEvent
 import com.github.retrooper.packetevents.protocol.packettype.PacketType
 import com.github.retrooper.packetevents.protocol.player.DiggingAction
 import com.github.retrooper.packetevents.protocol.potion.PotionTypes
+import com.github.retrooper.packetevents.protocol.sound.SoundCategory
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState
-import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes
 import com.github.retrooper.packetevents.util.Vector3i
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerDigging
 import com.github.retrooper.packetevents.wrapper.play.server.*
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMultiBlockChange.EncodedBlock
 import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.block.BlockChecker
-import com.hibiscusmc.hmcleaves.block.BlockType
+import com.hibiscusmc.hmcleaves.block.SoundData
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
+import com.hibiscusmc.hmcleaves.packet.wrapper.WrapperPlayServerNamedSoundEffect
 import com.hibiscusmc.hmcleaves.packet.wrapper.WrapperPlayServerWorldEvent
 import com.hibiscusmc.hmcleaves.util.toChunkPosition
 import com.hibiscusmc.hmcleaves.util.toPosition
 import com.hibiscusmc.hmcleaves.util.toVector3i
 import com.hibiscusmc.hmcleaves.world.*
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
-import org.bukkit.Bukkit
 import org.bukkit.GameMode
-import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.block.data.BlockData
 import org.bukkit.entity.Player
@@ -337,3 +336,44 @@ fun sendArmSwing(playerToSwing: Player, players: Collection<Player>) {
         );
     }
 }
+
+fun sendSound(
+    soundData: SoundData,
+    position: Position,
+    players: Collection<Player>
+) {
+    sendSound(
+        soundData.name,
+        soundData.soundCategory,
+        soundData.volume,
+        soundData.pitch,
+        position,
+        players
+    )
+}
+
+fun sendSound(
+    name: String,
+    soundCategory: SoundCategory,
+    volume: Float,
+    pitch: Float,
+    position: Position,
+    players: Collection<Player>
+) {
+    val effectPosition = Vector3i(position.x, position.y, position.z)
+    val packet = WrapperPlayServerNamedSoundEffect(
+        0,
+        Optional.of(name),
+        Optional.of(false),
+        Optional.empty(),
+        soundCategory,
+        effectPosition,
+        volume,
+        pitch
+    )
+    val playerManager = PacketEvents.getAPI().playerManager
+    for (player in players) {
+        playerManager.sendPacketSilently(player, packet)
+    }
+}
+

@@ -1,5 +1,6 @@
 package com.hibiscusmc.hmcleaves.config
 
+import com.github.retrooper.packetevents.protocol.sound.SoundCategory
 import com.github.retrooper.packetevents.protocol.world.states.enums.Instrument
 import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.block.BlockData
@@ -8,12 +9,14 @@ import com.hibiscusmc.hmcleaves.block.BlockFamily
 import com.hibiscusmc.hmcleaves.block.BlockIdPlaceCondition
 import com.hibiscusmc.hmcleaves.block.BlockSetting
 import com.hibiscusmc.hmcleaves.block.BlockSettings
+import com.hibiscusmc.hmcleaves.block.BlockSoundData
 import com.hibiscusmc.hmcleaves.block.BlockType
 import com.hibiscusmc.hmcleaves.block.MaterialPlaceCondition
 import com.hibiscusmc.hmcleaves.block.PlaceCondition
 import com.hibiscusmc.hmcleaves.block.PlaceConditions
 import com.hibiscusmc.hmcleaves.block.Property
 import com.hibiscusmc.hmcleaves.block.SaplingData
+import com.hibiscusmc.hmcleaves.block.SoundData
 import com.hibiscusmc.hmcleaves.block.TagPlaceCondition
 import com.hibiscusmc.hmcleaves.database.DatabaseSettings
 import com.hibiscusmc.hmcleaves.database.DatabaseType
@@ -30,6 +33,7 @@ import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakModifier
 import com.hibiscusmc.hmcleaves.packet.mining.ToolType
 import com.hibiscusmc.hmcleaves.pdc.PDCUtil
 import com.hibiscusmc.hmcleaves.util.parseAsAdventure
+import net.kyori.adventure.sound.Sound
 import org.bukkit.Axis
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -43,6 +47,7 @@ import org.bukkit.enchantments.Enchantment
 import org.bukkit.inventory.ItemStack
 import java.util.Collections
 import java.util.EnumMap
+import java.util.Locale
 import kotlin.properties.Delegates
 
 
@@ -97,6 +102,16 @@ private const val PLACE_CONDITION_ID = "id"
 
 private const val WHITELISTED_WORLDS_KEY = "whitelisted-worlds"
 private const val USE_WORLD_WHITELIST_KEY = "use-world-whitelist"
+
+private const val STEP_SOUND_PATH = "step-sound"
+private const val HIT_SOUND_PATH = "hit-sound"
+private const val PLACE_SOUND_PATH = "place-sound"
+
+private const val SOUND_NAME_PATH = "name"
+private const val SOUND_CATEGORY_PATH = "category"
+private const val SOUND_VOLUME_PATH = "volume"
+private const val SOUND_PITCH_PATH = "pitch"
+
 
 private const val SEND_DEBUG_MESSAGES_KEY = "debug"
 
@@ -359,6 +374,7 @@ class LeavesConfig(
                 material,
                 properties,
                 BlockFamily(),
+                BlockSoundData.EMPTY,
                 ConstantItemSupplier(ItemStack(material), id),
                 SingleBlockDropReplacement(),
                 null,
@@ -382,6 +398,7 @@ class LeavesConfig(
                 material,
                 properties,
                 BlockFamily(Pair(BlockFamily.Type.STRIPPED, "stripped_${id}")),
+                BlockSoundData.EMPTY,
                 ConstantItemSupplier(ItemStack(material), id),
                 SingleBlockDropReplacement(),
                 if (this.customMiningSpeedsForDefaultLogs) BlockBreakManager.LOG_BREAK_MODIFIER else null,
@@ -406,6 +423,7 @@ class LeavesConfig(
                 material,
                 properties,
                 BlockFamily(Pair(BlockFamily.Type.NOT_STRIPPED, notStrippedId)),
+                BlockSoundData.EMPTY,
                 ConstantItemSupplier(ItemStack(material), id),
                 SingleBlockDropReplacement(),
                 if (this.customMiningSpeedsForDefaultLogs) BlockBreakManager.LOG_BREAK_MODIFIER else null,
@@ -430,6 +448,7 @@ class LeavesConfig(
             material,
             properties,
             BlockFamily(),
+            BlockSoundData.EMPTY,
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             BlockType.SUGAR_CANE.defaultSettings,
@@ -450,6 +469,7 @@ class LeavesConfig(
                 material,
                 properties,
                 BlockFamily(),
+                BlockSoundData.EMPTY,
                 ConstantItemSupplier(ItemStack(material), id),
                 SingleBlockDropReplacement(),
                 BlockType.SAPLING.defaultSettings,
@@ -473,6 +493,7 @@ class LeavesConfig(
             material,
             properties,
             BlockFamily(Pair(BlockFamily.Type.PLANT, getDefaultIdFromMaterial(Material.CAVE_VINES_PLANT))),
+            BlockSoundData.EMPTY,
             ConstantItemSupplier(ItemStack(Material.GLOW_BERRIES), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.CAVE_VINES_PLANT)),
@@ -495,6 +516,7 @@ class LeavesConfig(
             material,
             properties,
             BlockFamily(Pair(BlockFamily.Type.NOT_PLANT, getDefaultIdFromMaterial(Material.CAVE_VINES))),
+            BlockSoundData.EMPTY,
             ConstantItemSupplier(ItemStack(Material.GLOW_BERRIES), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.CAVE_VINES)),
@@ -518,6 +540,7 @@ class LeavesConfig(
             material,
             properties,
             BlockFamily(Pair(BlockFamily.Type.PLANT, getDefaultIdFromMaterial(Material.WEEPING_VINES_PLANT))),
+            BlockSoundData.EMPTY,
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.WEEPING_VINES_PLANT)),
@@ -539,6 +562,7 @@ class LeavesConfig(
             material,
             properties,
             BlockFamily(Pair(BlockFamily.Type.NOT_PLANT, getDefaultIdFromMaterial(Material.WEEPING_VINES))),
+            BlockSoundData.EMPTY,
             ConstantItemSupplier(ItemStack(Material.WEEPING_VINES), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.WEEPING_VINES)),
@@ -562,6 +586,7 @@ class LeavesConfig(
             material,
             properties,
             BlockFamily(Pair(BlockFamily.Type.PLANT, getDefaultIdFromMaterial(Material.TWISTING_VINES_PLANT))),
+            BlockSoundData.EMPTY,
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.TWISTING_VINES_PLANT)),
@@ -583,6 +608,7 @@ class LeavesConfig(
             material,
             properties,
             BlockFamily(Pair(BlockFamily.Type.NOT_PLANT, getDefaultIdFromMaterial(Material.TWISTING_VINES))),
+            BlockSoundData.EMPTY,
             ConstantItemSupplier(ItemStack(Material.TWISTING_VINES), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.TWISTING_VINES)),
@@ -606,6 +632,7 @@ class LeavesConfig(
             material,
             properties,
             BlockFamily(Pair(BlockFamily.Type.PLANT, getDefaultIdFromMaterial(Material.KELP_PLANT))),
+            BlockSoundData.EMPTY,
             ConstantItemSupplier(ItemStack(material), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.KELP_PLANT)),
@@ -627,6 +654,7 @@ class LeavesConfig(
             material,
             properties,
             BlockFamily(Pair(BlockFamily.Type.NOT_PLANT, getDefaultIdFromMaterial(Material.KELP))),
+            BlockSoundData.EMPTY,
             ConstantItemSupplier(ItemStack(Material.KELP), id),
             SingleBlockDropReplacement(),
             setOf(getDefaultIdFromMaterial(Material.KELP)),
@@ -702,6 +730,7 @@ class LeavesConfig(
                 loadBlockBreakModifier(section.getConfigurationSection(BLOCK_BREAK_MODIFIER_KEY), id)
             val settings = loadBlockSettings(section.getConfigurationSection(BLOCK_SETTINGS_KEY), id, type)
             val placeConditions = loadPlaceConditions(section.getConfigurationSection(PLACE_CONDITIONS_KEY), id)
+            val blockSoundData = loadBlockSoundData(section)
             val modelPath = section.getString(MODEL_PATH_KEY)
             val data = type.blockSupplier(
                 id,
@@ -710,6 +739,7 @@ class LeavesConfig(
                 worldMaterial,
                 properties,
                 blockFamily,
+                blockSoundData,
                 itemSupplier,
                 blockDrops,
                 connectsTo,
@@ -746,6 +776,7 @@ class LeavesConfig(
                         worldMaterial,
                         newProperties,
                         blockFamily,
+                        blockSoundData,
                         itemSupplier,
                         blockDrops,
                         connectsTo,
@@ -935,4 +966,22 @@ class LeavesConfig(
         }
         return conditions
     }
+
+    private fun loadBlockSoundData(section: ConfigurationSection?): BlockSoundData {
+        if (section == null) return BlockSoundData.EMPTY
+        val stepSound = this.loadSoundData(section.getConfigurationSection(STEP_SOUND_PATH))
+        val hitSound = this.loadSoundData(section.getConfigurationSection(HIT_SOUND_PATH))
+        val placeSound = this.loadSoundData(section.getConfigurationSection(PLACE_SOUND_PATH))
+        return BlockSoundData(stepSound, hitSound, placeSound)
+    }
+
+    private fun loadSoundData(section: ConfigurationSection?): SoundData? {
+        if (section == null) return null
+        val name = section.getString(SOUND_NAME_PATH) ?: return null
+        val category = SoundCategory.valueOf(section.getString(SOUND_CATEGORY_PATH)!!.uppercase(Locale.getDefault()))
+        val volume = section.getDouble(SOUND_VOLUME_PATH, 1.0).toFloat()
+        val pitch = section.getDouble(SOUND_PITCH_PATH, 1.0).toFloat()
+        return SoundData(name, category, volume, pitch)
+    }
+
 }

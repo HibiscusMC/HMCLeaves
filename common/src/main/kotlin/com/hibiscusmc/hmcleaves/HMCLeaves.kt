@@ -11,6 +11,7 @@ import com.hibiscusmc.hmcleaves.debug.LeavesLogger
 import com.hibiscusmc.hmcleaves.hook.Hooks
 import com.hibiscusmc.hmcleaves.listener.BukkitListeners
 import com.hibiscusmc.hmcleaves.listener.ChunkListener
+import com.hibiscusmc.hmcleaves.listener.SoundListener
 import com.hibiscusmc.hmcleaves.packet.PacketListener
 import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakManager
 import com.hibiscusmc.hmcleaves.user.UserManager
@@ -34,7 +35,6 @@ class HMCLeaves : JavaPlugin() {
         PacketEvents.getAPI().settings.reEncodeByDefault(true)
             .checkForUpdates(false)
             .debug(true)
-            .bStats(true)
         PacketEvents.getAPI().load()
     }
 
@@ -51,6 +51,7 @@ class HMCLeaves : JavaPlugin() {
         val pluginManager = this.server.pluginManager
         pluginManager.registerEvents(BukkitListeners(this), this)
         pluginManager.registerEvents(ChunkListener(this), this)
+        pluginManager.registerEvents(SoundListener(this), this)
 
         PacketEvents.getAPI().eventManager.registerListener(PacketListener(this, this.blockChecker))
         PacketEvents.getAPI().init()

@@ -8,6 +8,7 @@ import com.hibiscusmc.hmcleaves.block.SUPPORTING_DIRECTIONS
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.hook.Hooks
 import com.hibiscusmc.hmcleaves.packet.sendArmSwing
+import com.hibiscusmc.hmcleaves.packet.sendSound
 import com.hibiscusmc.hmcleaves.util.getChunkPosition
 import com.hibiscusmc.hmcleaves.util.getPositionInChunk
 import com.hibiscusmc.hmcleaves.util.parseAsAdventure
@@ -219,7 +220,12 @@ class BukkitListeners(
             event.isCancelled = true
             return
         }
-        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, Runnable { sendArmSwing(player, listOf(player)) })
+        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, Runnable {
+            sendArmSwing(player, listOf(player))
+            data.blockSoundData.placeSound?.let { sound ->
+                sendSound(sound, relativeBlock.location.toPosition() ?: return@Runnable, Bukkit.getOnlinePlayers())
+            }
+        })
 
         if (player.gameMode != GameMode.CREATIVE) {
             val hand = event.hand
