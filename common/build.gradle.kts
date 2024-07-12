@@ -1,10 +1,11 @@
-import net.minecrell.pluginyml.bukkit.BukkitPluginDescription
+//import net.minecrell.pluginyml.bukkit.BukkitPluginDescription
 
 plugins {
     kotlin("jvm") version "1.9.23"
-    id("xyz.jpenilla.run-paper") version "2.2.4"
-    id("net.minecrell.plugin-yml.bukkit") version "0.6.0"
-    id("com.github.johnrengelman.shadow") version "8.1.0"
+//    id("xyz.jpenilla.run-paper") version "2.2.4"
+//    id("net.minecrell.plugin-yml.bukkit") version "0.6.0"
+//    id("com.github.johnrengelman.shadow") version "8.1.0"
+//    id("io.papermc.paperweight.userdev") version "1.7.1" apply false
 }
 
 group = "com.hibiscusmc"
@@ -35,69 +36,48 @@ dependencies {
     implementation("net.kyori:adventure-text-serializer-legacy:4.17.0")
 }
 
-tasks {
-
-    build {
-        dependsOn(shadowJar)
-    }
-
-    shadowJar {
-        archiveFileName.set("hmcleaves-${project.version}.jar")
-        relocate("com.github.retrooper.packetevents", "com.hibiscusmc.hmcleaves.packetevents")
-        relocate("com.github.benmanes.caffeine", "com.hibiscusmc.hmcleaves.caffeine")
-        relocate("net.kyori.adventure.text.serializer.legacy", "com.hibiscusmc.hmcleaves.adventure.text.serializer.legacy")
-
-        dependencies {
-            exclude(dependency("org.yaml:snakeyaml"))
-        }
-    }
-
-    runServer {
-        minecraftVersion("1.20.4")
-    }
-}
-
-tasks.test {
-    useJUnitPlatform()
-}
-
 kotlin {
     jvmToolchain(17)
 }
 
-bukkit {
-    // Default values can be overridden if needed
-     name = "HMCLeaves"
-     version = "${getVersion()}"
-     description = "HMCLeaves"
-     author = "Fisher2911"
-
-    // Plugin main class (required)
-    main = "com.hibiscusmc.hmcleaves.HMCLeaves"
-
-
-    apiVersion = "1.18"
-
-    load = BukkitPluginDescription.PluginLoadOrder.STARTUP
-    prefix = "HMCLeaves"
-
-    softDepend = listOf(
-        "ProtocolLib",
-        "ProtocolSupport",
-        "ViaVersion",
-        "ViaBackwards",
-        "ViaRewind",
-        "Geyser-Spigot",
-        "WorldEdit"
-        )
-
-    commands {
-        register("hmcleaves") {
-            description = "HMCleaves command"
-            aliases = listOf("leaves")
-            permission = "hmcleaves.command"
-            usage = "/hmcleaves ..."
-        }
-        // ...
-    }
-}
+//tasks {
+//    runServer {
+//        minecraftVersion("1.20.4")
+//    }
+//}
+//
+//bukkit {
+//    // Default values can be overridden if needed
+//    name = "HMCLeaves"
+//    version = "${getVersion()}"
+//    description = "HMCLeaves"
+//    author = "Fisher2911"
+//
+//    // Plugin main class (required)
+//    main = "com.hibiscusmc.hmcleaves.HMCLeaves"
+//
+//
+//    apiVersion = "1.18"
+//
+//    load = BukkitPluginDescription.PluginLoadOrder.STARTUP
+//    prefix = "HMCLeaves"
+//
+//    softDepend = listOf(
+//        "ProtocolLib",
+//        "ProtocolSupport",
+//        "ViaVersion",
+//        "ViaBackwards",
+//        "ViaRewind",
+//        "Geyser-Spigot",
+//        "WorldEdit"
+//    )
+//
+//    commands {
+//        register("hmcleaves") {
+//            description = "HMCleaves command"
+//            aliases = listOf("leaves")
+//            permission = "hmcleaves.command"
+//            usage = "/hmcleaves ..."
+//        }
+//    }
+//}

@@ -12,6 +12,7 @@ import com.hibiscusmc.hmcleaves.hook.Hooks
 import com.hibiscusmc.hmcleaves.listener.BukkitListeners
 import com.hibiscusmc.hmcleaves.listener.ChunkListener
 import com.hibiscusmc.hmcleaves.listener.SoundListener
+import com.hibiscusmc.hmcleaves.nms.NMSHandler
 import com.hibiscusmc.hmcleaves.packet.PacketListener
 import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakManager
 import com.hibiscusmc.hmcleaves.user.UserManager
@@ -19,6 +20,8 @@ import com.hibiscusmc.hmcleaves.world.WorldManager
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
+import java.lang.reflect.InvocationTargetException
+
 
 class HMCLeaves : JavaPlugin() {
 
@@ -29,6 +32,7 @@ class HMCLeaves : JavaPlugin() {
     val userManager: UserManager by lazy { UserManager(this) }
     private lateinit var leavesLogger: LeavesLogger
     private val blockChecker = BlockChecker(this, worldManager)
+    private lateinit var nmsHandler: NMSHandler
 
     override fun onLoad() {
         PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this))
@@ -36,6 +40,23 @@ class HMCLeaves : JavaPlugin() {
             .checkForUpdates(false)
             .debug(true)
         PacketEvents.getAPI().load()
+        if (Bukkit.getVersion().contains("1.19")) {
+            this.nmsHandler = this.createNMSHandler("v1_19")
+        }
+        if (Bukkit.getVersion().contains("1.20.4")) {
+            this.nmsHandler = this.createNMSHandler("v1_20_4")
+        }
+    }
+
+    @Throws(
+        ClassNotFoundException::class,
+        IllegalAccessException::class,
+        InstantiationException::class,
+        InvocationTargetException::class
+    )
+    private fun createNMSHandler(packageVersion: String): NMSHandler {
+        return Class.forName("com.hibiscusmc.hmcleaves.${packageVersion}.NMSHandler").constructors[0]
+            .newInstance() as NMSHandler
     }
 
     override fun onEnable() {
@@ -84,10 +105,10 @@ class HMCLeaves : JavaPlugin() {
 
     fun getDatabase(): LeavesDatabase = this.database
 
-    fun getLeavesLogger(): LeavesLogger {
-        return this.leavesLogger
-    }
+    fun getLeavesLogger() = this.leavesLogger
 
-    fun getBlockChecker(): BlockChecker = this.blockChecker
+    fun getBlockChecker() = this.blockChecker
+
+    fun getNMSHandler() = this.nmsHandler
 
 }

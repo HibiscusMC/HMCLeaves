@@ -10,6 +10,7 @@ import com.hibiscusmc.hmcleaves.hook.Hooks
 import com.hibiscusmc.hmcleaves.packet.sendArmSwing
 import com.hibiscusmc.hmcleaves.packet.sendSound
 import com.hibiscusmc.hmcleaves.util.getChunkPosition
+import com.hibiscusmc.hmcleaves.util.getPosition
 import com.hibiscusmc.hmcleaves.util.getPositionInChunk
 import com.hibiscusmc.hmcleaves.util.parseAsAdventure
 import com.hibiscusmc.hmcleaves.util.toBlockDirection
@@ -24,7 +25,6 @@ import org.bukkit.Material
 import org.bukkit.Tag
 import org.bukkit.World
 import org.bukkit.block.Block
-import org.bukkit.block.data.type.Leaves
 import org.bukkit.entity.LivingEntity
 import org.bukkit.event.Cancellable
 import org.bukkit.event.Event
@@ -99,7 +99,6 @@ class BukkitListeners(
         }
         blockData = result.blockData
         leavesChunk[position] = blockData
-        val worldBlockData = block.blockData
     }
 
     private fun checkPlaceConditions(
@@ -127,17 +126,18 @@ class BukkitListeners(
         val itemInHand = event.item ?: return
         if (itemInHand.type == Material.AIR) return
         if (event.hand != EquipmentSlot.HAND) return
-        if (itemInHand.type.isBlock) return
 
         val player = event.player
         val worldUUID = player.world.uid
-        val face = event.blockFace
-        val relativeBlock =
-            if (BLOCKS_PLACEABLE_IN.contains(clickedBlock.type)) clickedBlock else clickedBlock.getRelative(face)
 
         val clickedBlockData = this.worldManager[worldUUID]
             ?.get(clickedBlock.getChunkPosition())
             ?.get(clickedBlock.getPositionInChunk())
+
+        val face = event.blockFace
+        val relativeBlock =
+            if (BLOCKS_PLACEABLE_IN.contains(clickedBlock.type)) clickedBlock else clickedBlock.getRelative(face)
+
 
         if (this.config.isDebugStick(itemInHand)) {
 
@@ -154,6 +154,15 @@ class BukkitListeners(
         }
 
         if (Hooks.isHandledByHook(itemInHand)) return
+
+        val data = this.config.getBlockDataFromItem(itemInHand)
+
+        if (data == null) {
+            event.setUseItemInHand(Event.Result.ALLOW);
+            event.setUseInteractedBlock(Event.Result.DENY);
+            this.plugin.getNMSHandler().handleRightClickCustomBlock(player, relativeBlock.getPosition(), event.hand ?: EquipmentSlot.HAND)
+            return
+        }
 
         if (clickedBlockData == null && itemInHand.type.isBlock) {
             return
@@ -180,8 +189,6 @@ class BukkitListeners(
                 leavesChunk[position] = newData
             }
         }
-
-        val data = this.config.getBlockDataFromItem(itemInHand) ?: return
 
         val replacedState = relativeBlock.state
         val material = data.worldMaterial

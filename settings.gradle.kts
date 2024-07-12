@@ -22,25 +22,19 @@ plugins {
  */
 
 rootProject.name = "HMCLeaves"
-include(
-    "common"
-)
 
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
-        maven("https://repo.papermc.io/repository/maven-public/")
-        maven("https://oss.sonatype.org/content/groups/public/")
-        maven("https://s01.oss.sonatype.org/content/repositories/snapshots/")
         maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
         maven("https://oss.sonatype.org/content/repositories/snapshots")
         maven("https://oss.sonatype.org/content/repositories/central")
-        maven("https://jitpack.io")
+        maven("https://repo.codemc.io/repository/maven-releases/")
+        maven("https://repo.oraxen.com/releases")
         maven("https://maven.enginehub.org/repo/")
-        maven("https://repo.codemc.io/repository/maven-snapshots/")
-        maven("https://mvn.lumine.io/repository/maven-public/") { metadataSources { artifact() } }
-        maven("https://repo.xenondevs.xyz/releases")
-        maven("https://repo.hibiscusmc.com/snapshots")
+        maven("https://jitpack.io")
     }
 }
 include("common")
+include("v1_19")
+include("v1_20_4")
