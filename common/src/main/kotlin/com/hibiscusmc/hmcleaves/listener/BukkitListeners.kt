@@ -396,6 +396,11 @@ class BukkitListeners(
         }
         val result = data.listen(event::class.java, event, world, block.location, position, leavesChunk, config)
         if (result.type == ListenResultType.CANCEL_EVENT) return
+        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, Runnable {
+            val stepSound = result.blockData.blockSoundData.breakSound ?: return@Runnable
+            sendSound(stepSound, block.getPosition(), listOf(event.player))
+        })
+        data.blockSoundData.breakSound.apply {  }
         leavesChunk.remove(position, true)
         handleRelativeBlockBreak(
             world,

@@ -106,6 +106,7 @@ private const val USE_WORLD_WHITELIST_KEY = "use-world-whitelist"
 private const val STEP_SOUND_PATH = "step-sound"
 private const val HIT_SOUND_PATH = "hit-sound"
 private const val PLACE_SOUND_PATH = "place-sound"
+private const val BREAK_SOUND_PATH = "break-sound"
 
 private const val SOUND_NAME_PATH = "name"
 private const val SOUND_CATEGORY_PATH = "category"
@@ -1018,7 +1019,8 @@ class LeavesConfig(
         val stepSound = this.loadSoundData(section.getConfigurationSection(STEP_SOUND_PATH))
         val hitSound = this.loadSoundData(section.getConfigurationSection(HIT_SOUND_PATH))
         val placeSound = this.loadSoundData(section.getConfigurationSection(PLACE_SOUND_PATH))
-        return BlockSoundData(stepSound, hitSound, placeSound)
+        val breakSound = this.loadSoundData(section.getConfigurationSection(BREAK_SOUND_PATH))
+        return BlockSoundData(stepSound, hitSound, placeSound, breakSound)
     }
 
     private fun loadSoundData(section: ConfigurationSection?): SoundData? {

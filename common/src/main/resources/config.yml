@@ -113,6 +113,11 @@ blocks:
       category: "AMBIENT"
       volume: 1.0
       pitch: 1.0
+    break-sound:
+      name: "minecraft:block.bell.use"
+      category: "AMBIENT"
+      volume: 1.0
+      pitch: 1.0
 
   stripped_aspen_log:
     type: stripped_log
