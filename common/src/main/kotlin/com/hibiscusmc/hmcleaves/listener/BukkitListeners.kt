@@ -25,6 +25,7 @@ import org.bukkit.Material
 import org.bukkit.Tag
 import org.bukkit.World
 import org.bukkit.block.Block
+import org.bukkit.block.data.Waterlogged
 import org.bukkit.entity.LivingEntity
 import org.bukkit.event.Cancellable
 import org.bukkit.event.Event
@@ -202,11 +203,22 @@ class BukkitListeners(
                 0.5
             ) { it is LivingEntity }.isEmpty()
         ) {
-            event.setCancelled(true);
+            event.isCancelled = true;
             return
         }
 
-        relativeBlock.setType(material, true)
+        material.apply {
+            val isWater = relativeBlock.blockData.material == Material.WATER
+            if (!isWater) {
+                relativeBlock.setType(this, true)
+                return@apply
+            }
+            val newBlockData = this.createBlockData()
+            if (newBlockData is Waterlogged) {
+                newBlockData.isWaterlogged = isWater
+                relativeBlock.setBlockData(newBlockData, true)
+            }
+        }
 
         val blockPlaceEvent = BlockPlaceEvent(
             relativeBlock,
