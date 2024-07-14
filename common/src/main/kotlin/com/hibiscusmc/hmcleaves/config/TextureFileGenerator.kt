@@ -138,7 +138,7 @@ class TextureFileGenerator(
             return "${DISTANCE_KEY}=${blockData.properties[Property.DISTANCE].toString()},${PERSISTENT_KEY}=${blockData.properties[Property.PERSISTENT]}"
         }
         if (blockData.blockType == BlockType.SAPLING) {
-            return "${STAGE}=${blockData.properties[Property.AGE]}"
+            return "${STAGE}=${blockData.properties[Property.STAGE]}"
         }
         if (blockData.blockType == BlockType.LOG || blockData.blockType == BlockType.STRIPPED_LOG) {
             val instrument = blockData.properties[Property.INSTRUMENT]
