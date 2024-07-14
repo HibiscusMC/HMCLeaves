@@ -136,17 +136,13 @@ class LeavesConfig(
     private val doNotTouchPath = plugin.dataFolder.toPath().resolve("do-not-touch.yml")
     private var chunkVersion = CURRENT_CHUNK_VERSION
 
-    private lateinit var databaseSettings: DatabaseSettings
+    private var databaseSettings: DatabaseSettings? = null
     private var sendDebugMessages = false
     private var customMiningSpeedsForDefaultLogs by Delegates.notNull<Boolean>()
     private val whitelistedWorlds = hashSetOf<String>()
     private var useWorldWhitelist = true
 
     private var useTextureHook = false
-
-    fun getDatabaseSettings(): DatabaseSettings {
-        return this.databaseSettings
-    }
 
     private val defaultBlockData: MutableMap<Material, BlockData> = EnumMap(org.bukkit.Material::class.java)
     private val blockData: MutableMap<String, BlockData> = hashMapOf()
@@ -155,6 +151,10 @@ class LeavesConfig(
 
     private var instrumentIndex = 0
     private var noteIndex = 0
+
+    fun getDatabaseSettings(): DatabaseSettings {
+        return this.databaseSettings ?: throw IllegalStateException("Database settings were not initialized")
+    }
 
     fun sendDebugMessages(): Boolean {
         return this.sendDebugMessages
@@ -228,6 +228,14 @@ class LeavesConfig(
     }
 
     fun reload() {
+        this.databaseSettings = null
+        this.sendDebugMessages = false
+        this.customMiningSpeedsForDefaultLogs = false
+        this.useWorldWhitelist = true
+        this.useTextureHook = false
+        this.instrumentIndex = 0
+        this.noteIndex = 0
+
         this.whitelistedWorlds.clear()
         this.defaultBlockData.clear()
         this.blockData.clear()
