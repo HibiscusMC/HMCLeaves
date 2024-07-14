@@ -56,7 +56,7 @@ class HMCLeavesCommand(
 
             RELOAD_COMMAND.name -> {
                 if (!sender.hasPermission(RELOAD_COMMAND.permission ?: return true)) return true
-                this.config.reload()
+                this.plugin.reload()
                 sender.sendMessage("${ChatColor.RED}Config successfully reloaded")
                 return true
             }

@@ -1,12 +1,17 @@
 package com.hibiscusmc.hmcleaves.world
 
 import com.hibiscusmc.hmcleaves.block.BlockData
+import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 class WorldManager(
     private val worlds: MutableMap<UUID, LeavesWorld> = ConcurrentHashMap()
 ) {
+
+    fun reload(leavesConfig: LeavesConfig) {
+        this.worlds.values.forEach { world -> world.reload(leavesConfig) }
+    }
 
     operator fun get(world: UUID): LeavesWorld? {
         return this.worlds[world]
@@ -23,7 +28,7 @@ class WorldManager(
     }
 
     operator fun set(position: Position, blockData: BlockData) {
-        this.worlds.computeIfAbsent(position.world) {_ ->  LeavesWorld(position.world)}
+        this.worlds.computeIfAbsent(position.world) { _ -> LeavesWorld(position.world) }
             .getOrAdd(position.getChunkPosition())[position.toPositionInChunk()] = blockData
     }
 

@@ -103,6 +103,11 @@ class HMCLeaves : JavaPlugin() {
         }
     }
 
+    fun reload() {
+        this.leavesConfig.reload()
+        this.worldManager.reload(this.leavesConfig)
+    }
+
     fun getDatabase(): LeavesDatabase = this.database
 
     fun getLeavesLogger() = this.leavesLogger
