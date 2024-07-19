@@ -1,6 +1,8 @@
 package com.hibiscusmc.hmcleaves.listener
 
 import com.hibiscusmc.hmcleaves.HMCLeaves
+import com.hibiscusmc.hmcleaves.api.event.HMCLeavesBlockDataBreakEvent
+import com.hibiscusmc.hmcleaves.api.event.HMCLeavesBlockDataPlaceEvent
 import com.hibiscusmc.hmcleaves.block.BlockData
 import com.hibiscusmc.hmcleaves.block.BlockDirection
 import com.hibiscusmc.hmcleaves.block.BlockSetting
@@ -98,7 +100,14 @@ class BukkitListeners(
         if (Hooks.isHandledByHook(item)) {
             return
         }
-        blockData = result.blockData
+        val leavesPlaceEvent = HMCLeavesBlockDataPlaceEvent(
+            block.getPosition(),
+            leavesChunk[position],
+            result.blockData
+        )
+        Bukkit.getPluginManager().callEvent(leavesPlaceEvent);
+        if (leavesPlaceEvent.isCancelled) return
+        blockData = leavesPlaceEvent.blockData
         leavesChunk[position] = blockData
     }
 
@@ -408,11 +417,16 @@ class BukkitListeners(
         }
         val result = data.listen(event::class.java, event, world, block.location, position, leavesChunk, config)
         if (result.type == ListenResultType.CANCEL_EVENT) return
+        val leavesBreakEvent = HMCLeavesBlockDataBreakEvent(
+            block.getPosition(),
+            data
+        )
+        Bukkit.getPluginManager().callEvent(leavesBreakEvent);
+        if (leavesBreakEvent.isCancelled) return
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, Runnable {
             val stepSound = result.blockData.blockSoundData.breakSound ?: return@Runnable
             sendSound(stepSound, block.getPosition(), listOf(event.player))
         })
-        data.blockSoundData.breakSound.apply {  }
         leavesChunk.remove(position, true)
         handleRelativeBlockBreak(
             world,

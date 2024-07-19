@@ -6,7 +6,7 @@ import org.bukkit.event.Cancellable
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 
-class HMCLeavesBlockDataRemoveEvent(
+class HMCLeavesBlockDataBreakEvent(
     var position: Position,
     var blockData: BlockData,
     private var cancelled: Boolean = false
@@ -24,7 +24,7 @@ class HMCLeavesBlockDataRemoveEvent(
     }
 
     override fun getHandlers(): HandlerList {
-        return HMCLeavesBlockDataRemoveEvent.handlers
+        return HMCLeavesBlockDataBreakEvent.handlers
     }
 
     override fun isCancelled(): Boolean {
