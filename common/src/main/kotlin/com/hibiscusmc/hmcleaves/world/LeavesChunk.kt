@@ -3,6 +3,8 @@ package com.hibiscusmc.hmcleaves.world
 import com.hibiscusmc.hmcleaves.block.BlockData
 import com.hibiscusmc.hmcleaves.block.BlockType
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
+import com.hibiscusmc.hmcleaves.util.Metadata
+import com.hibiscusmc.hmcleaves.util.Metadatable
 import org.bukkit.Bukkit
 import java.util.Collections
 import java.util.UUID
@@ -14,9 +16,10 @@ class LeavesChunk(
     private val blocks: MutableMap<PositionInChunk, BlockData> = ConcurrentHashMap(),
     private val defaultBlocks: MutableMap<PositionInChunk, BlockData> = ConcurrentHashMap(),
     private val blocksToRemove: MutableMap<PositionInChunk, BlockData> = ConcurrentHashMap(),
+    override val metadata: Metadata = Metadata.mutableEmpty(),
     private var dirty: Boolean = false,
     private var loaded: Boolean = false
-) {
+) : Metadatable {
 
     fun reload(leavesConfig: LeavesConfig) {
         replaceFromConfig(leavesConfig, this.blocks)

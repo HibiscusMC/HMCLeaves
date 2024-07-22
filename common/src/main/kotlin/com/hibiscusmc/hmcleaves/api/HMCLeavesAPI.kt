@@ -16,6 +16,7 @@ import org.bukkit.plugin.java.JavaPlugin
 class HMCLeavesAPI private constructor(private val plugin: HMCLeaves) {
 
     companion object {
+        @JvmStatic
         var instance: HMCLeavesAPI? = null
             get() {
                 if (field == null) {
