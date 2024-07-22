@@ -1,6 +1,7 @@
 package com.hibiscusmc.hmcleaves.item
 
 import com.hibiscusmc.hmcleaves.block.BlockData
+import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.hook.Hooks
 import com.hibiscusmc.hmcleaves.pdc.PDCUtil
 import org.bukkit.Bukkit
@@ -13,7 +14,7 @@ interface ItemSupplier {
 
 }
 
-data object EmptyItemSupplier: ItemSupplier {
+data object EmptyItemSupplier : ItemSupplier {
 
     private val air = ItemStack(Material.AIR)
 
@@ -44,3 +45,15 @@ class HookItemSupplier(
         return Hooks.getItemStackById(this.itemId, this.hookItemId) ?: this.defaultSupplier.createItem()
     }
 }
+
+class IDItemSupplier(
+    private val leavesConfig: LeavesConfig,
+    private val id: String,
+    private val defaultSupplier: ItemSupplier = EmptyItemSupplier
+) : ItemSupplier {
+    override fun createItem(): ItemStack? {
+        return this.leavesConfig.getBlockData(this.id)?.createItem() ?: this.defaultSupplier.createItem()
+    }
+}
+
+

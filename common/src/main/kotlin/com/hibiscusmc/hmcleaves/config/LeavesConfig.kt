@@ -24,7 +24,9 @@ import com.hibiscusmc.hmcleaves.hook.Hooks
 import com.hibiscusmc.hmcleaves.item.BlockDropType
 import com.hibiscusmc.hmcleaves.item.BlockDrops
 import com.hibiscusmc.hmcleaves.item.ConstantItemSupplier
+import com.hibiscusmc.hmcleaves.item.EmptyItemSupplier
 import com.hibiscusmc.hmcleaves.item.HookItemSupplier
+import com.hibiscusmc.hmcleaves.item.IDItemSupplier
 import com.hibiscusmc.hmcleaves.item.ItemSupplier
 import com.hibiscusmc.hmcleaves.item.MappedBlockDropReplacements
 import com.hibiscusmc.hmcleaves.item.SingleBlockDropReplacement
@@ -912,14 +914,14 @@ class LeavesConfig(
             }
             val hookItemId = section.getString(ITEM_ID_KEY)!!
             this.hookIdToBlockDataId[hookItemId] = id
-            return HookItemSupplier(id, hookItemId, constantSupplier)
+            return HookItemSupplier(id, hookItemId, IDItemSupplier(this, hookItemId, constantSupplier))
         } catch (exception: Exception) {
             if (!section.contains(ITEM_ID_KEY)) {
                 throw exception
             }
             val hookItemId = section.getString(ITEM_ID_KEY)!!
             this.hookIdToBlockDataId[hookItemId] = id
-            return HookItemSupplier(id, hookItemId)
+            return HookItemSupplier(id, hookItemId, IDItemSupplier(this, hookItemId, EmptyItemSupplier))
         }
     }
 
