@@ -46,6 +46,9 @@ class HMCLeaves : JavaPlugin() {
         if (Bukkit.getVersion().contains("1.20.4")) {
             this.nmsHandler = this.createNMSHandler("v1_20_4")
         }
+        if (Bukkit.getVersion().contains("1.21")) {
+            this.nmsHandler = this.createNMSHandler("v1_21")
+        }
     }
 
     @Throws(

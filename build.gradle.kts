@@ -21,7 +21,7 @@ import net.minecrell.pluginyml.bukkit.BukkitPluginDescription
 
 plugins {
     kotlin("jvm") version "1.9.23"
-    id("com.github.johnrengelman.shadow") version "8.1.0"
+    id("io.github.goooler.shadow") version "8.1.8"
     id("net.minecrell.plugin-yml.bukkit") version "0.6.0"
 }
 
@@ -46,7 +46,7 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }
 
 tasks {
