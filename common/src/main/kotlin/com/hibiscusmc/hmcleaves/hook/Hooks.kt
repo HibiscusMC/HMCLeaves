@@ -5,7 +5,9 @@ import com.hibiscusmc.hmcleaves.block.SaplingData
 import com.hibiscusmc.hmcleaves.hook.item.ItemHook
 import com.hibiscusmc.hmcleaves.hook.item.ItemsAdderHook
 import com.hibiscusmc.hmcleaves.hook.item.OraxenHook
-import com.hibiscusmc.hmcleaves.hook.worldedit.WorldEditHook
+import com.hibiscusmc.hmcleaves.hook.worldedit.fawe.FAWEDelegate
+import com.hibiscusmc.hmcleaves.hook.worldedit.regular.WorldEditDelegate
+import com.hibiscusmc.hmcleaves.hook.worldedit.regular.WorldEditHook
 import com.hibiscusmc.hmcleaves.world.Position
 import org.bukkit.Material
 import org.bukkit.block.Block
@@ -34,10 +36,27 @@ class Hooks {
                 it.load()
                 plugin.server.pluginManager.registerEvents(it, plugin)
             }
-            if (plugin.server.pluginManager.getPlugin("WorldEdit") != null) {
-                plugin.logger.info("World edit found")
-                worldEditHook = WorldEditHook(plugin)
+            if (plugin.server.pluginManager.getPlugin("FastAsyncWorldEdit") != null) {
+                worldEditHook = WorldEditHook(plugin, { event ->
+                    FAWEDelegate(
+                        this.plugin,
+                        this.plugin.leavesConfig,
+                        event
+                    )
+                })
                 worldEditHook?.load()
+                plugin.logger.info("FAWE registered")
+            } else if (plugin.server.pluginManager.getPlugin("WorldEdit") != null) {
+                plugin.logger.info("World edit found")
+                worldEditHook = WorldEditHook(plugin, { event ->
+                    WorldEditDelegate(
+                        this.plugin,
+                        this.plugin.leavesConfig,
+                        event
+                    )
+                })
+                worldEditHook?.load()
+                plugin.logger.info("WorldEdit registered")
             } else {
                 plugin.logger.info("World edit not found")
             }

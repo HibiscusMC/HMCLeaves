@@ -31,53 +31,16 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.1.0")
     compileOnly("io.th0rgal:oraxen:1.178.0")
     compileOnly("com.github.LoneDev6:api-itemsadder:3.6.1")
-    compileOnly("com.sk89q.worldedit:worldedit-core:7.2.14-SNAPSHOT")
+//    compileOnly("com.sk89q.worldedit:worldedit-core:7.2.14-SNAPSHOT")
     compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.14-SNAPSHOT")
     implementation("net.kyori:adventure-text-serializer-legacy:4.17.0")
+    implementation(platform("com.intellectualsites.bom:bom-newest:1.47")) // Ref: https://github.com/IntellectualSites/bom
+    compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Core")
+//    compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Bukkit") { isTransitive = false }
+//    compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Core")
+//    compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Bukkit") { isTransitive = false }
 }
 
 kotlin {
     jvmToolchain(21)
 }
-
-//tasks {
-//    runServer {
-//        minecraftVersion("1.20.4")
-//    }
-//}
-//
-//bukkit {
-//    // Default values can be overridden if needed
-//    name = "HMCLeaves"
-//    version = "${getVersion()}"
-//    description = "HMCLeaves"
-//    author = "Fisher2911"
-//
-//    // Plugin main class (required)
-//    main = "com.hibiscusmc.hmcleaves.HMCLeaves"
-//
-//
-//    apiVersion = "1.18"
-//
-//    load = BukkitPluginDescription.PluginLoadOrder.STARTUP
-//    prefix = "HMCLeaves"
-//
-//    softDepend = listOf(
-//        "ProtocolLib",
-//        "ProtocolSupport",
-//        "ViaVersion",
-//        "ViaBackwards",
-//        "ViaRewind",
-//        "Geyser-Spigot",
-//        "WorldEdit"
-//    )
-//
-//    commands {
-//        register("hmcleaves") {
-//            description = "HMCleaves command"
-//            aliases = listOf("leaves")
-//            permission = "hmcleaves.command"
-//            usage = "/hmcleaves ..."
-//        }
-//    }
-//}

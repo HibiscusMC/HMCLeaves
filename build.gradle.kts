@@ -102,7 +102,8 @@ bukkit {
         "ViaBackwards",
         "ViaRewind",
         "Geyser-Spigot",
-        "WorldEdit"
+        "WorldEdit",
+        "FastAsyncWorldEdit"
     )
 
     commands {
