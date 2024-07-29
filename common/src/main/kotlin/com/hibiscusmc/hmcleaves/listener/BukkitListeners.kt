@@ -167,6 +167,8 @@ class BukkitListeners(
 
         val data = this.config.getBlockDataFromItem(itemInHand)
 
+        if (data == null && clickedBlockData == null) return
+
         if (data == null) {
             event.setUseItemInHand(Event.Result.ALLOW);
             event.setUseInteractedBlock(Event.Result.DENY);
