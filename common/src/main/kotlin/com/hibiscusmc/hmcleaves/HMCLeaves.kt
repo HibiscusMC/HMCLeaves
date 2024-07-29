@@ -38,7 +38,6 @@ class HMCLeaves : JavaPlugin() {
         PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this))
         PacketEvents.getAPI().settings.reEncodeByDefault(true)
             .checkForUpdates(false)
-            .debug(true)
         PacketEvents.getAPI().load()
         if (Bukkit.getVersion().contains("1.19")) {
             this.nmsHandler = this.createNMSHandler("v1_19")
