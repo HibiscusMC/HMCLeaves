@@ -27,6 +27,8 @@ import org.bukkit.Material
 import org.bukkit.Tag
 import org.bukkit.World
 import org.bukkit.block.Block
+import org.bukkit.block.data.Directional
+import org.bukkit.block.data.Orientable
 import org.bukkit.block.data.Waterlogged
 import org.bukkit.entity.LivingEntity
 import org.bukkit.event.Cancellable
@@ -169,16 +171,19 @@ class BukkitListeners(
 
         if (data == null && clickedBlockData == null) return
 
-        if (data == null) {
-            event.setUseItemInHand(Event.Result.ALLOW);
-            event.setUseInteractedBlock(Event.Result.DENY);
-            this.plugin.getNMSHandler().handleRightClickCustomBlock(player, relativeBlock.getPosition(), event.hand ?: EquipmentSlot.HAND)
+        // handled by block place event
+        if (data != null && clickedBlockData != null && itemInHand.type.isBlock) {
             return
         }
 
-        if (clickedBlockData == null && itemInHand.type.isBlock) {
+        if (data == null) {
+            event.setUseItemInHand(Event.Result.ALLOW);
+            event.setUseInteractedBlock(Event.Result.DENY);
+            this.plugin.getNMSHandler()
+                .handleRightClickCustomBlock(player, relativeBlock.getPosition(), event.hand ?: EquipmentSlot.HAND)
             return
         }
+
         if (clickedBlockData == null && clickedBlock.type.isInteractable && !player.isSneaking) {
             return
         }

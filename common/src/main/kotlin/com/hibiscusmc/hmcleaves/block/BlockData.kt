@@ -6,7 +6,6 @@ import com.github.retrooper.packetevents.protocol.world.states.enums.Instrument
 import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.item.BlockDrops
-import com.hibiscusmc.hmcleaves.item.ItemSupplier
 import com.hibiscusmc.hmcleaves.item.LogDropReplacement
 import com.hibiscusmc.hmcleaves.item.SingleBlockDropReplacement
 import com.hibiscusmc.hmcleaves.listener.BlockListener
@@ -39,7 +38,6 @@ import com.hibiscusmc.hmcleaves.listener.SaplingGrowListener
 import com.hibiscusmc.hmcleaves.listener.SaplingPlaceListener
 import com.hibiscusmc.hmcleaves.listener.SugarCaneGrowListener
 import com.hibiscusmc.hmcleaves.listener.SugarCanePlaceListener
-import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakModifier
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
 import com.hibiscusmc.hmcleaves.world.PositionInChunk
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
@@ -150,7 +148,7 @@ sealed class Property<T>(val key: String, val converter: (String) -> T) {
             )
         }
 
-        fun <T> getPropertyByKey(key: String): Property<T>? {
+        fun <T : Any> getPropertyByKey(key: String): Property<T>? {
             val property = PROPERTY_KEYS[key] ?: return null
             return property as Property<T>
         }
@@ -165,15 +163,16 @@ enum class BlockType(
         id: String,
         visualMaterial: Material,
         worldMaterial: Material,
-        properties: Map<Property<*>, *>,
+        properties: Map<Property<*>, Any>,
         blockMechanics: BlockMechanics,
         connectsTo: Set<String>,
+        propertyApplier: BlockData.PropertyApplier?
     ) -> BlockData
 ) {
     LEAVES(
         SingleBlockDropReplacement(),
         BlockSettings.EMPTY,
-        { id, visualMaterial, _, properties, blockMechanics,  _ ->
+        { id, visualMaterial, _, properties, blockMechanics, _, _ ->
             BlockData.createLeaves(
                 id,
                 visualMaterial,
@@ -184,31 +183,33 @@ enum class BlockType(
     LOG(
         LogDropReplacement(),
         BlockSettings.EMPTY,
-        { id, visualMaterial, worldMaterial, properties, blockMechanics, _ ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, _, propertyApplier ->
             BlockData.createLog(
                 id,
                 visualMaterial,
                 worldMaterial,
                 properties,
-                blockMechanics
+                blockMechanics,
+                propertyApplier ?: BlockData.DEFAULT_PROPERTY_APPLIER
             )
         }),
     STRIPPED_LOG(
         LogDropReplacement(),
         BlockSettings.EMPTY,
-        { id, visualMaterial, worldMaterial, properties, blockMechanics, _ ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, _, propertyApplier ->
             BlockData.createStrippedLog(
                 id,
                 visualMaterial,
                 worldMaterial,
                 properties,
                 blockMechanics,
+                propertyApplier ?: BlockData.DEFAULT_PROPERTY_APPLIER
             )
         }),
     SUGAR_CANE(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, blockMechanics, _ ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, _, _ ->
             BlockData.createSugarcane(
                 id,
                 visualMaterial,
@@ -220,7 +221,7 @@ enum class BlockType(
     SAPLING(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, _, properties, blockMechanics, _ ->
+        { id, visualMaterial, _, properties, blockMechanics, _, _ ->
             BlockData.createSapling(
                 id,
                 visualMaterial,
@@ -231,7 +232,7 @@ enum class BlockType(
     CAVE_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.ALL,
-        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo, _ ->
             BlockData.createCaveVines(
                 id,
                 visualMaterial,
@@ -244,7 +245,7 @@ enum class BlockType(
     CAVE_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.ALL,
-        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo, _ ->
             BlockData.createCaveVinesPlant(
                 id,
                 visualMaterial,
@@ -257,7 +258,7 @@ enum class BlockType(
     WEEPING_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo, _ ->
             BlockData.createWeepingVines(
                 id,
                 visualMaterial,
@@ -270,7 +271,7 @@ enum class BlockType(
     WEEPING_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo, _ ->
             BlockData.createWeepingVinesPlant(
                 id,
                 visualMaterial,
@@ -283,7 +284,7 @@ enum class BlockType(
     TWISTING_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo, _ ->
             BlockData.createTwistingVines(
                 id,
                 visualMaterial,
@@ -296,7 +297,7 @@ enum class BlockType(
     TWISTING_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo, _ ->
             BlockData.createTwistingVinesPlant(
                 id,
                 visualMaterial,
@@ -309,7 +310,7 @@ enum class BlockType(
     KELP(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo, _ ->
             BlockData.createKelp(
                 id,
                 visualMaterial,
@@ -322,7 +323,7 @@ enum class BlockType(
     KELP_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo, _ ->
             BlockData.createKelpPlant(
                 id,
                 visualMaterial,
@@ -335,7 +336,7 @@ enum class BlockType(
     SERVER_SIDE_BLOCK(
         SingleBlockDropReplacement(),
         BlockSettings.EMPTY,
-        { id, visualMaterial, worldMaterial, properties, blockMechanics, _ ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, _, _ ->
             BlockData.createServerSideBlock(
                 id,
                 visualMaterial,
@@ -351,51 +352,125 @@ class BlockData(
     val visualMaterial: Material,
     val worldMaterial: Material,
     val blockType: BlockType,
-    val properties: Map<Property<*>, *>,
+    val properties: Map<Property<*>, Any>,
     val blockMechanics: BlockMechanics,
     private val listeners: Map<Class<*>, BlockListener<*>>,
     private val connectsTo: Set<String> = setOf(),
     private var overrideBlockId: Int? = null,
-    private var packetState: WrappedBlockState = run {
-        return@run if (overrideBlockId == null) {
-            val state = WrappedBlockState.getDefaultState(
-                PacketEvents.getAPI().serverManager.version.toClientVersion(),
-                SpigotConversionUtil.fromBukkitBlockData(visualMaterial.createBlockData()).type
-            )
-            for (entry in properties) {
-                val property: Property<Any> = entry.key as Property<Any>
-                val value = entry.value ?: continue
-                property.applyToState(state, value)
-            }
-            state
-        } else {
-            WrappedBlockState.getByGlobalId(overrideBlockId)
-        }
-    },
-    private val propertyApplier: (BlockData, WrappedBlockState) -> WrappedBlockState = applier@{ blockData, originalState ->
-        if (originalState.type != blockData.packetState.type) {
-            return@applier blockData.packetState.clone()
-        }
-        if (properties.isEmpty()) {
-            return@applier blockData.packetState
-        }
-        val blockOverrideId = blockData.overrideBlockId
-        for (entry in properties) {
-            val property: Property<Any> = entry.key as Property<Any>
-            val value =
-                blockOverrideId?.let { property.getFromState(blockData.packetState) }
-                    ?: entry.value ?: continue
-            property.applyToState(originalState, value)
-        }
-        return@applier originalState
-    }
+    private var packetState: WrappedBlockState = DEFAULT_STATE_CREATOR.create(properties, overrideBlockId, visualMaterial),
+    private val propertyApplier: PropertyApplier = DEFAULT_PROPERTY_APPLIER
 ) {
 
+    interface PropertyApplier {
+
+        fun apply(blockData: BlockData, originalState: WrappedBlockState): WrappedBlockState
+
+    }
+
+    interface StateCreator {
+
+        fun create(properties: Map<Property<*>, Any>, overrideBlockId: Int?, visualMaterial: Material): WrappedBlockState
+
+    }
+
     companion object {
+
+        val DEFAULT_PROPERTY_APPLIER = object : PropertyApplier {
+
+            override fun apply(blockData: BlockData, originalState: WrappedBlockState): WrappedBlockState {
+                if (originalState.type != blockData.packetState.type) {
+                    return blockData.packetState.clone()
+                }
+                if (blockData.properties.isEmpty()) {
+                    return blockData.packetState
+                }
+                val blockOverrideId = blockData.overrideBlockId
+                for (entry in blockData.properties) {
+                    val property: Property<Any> = entry.key as Property<Any>
+                    val value = blockOverrideId?.let {
+                        property.getFromState(blockData.packetState)
+                    } ?: entry.value
+                    property.applyToState(originalState, value)
+                }
+                return originalState
+            }
+
+        }
+
+        private val CAVE_VINES_PLANT_PROPERTY_APPLIER = object : PropertyApplier {
+
+            override fun apply(blockData: BlockData, originalState: WrappedBlockState): WrappedBlockState {
+                if (originalState.type != blockData.packetState.type) {
+                    val cloned = blockData.packetState.clone()
+                    if (originalState.type == StateTypes.CAVE_VINES || originalState.type == StateTypes.CAVE_VINES_PLANT) {
+                        cloned.isBerries = originalState.isBerries
+                    }
+                    return cloned
+                }
+                for (entry in blockData.properties) {
+                    val property: Property<Any> = entry.key as Property<Any>
+                    val value = entry.value
+                    property.applyToState(originalState, value)
+                }
+                return originalState
+            }
+
+        }
+
+        private val CAVE_VINES_PROPERTY_APPLIER = object : PropertyApplier {
+
+            override fun apply(blockData: BlockData, originalState: WrappedBlockState): WrappedBlockState {
+                    if (originalState.type != blockData.packetState.type) {
+                        val cloned = blockData.packetState.clone()
+                        if (originalState.type == StateTypes.CAVE_VINES || originalState.type == StateTypes.CAVE_VINES_PLANT) {
+                            cloned.isBerries = originalState.isBerries
+                        }
+                        return cloned
+                    }
+                    for (entry in blockData.properties) {
+                        val property: Property<Any> = entry.key as Property<Any>
+                        val value = entry.value
+                        property.applyToState(originalState, value)
+                    }
+                    return originalState
+            }
+        }
+
+        val DEFAULT_LOGS_PROPERTY_APPLIER = object : PropertyApplier {
+
+            override fun apply(blockData: BlockData, originalState: WrappedBlockState): WrappedBlockState {
+                return originalState
+            }
+
+        }
+
+
+        private val DEFAULT_STATE_CREATOR = object : StateCreator {
+
+            override fun create(properties: Map<Property<*>, Any>, overrideBlockId: Int?, visualMaterial: Material): WrappedBlockState {
+                return if (overrideBlockId == null) {
+                    val state = WrappedBlockState.getDefaultState(
+                        PacketEvents.getAPI().serverManager.version.toClientVersion(),
+                        SpigotConversionUtil.fromBukkitBlockData(visualMaterial.createBlockData()).type
+                    )
+                    for (entry in properties) {
+                        val property: Property<Any> = entry.key as Property<Any>
+                        val value = entry.value
+                        property.applyToState(state, value)
+                    }
+                    state
+                } else {
+                    WrappedBlockState.getByGlobalId(overrideBlockId)
+                }
+            }
+
+        }
+
+
         fun createLeaves(
             id: String,
             visualMaterial: Material,
-            properties: Map<Property<*>, *>,
+            properties: Map<Property<*>, Any>,
             blockMechanics: BlockMechanics
         ): BlockData {
             return BlockData(
@@ -418,8 +493,9 @@ class BlockData(
             id: String,
             visualMaterial: Material,
             worldMaterial: Material,
-            properties: Map<Property<*>, *>,
-            blockMechanics: BlockMechanics
+            properties: Map<Property<*>, Any>,
+            blockMechanics: BlockMechanics,
+            propertyApplier: PropertyApplier
         ): BlockData {
             return BlockData(
                 id,
@@ -432,6 +508,7 @@ class BlockData(
                     BlockPlaceEvent::class.java to LogPlaceListener,
                     PlayerInteractEvent::class.java to LogStripListener
                 ),
+                propertyApplier = propertyApplier
             )
         }
 
@@ -439,8 +516,9 @@ class BlockData(
             id: String,
             visualMaterial: Material,
             worldMaterial: Material,
-            properties: Map<Property<*>, *>,
+            properties: Map<Property<*>, Any>,
             blockMechanics: BlockMechanics,
+            propertyApplier: PropertyApplier
         ): BlockData {
             return BlockData(
                 id,
@@ -451,7 +529,8 @@ class BlockData(
                 blockMechanics,
                 hashMapOf(
                     BlockPlaceEvent::class.java to LogPlaceListener
-                )
+                ),
+                propertyApplier = propertyApplier
             )
         }
 
@@ -460,7 +539,7 @@ class BlockData(
             id: String,
             visualMaterial: Material,
             worldMaterial: Material,
-            properties: Map<Property<*>, *>,
+            properties: Map<Property<*>, Any>,
             blockMechanics: BlockMechanics
         ): BlockData {
             return BlockData(
@@ -488,7 +567,7 @@ class BlockData(
         fun createSapling(
             id: String,
             visualMaterial: Material,
-            properties: Map<Property<*>, *>,
+            properties: Map<Property<*>, Any>,
             blockMechanics: BlockMechanics
         ): BlockData {
             return BlockData(
@@ -511,24 +590,10 @@ class BlockData(
             id: String,
             visualMaterial: Material,
             worldMaterial: Material,
-            properties: Map<Property<*>, *>,
+            properties: Map<Property<*>, Any>,
             blockMechanics: BlockMechanics,
             connectsTo: Set<String>,
-            propertyApplier: (BlockData, WrappedBlockState) -> WrappedBlockState = applier@{ blockData, originalState ->
-                if (originalState.type != blockData.packetState.type) {
-                    val cloned = blockData.packetState.clone()
-                    if (originalState.type == StateTypes.CAVE_VINES || originalState.type == StateTypes.CAVE_VINES_PLANT) {
-                        cloned.isBerries = originalState.isBerries
-                    }
-                    return@applier cloned
-                }
-                for (entry in properties) {
-                    val property: Property<Any> = entry.key as Property<Any>
-                    val value = entry.value ?: continue
-                    property.applyToState(originalState, value)
-                }
-                return@applier originalState
-            }
+            propertyApplier: PropertyApplier = CAVE_VINES_PROPERTY_APPLIER
         ): BlockData {
             return BlockData(
                 id,
@@ -556,24 +621,10 @@ class BlockData(
             id: String,
             visualMaterial: Material,
             worldMaterial: Material,
-            properties: Map<Property<*>, *>,
+            properties: Map<Property<*>, Any>,
             blockMechanics: BlockMechanics,
             connectsTo: Set<String>,
-            propertyApplier: (BlockData, WrappedBlockState) -> WrappedBlockState = applier@{ blockData, originalState ->
-                if (originalState.type != blockData.packetState.type) {
-                    val cloned = blockData.packetState.clone()
-                    if (originalState.type == StateTypes.CAVE_VINES || originalState.type == StateTypes.CAVE_VINES_PLANT) {
-                        cloned.isBerries = originalState.isBerries
-                    }
-                    return@applier cloned
-                }
-                for (entry in properties) {
-                    val property: Property<Any> = entry.key as Property<Any>
-                    val value = entry.value ?: continue
-                    property.applyToState(originalState, value)
-                }
-                return@applier originalState
-            }
+            propertyApplier: PropertyApplier = CAVE_VINES_PLANT_PROPERTY_APPLIER
         ): BlockData {
             return BlockData(
                 id,
@@ -601,7 +652,7 @@ class BlockData(
             id: String,
             visualMaterial: Material,
             worldMaterial: Material,
-            properties: Map<Property<*>, *>,
+            properties: Map<Property<*>, Any>,
             blockMechanics: BlockMechanics,
             connectsTo: Set<String>
         ): BlockData {
@@ -630,7 +681,7 @@ class BlockData(
             id: String,
             visualMaterial: Material,
             worldMaterial: Material,
-            properties: Map<Property<*>, *>,
+            properties: Map<Property<*>, Any>,
             blockMechanics: BlockMechanics,
             connectsTo: Set<String>,
         ): BlockData {
@@ -659,7 +710,7 @@ class BlockData(
             id: String,
             visualMaterial: Material,
             worldMaterial: Material,
-            properties: Map<Property<*>, *>,
+            properties: Map<Property<*>, Any>,
             blockMechanics: BlockMechanics,
             connectsTo: Set<String>
         ): BlockData {
@@ -688,7 +739,7 @@ class BlockData(
             id: String,
             visualMaterial: Material,
             worldMaterial: Material,
-            properties: Map<Property<*>, *>,
+            properties: Map<Property<*>, Any>,
             blockMechanics: BlockMechanics,
             connectsTo: Set<String>
         ): BlockData {
@@ -717,7 +768,7 @@ class BlockData(
             id: String,
             visualMaterial: Material,
             worldMaterial: Material,
-            properties: Map<Property<*>, *>,
+            properties: Map<Property<*>, Any>,
             blockMechanics: BlockMechanics,
             connectsTo: Set<String>
         ): BlockData {
@@ -746,7 +797,7 @@ class BlockData(
             id: String,
             visualMaterial: Material,
             worldMaterial: Material,
-            properties: Map<Property<*>, *>,
+            properties: Map<Property<*>, Any>,
             blockMechanics: BlockMechanics,
             connectsTo: Set<String>
         ): BlockData {
@@ -775,7 +826,7 @@ class BlockData(
             id: String,
             visualMaterial: Material,
             worldMaterial: Material,
-            properties: Map<Property<*>, *>,
+            properties: Map<Property<*>, Any>,
             blockMechanics: BlockMechanics
         ): BlockData {
             return BlockData(
@@ -834,7 +885,7 @@ class BlockData(
     }
 
     fun applyPropertiesToState(originalState: WrappedBlockState): WrappedBlockState {
-        return this.propertyApplier(this, originalState)
+        return this.propertyApplier.apply(this, originalState)
     }
 
     fun getBlockGlobalId(): Int {

@@ -381,7 +381,7 @@ class LeavesConfig(
     }
 
     private fun loadDefaultLeaves() {
-        val properties: Map<Property<*>, *> = hashMapOf(
+        val properties: Map<Property<*>, Any> = hashMapOf(
             Property.DISTANCE to 7,
             Property.PERSISTENT to false
         )
@@ -425,7 +425,8 @@ class LeavesConfig(
                     emptyList(),
                     null,
                     if (this.customMiningSpeedsForDefaultLogs) BlockBreakManager.LOG_BREAK_MODIFIER else null,
-                )
+                ),
+                BlockData.DEFAULT_LOGS_PROPERTY_APPLIER
             )
             this.defaultBlockData[material] = data
             this.blockData[id] = data
@@ -452,7 +453,8 @@ class LeavesConfig(
                     emptyList(),
                     null,
                     if (this.customMiningSpeedsForDefaultLogs) BlockBreakManager.LOG_BREAK_MODIFIER else null
-                )
+                ),
+                BlockData.DEFAULT_LOGS_PROPERTY_APPLIER
             )
             this.defaultBlockData[material] = data
             this.blockData[id] = data
@@ -460,7 +462,7 @@ class LeavesConfig(
     }
 
     private fun loadDefaultSugarcane() {
-        val properties: Map<Property<*>, *> = hashMapOf(
+        val properties: Map<Property<*>, Any> = hashMapOf(
             Property.AGE to 0
         )
         val material = Material.SUGAR_CANE
@@ -507,7 +509,7 @@ class LeavesConfig(
     }
 
     private fun loadDefaultCaveVines() {
-        val properties: Map<Property<*>, *> = hashMapOf(
+        val properties: Map<Property<*>, Any> = hashMapOf(
             Property.AGE to 0
         )
         val material = Material.CAVE_VINES
@@ -556,7 +558,7 @@ class LeavesConfig(
     }
 
     private fun loadDefaultWeepingVines() {
-        val properties: Map<Property<*>, *> = hashMapOf(
+        val properties: Map<Property<*>, Any> = hashMapOf(
             Property.AGE to 0
         )
         val material = Material.WEEPING_VINES
@@ -604,7 +606,7 @@ class LeavesConfig(
     }
 
     private fun loadDefaultTwistingVines() {
-        val properties: Map<Property<*>, *> = hashMapOf(
+        val properties: Map<Property<*>, Any> = hashMapOf(
             Property.AGE to 0
         )
         val material = Material.TWISTING_VINES
@@ -787,7 +789,8 @@ class LeavesConfig(
                     textureData,
                     blockBreakModifier
                 ),
-                connectsTo
+                connectsTo,
+                null
             )
             blockData[id] = data
 
@@ -872,6 +875,7 @@ class LeavesConfig(
                     blockBreakModifier,
                 ),
                 connectsTo,
+                null
             )
             blockData[newId] = newData
         }
