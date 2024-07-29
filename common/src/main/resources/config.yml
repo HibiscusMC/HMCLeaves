@@ -26,8 +26,10 @@ blocks:
     world-material: oak_leaves
     # what block is sent to the player
     visual-material: oak_leaves
-    # model path used for texture packs
-    model-path: "palm_leaves"
+    # texture pack
+    texture-pack:
+      # model path used for texture packs
+      model-path: "palm_leaves"
     # properties that are displayed to the player
     properties:
       distance: 7
@@ -41,7 +43,8 @@ blocks:
     type: leaves
     world-material: oak_leaves
     visual-material: oak_leaves
-    model-path: "aspen_leaves"
+    texture-pack:
+      model-path: "aspen_leaves"
     properties:
       distance: 6
       persistent: false
@@ -52,7 +55,8 @@ blocks:
     type: leaves
     world-material: oak_leaves
     visual-material: oak_leaves
-    model-path: "pine_leaves"
+    texture-pack:
+      model-path: "pine_leaves"
     properties:
       distance: 5
       persistent: false
@@ -61,7 +65,8 @@ blocks:
     type: sapling
     world-material: oak_sapling
     visual-material: oak_sapling
-    model-path: "aspen_sapling"
+    texture-pack:
+      model-path: "aspen_sapling"
     schematic:
       files:
         - "aspen_tree_1.schem"
@@ -78,7 +83,13 @@ blocks:
     type: log
     world-material: oak_log
     visual-material: note_block
-    model-path: "aspen_log"
+    generate-directions: true
+    texture-pack:
+      model-path: "aspen_log"
+      parent: "block/cube_column"
+      textures:
+        side: "hmcleaves/aspen_log"
+        end: "hmcleaves/aspen_log_top"
     # allows directional blocks to be generated,
     # the below values are required for logs
     block-family:
@@ -123,7 +134,8 @@ blocks:
     type: stripped_log
     world-material: stripped_oak_log
     visual-material: note_block
-    model-path: "stripped_aspen_log"
+    texture-pack:
+      model-path: "stripped_aspen_log"
     # allows directional blocks to be generated,
     # the below values are required for stripped logs
     block-family:

@@ -163,300 +163,198 @@ enum class BlockType(
     val defaultSettings: BlockSettings,
     val blockSupplier: (
         id: String,
-        modelPath: String?,
         visualMaterial: Material,
         worldMaterial: Material,
         properties: Map<Property<*>, *>,
-        blockFamily: BlockFamily,
-        blockSoundData: BlockSoundData,
-        itemSupplier: ItemSupplier,
-        blockDrops: BlockDrops,
+        blockMechanics: BlockMechanics,
         connectsTo: Set<String>,
-        blockBreakModifier: BlockBreakModifier?,
-        settings: BlockSettings,
-        placeConditions: List<PlaceConditions>
     ) -> BlockData
 ) {
     LEAVES(
         SingleBlockDropReplacement(),
         BlockSettings.EMPTY,
-        { id, modelPath, visualMaterial, _, properties, blockFamily, blockSoundData, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
+        { id, visualMaterial, _, properties, blockMechanics,  _ ->
             BlockData.createLeaves(
                 id,
-                modelPath,
                 visualMaterial,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
-                modifier,
-                settings,
-                placeConditions
+                blockMechanics
             )
         }),
     LOG(
         LogDropReplacement(),
         BlockSettings.EMPTY,
-        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, blockSoundData, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, _ ->
             BlockData.createLog(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
-                modifier,
-                settings,
-                placeConditions
+                blockMechanics
             )
         }),
     STRIPPED_LOG(
         LogDropReplacement(),
         BlockSettings.EMPTY,
-        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, blockSoundData, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, _ ->
             BlockData.createStrippedLog(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
-                modifier,
-                settings,
-                placeConditions
+                blockMechanics,
             )
         }),
     SUGAR_CANE(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, blockSoundData, itemSupplier, blockDrops, _, _, settings, placeConditions ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, _ ->
             BlockData.createSugarcane(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
-                settings,
-                placeConditions
+                blockMechanics
             )
         }),
     SAPLING(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, modelPath, visualMaterial, _, properties, blockFamily, blockSoundData, itemSupplier, blockDrops, _, _, settings, placeConditions ->
+        { id, visualMaterial, _, properties, blockMechanics, _ ->
             BlockData.createSapling(
                 id,
-                modelPath,
                 visualMaterial,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
-                settings,
-                placeConditions
+                blockMechanics
             )
         }),
     CAVE_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.ALL,
-        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, blockSoundData, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo ->
             BlockData.createCaveVines(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
-                connectsTo,
-                settings,
-                placeConditions
+                blockMechanics,
+                connectsTo
             )
         }),
     CAVE_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.ALL,
-        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, blockSoundData, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo ->
             BlockData.createCaveVinesPlant(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
-                connectsTo,
-                settings,
-                placeConditions
+                blockMechanics,
+                connectsTo
             )
         }),
     WEEPING_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, blockSoundData, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo ->
             BlockData.createWeepingVines(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
-                connectsTo,
-                settings,
-                placeConditions
+                blockMechanics,
+                connectsTo
             )
         }),
     WEEPING_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, blockSoundData, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo ->
             BlockData.createWeepingVinesPlant(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
-                connectsTo,
-                settings,
-                placeConditions
+                blockMechanics,
+                connectsTo
             )
         }),
     TWISTING_VINES(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, blockSoundData, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo ->
             BlockData.createTwistingVines(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
-                connectsTo,
-                settings,
-                placeConditions
+                blockMechanics,
+                connectsTo
             )
         }),
     TWISTING_VINES_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, blockSoundData, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo ->
             BlockData.createTwistingVinesPlant(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
-                connectsTo,
-                settings,
-                placeConditions
+                blockMechanics,
+                connectsTo
             )
         }),
     KELP(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, blockSoundData, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo ->
             BlockData.createKelp(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
-                connectsTo,
-                settings,
-                placeConditions
+                blockMechanics,
+                connectsTo
             )
         }),
     KELP_PLANT(
         SingleBlockDropReplacement(),
         BlockSettings.PLACEABLE_IN_ENTITIES,
-        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, blockSoundData, itemSupplier, blockDrops, connectsTo, _, settings, placeConditions ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, connectsTo ->
             BlockData.createKelpPlant(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
-                connectsTo,
-                settings,
-                placeConditions
+                blockMechanics,
+                connectsTo
             )
         }),
     SERVER_SIDE_BLOCK(
         SingleBlockDropReplacement(),
         BlockSettings.EMPTY,
-        { id, modelPath, visualMaterial, worldMaterial, properties, blockFamily, blockSoundData, itemSupplier, blockDrops, _, modifier, settings, placeConditions ->
+        { id, visualMaterial, worldMaterial, properties, blockMechanics, _ ->
             BlockData.createServerSideBlock(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
-                modifier,
-                settings,
-                placeConditions
+                blockMechanics,
             )
         })
 }
 
 class BlockData(
     val id: String,
-    val modelPath: String?,
     val visualMaterial: Material,
     val worldMaterial: Material,
     val blockType: BlockType,
     val properties: Map<Property<*>, *>,
-    val blockFamily: BlockFamily,
-    val blockSoundData: BlockSoundData,
-    private val itemSupplier: ItemSupplier,
-    private val blockDrops: BlockDrops,
+    val blockMechanics: BlockMechanics,
     private val listeners: Map<Class<*>, BlockListener<*>>,
-    val blockBreakModifier: BlockBreakModifier? = null,
     private val connectsTo: Set<String> = setOf(),
-    val settings: BlockSettings,
-    val placeConditions: List<PlaceConditions>,
     private var overrideBlockId: Int? = null,
     private var packetState: WrappedBlockState = run {
         return@run if (overrideBlockId == null) {
@@ -496,134 +394,82 @@ class BlockData(
     companion object {
         fun createLeaves(
             id: String,
-            modelPath: String?,
             visualMaterial: Material,
             properties: Map<Property<*>, *>,
-            blockFamily: BlockFamily,
-            blockSoundData: BlockSoundData,
-            itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops,
-            blockBreakModifier: BlockBreakModifier?,
-            settings: BlockSettings,
-            placeConditions: List<PlaceConditions>
+            blockMechanics: BlockMechanics
         ): BlockData {
             return BlockData(
                 id,
-                modelPath,
                 visualMaterial,
                 visualMaterial,
                 BlockType.LEAVES,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
+                blockMechanics,
                 hashMapOf(
                     BlockPlaceEvent::class.java to LeavesPlaceListener,
                     LeavesDecayEvent::class.java to LeavesDecayListener,
                     BlockPistonExtendEvent::class.java to LeavesPistonExtendListener,
                     BlockPistonRetractEvent::class.java to LeavesPistonRetractListener,
                 ),
-                blockBreakModifier = blockBreakModifier,
-                settings = settings,
-                placeConditions = placeConditions
             )
         }
 
         fun createLog(
             id: String,
-            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
-            blockFamily: BlockFamily,
-            blockSoundData: BlockSoundData,
-            itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops,
-            blockBreakModifier: BlockBreakModifier?,
-            settings: BlockSettings,
-            placeConditions: List<PlaceConditions>
+            blockMechanics: BlockMechanics
         ): BlockData {
             return BlockData(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.LOG,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
+                blockMechanics,
                 hashMapOf(
                     BlockPlaceEvent::class.java to LogPlaceListener,
                     PlayerInteractEvent::class.java to LogStripListener
                 ),
-                blockBreakModifier = blockBreakModifier,
-                settings = settings,
-                placeConditions = placeConditions
             )
         }
 
         fun createStrippedLog(
             id: String,
-            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
-            blockFamily: BlockFamily,
-            blockSoundData: BlockSoundData,
-            itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops,
-            blockBreakModifier: BlockBreakModifier?,
-            settings: BlockSettings,
-            placeConditions: List<PlaceConditions>
+            blockMechanics: BlockMechanics,
         ): BlockData {
             return BlockData(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.STRIPPED_LOG,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
+                blockMechanics,
                 hashMapOf(
                     BlockPlaceEvent::class.java to LogPlaceListener
-                ),
-                blockBreakModifier = blockBreakModifier,
-                settings = settings,
-                placeConditions = placeConditions
+                )
             )
         }
 
 
         fun createSugarcane(
             id: String,
-            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
-            blockFamily: BlockFamily,
-            blockSoundData: BlockSoundData,
-            itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops,
-            settings: BlockSettings,
-            placeConditions: List<PlaceConditions>
+            blockMechanics: BlockMechanics
         ): BlockData {
             return BlockData(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.SUGAR_CANE,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
+                blockMechanics,
                 Collections.unmodifiableMap(
                     hashMapOf(
                         BlockPlaceEvent::class.java to SugarCanePlaceListener,
@@ -635,61 +481,39 @@ class BlockData(
                         EntityExplodeEvent::class.java to ConnectedBlockFacingUpEntityExplodeBreakListener,
                         RelativeBlockBreakEvent::class.java to PlantFacingUpRelativeBreakListener
                     )
-                ),
-                blockBreakModifier = null,
-                settings = settings,
-                placeConditions = placeConditions
+                )
             )
         }
 
         fun createSapling(
             id: String,
-            modelPath: String?,
             visualMaterial: Material,
             properties: Map<Property<*>, *>,
-            blockFamily: BlockFamily,
-            blockSoundData: BlockSoundData,
-            itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops,
-            settings: BlockSettings,
-            placeConditions: List<PlaceConditions>
+            blockMechanics: BlockMechanics
         ): BlockData {
             return BlockData(
                 id,
-                modelPath,
                 visualMaterial,
                 visualMaterial,
                 BlockType.SAPLING,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
+                blockMechanics,
                 Collections.unmodifiableMap(
                     hashMapOf(
                         BlockPlaceEvent::class.java to SaplingPlaceListener,
                         StructureGrowEvent::class.java to SaplingGrowListener
                     )
-                ),
-                blockBreakModifier = null,
-                settings = settings,
-                placeConditions = placeConditions
+                )
             )
         }
 
         fun createCaveVines(
             id: String,
-            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
-            blockFamily: BlockFamily,
-            blockSoundData: BlockSoundData,
-            itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops,
+            blockMechanics: BlockMechanics,
             connectsTo: Set<String>,
-            settings: BlockSettings,
-            placeConditions: List<PlaceConditions>,
             propertyApplier: (BlockData, WrappedBlockState) -> WrappedBlockState = applier@{ blockData, originalState ->
                 if (originalState.type != blockData.packetState.type) {
                     val cloned = blockData.packetState.clone()
@@ -708,15 +532,11 @@ class BlockData(
         ): BlockData {
             return BlockData(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.CAVE_VINES,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
+                blockMechanics,
                 mapOf(
                     BlockBreakEvent::class.java to ConnectedBlockFacingDownBlockBreakListener,
                     BlockPistonExtendEvent::class.java to ConnectedBlockFacingDownPistonExtendBreakListener,
@@ -727,27 +547,18 @@ class BlockData(
                     RelativeBlockBreakEvent::class.java to PlantFacingDownRelativeBreakListener,
                     BlockSpreadEvent::class.java to PlantFacingDownGrowListener
                 ),
-                blockBreakModifier = null,
-                connectsTo = connectsTo,
-                settings = settings,
-                placeConditions = placeConditions,
+                connectsTo,
                 propertyApplier = propertyApplier
             )
         }
 
         fun createCaveVinesPlant(
             id: String,
-            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
-            blockFamily: BlockFamily,
-            blockSoundData: BlockSoundData,
-            itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops,
+            blockMechanics: BlockMechanics,
             connectsTo: Set<String>,
-            settings: BlockSettings,
-            placeConditions: List<PlaceConditions>,
             propertyApplier: (BlockData, WrappedBlockState) -> WrappedBlockState = applier@{ blockData, originalState ->
                 if (originalState.type != blockData.packetState.type) {
                     val cloned = blockData.packetState.clone()
@@ -766,15 +577,11 @@ class BlockData(
         ): BlockData {
             return BlockData(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.CAVE_VINES_PLANT,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
+                blockMechanics,
                 mapOf(
                     BlockBreakEvent::class.java to ConnectedBlockFacingDownBlockBreakListener,
                     BlockPistonExtendEvent::class.java to ConnectedBlockFacingDownPistonExtendBreakListener,
@@ -785,39 +592,26 @@ class BlockData(
                     RelativeBlockBreakEvent::class.java to PlantFacingDownRelativeBreakListener,
                     BlockSpreadEvent::class.java to PlantFacingDownGrowListener
                 ),
-                blockBreakModifier = null,
                 connectsTo = connectsTo,
-                settings = settings,
-                placeConditions = placeConditions,
                 propertyApplier = propertyApplier
             )
         }
 
         fun createWeepingVines(
             id: String,
-            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
-            blockFamily: BlockFamily,
-            blockSoundData: BlockSoundData,
-            itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops,
-            connectsTo: Set<String>,
-            settings: BlockSettings,
-            placeConditions: List<PlaceConditions>
+            blockMechanics: BlockMechanics,
+            connectsTo: Set<String>
         ): BlockData {
             return BlockData(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.WEEPING_VINES,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
+                blockMechanics,
                 mapOf(
                     BlockBreakEvent::class.java to ConnectedBlockFacingDownBlockBreakListener,
                     BlockPistonExtendEvent::class.java to ConnectedBlockFacingDownPistonExtendBreakListener,
@@ -828,38 +622,25 @@ class BlockData(
                     RelativeBlockBreakEvent::class.java to PlantFacingDownRelativeBreakListener,
                     BlockSpreadEvent::class.java to PlantFacingDownGrowListener
                 ),
-                blockBreakModifier = null,
-                connectsTo = connectsTo,
-                settings = settings,
-                placeConditions = placeConditions
+                connectsTo = connectsTo
             )
         }
 
         fun createWeepingVinesPlant(
             id: String,
-            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
-            blockFamily: BlockFamily,
-            blockSoundData: BlockSoundData,
-            itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops,
+            blockMechanics: BlockMechanics,
             connectsTo: Set<String>,
-            settings: BlockSettings,
-            placeConditions: List<PlaceConditions>
         ): BlockData {
             return BlockData(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.WEEPING_VINES_PLANT,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
+                blockMechanics,
                 mapOf(
                     BlockBreakEvent::class.java to ConnectedBlockFacingDownBlockBreakListener,
                     BlockPistonExtendEvent::class.java to ConnectedBlockFacingDownPistonExtendBreakListener,
@@ -870,38 +651,25 @@ class BlockData(
                     RelativeBlockBreakEvent::class.java to PlantFacingDownRelativeBreakListener,
                     BlockSpreadEvent::class.java to PlantFacingDownGrowListener
                 ),
-                blockBreakModifier = null,
-                connectsTo = connectsTo,
-                settings = settings,
-                placeConditions = placeConditions
+                connectsTo = connectsTo
             )
         }
 
         fun createTwistingVines(
             id: String,
-            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
-            blockFamily: BlockFamily,
-            blockSoundData: BlockSoundData,
-            itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops,
-            connectsTo: Set<String>,
-            settings: BlockSettings,
-            placeConditions: List<PlaceConditions>
+            blockMechanics: BlockMechanics,
+            connectsTo: Set<String>
         ): BlockData {
             return BlockData(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.TWISTING_VINES,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
+                blockMechanics,
                 mapOf(
                     BlockBreakEvent::class.java to ConnectedBlockFacingUpBlockBreakListener,
                     BlockPistonExtendEvent::class.java to ConnectedBlockFacingUpPistonExtendBreakListener,
@@ -912,38 +680,25 @@ class BlockData(
                     RelativeBlockBreakEvent::class.java to PlantFacingUpRelativeBreakListener,
                     BlockSpreadEvent::class.java to PlantFacingUpGrowListener
                 ),
-                blockBreakModifier = null,
-                connectsTo = connectsTo,
-                settings = settings,
-                placeConditions = placeConditions
+                connectsTo = connectsTo
             )
         }
 
         fun createTwistingVinesPlant(
             id: String,
-            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
-            blockFamily: BlockFamily,
-            blockSoundData: BlockSoundData,
-            itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops,
-            connectsTo: Set<String>,
-            settings: BlockSettings,
-            placeConditions: List<PlaceConditions>
+            blockMechanics: BlockMechanics,
+            connectsTo: Set<String>
         ): BlockData {
             return BlockData(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.TWISTING_VINES_PLANT,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
+                blockMechanics,
                 mapOf(
                     BlockBreakEvent::class.java to ConnectedBlockFacingUpBlockBreakListener,
                     BlockPistonExtendEvent::class.java to ConnectedBlockFacingUpPistonExtendBreakListener,
@@ -954,38 +709,25 @@ class BlockData(
                     RelativeBlockBreakEvent::class.java to PlantFacingUpRelativeBreakListener,
                     BlockSpreadEvent::class.java to PlantFacingUpGrowListener
                 ),
-                blockBreakModifier = null,
-                connectsTo = connectsTo,
-                settings = settings,
-                placeConditions = placeConditions
+                connectsTo = connectsTo
             )
         }
 
         fun createKelp(
             id: String,
-            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
-            blockFamily: BlockFamily,
-            blockSoundData: BlockSoundData,
-            itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops,
-            connectsTo: Set<String>,
-            settings: BlockSettings,
-            placeConditions: List<PlaceConditions>
+            blockMechanics: BlockMechanics,
+            connectsTo: Set<String>
         ): BlockData {
             return BlockData(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.KELP,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
+                blockMechanics,
                 mapOf(
                     BlockBreakEvent::class.java to ConnectedBlockFacingUpBlockBreakListener,
                     BlockPistonExtendEvent::class.java to ConnectedBlockFacingUpPistonExtendBreakListener,
@@ -996,38 +738,25 @@ class BlockData(
                     RelativeBlockBreakEvent::class.java to PlantFacingUpRelativeBreakListener,
                     BlockSpreadEvent::class.java to PlantFacingUpGrowListener
                 ),
-                blockBreakModifier = null,
-                connectsTo = connectsTo,
-                settings = settings,
-                placeConditions = placeConditions
+                connectsTo = connectsTo
             )
         }
 
         fun createKelpPlant(
             id: String,
-            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
-            blockFamily: BlockFamily,
-            blockSoundData: BlockSoundData,
-            itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops,
-            connectsTo: Set<String>,
-            settings: BlockSettings,
-            placeConditions: List<PlaceConditions>
+            blockMechanics: BlockMechanics,
+            connectsTo: Set<String>
         ): BlockData {
             return BlockData(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.KELP_PLANT,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
+                blockMechanics,
                 mapOf(
                     BlockBreakEvent::class.java to ConnectedBlockFacingUpBlockBreakListener,
                     BlockPistonExtendEvent::class.java to ConnectedBlockFacingUpPistonExtendBreakListener,
@@ -1038,42 +767,25 @@ class BlockData(
                     RelativeBlockBreakEvent::class.java to PlantFacingUpRelativeBreakListener,
                     BlockSpreadEvent::class.java to PlantFacingUpGrowListener
                 ),
-                blockBreakModifier = null,
-                connectsTo = connectsTo,
-                settings = settings,
-                placeConditions = placeConditions
+                connectsTo = connectsTo
             )
         }
 
         fun createServerSideBlock(
             id: String,
-            modelPath: String?,
             visualMaterial: Material,
             worldMaterial: Material,
             properties: Map<Property<*>, *>,
-            blockFamily: BlockFamily,
-            blockSoundData: BlockSoundData,
-            itemSupplier: ItemSupplier,
-            blockDrops: BlockDrops,
-            blockBreakModifier: BlockBreakModifier?,
-            settings: BlockSettings,
-            placeConditions: List<PlaceConditions>
+            blockMechanics: BlockMechanics
         ): BlockData {
             return BlockData(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 BlockType.SERVER_SIDE_BLOCK,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
-                mapOf(),
-                blockBreakModifier = blockBreakModifier,
-                settings = settings,
-                placeConditions = placeConditions
+                blockMechanics,
+                mapOf()
             )
         }
     }
@@ -1106,19 +818,19 @@ class BlockData(
     }
 
     fun createItem(): ItemStack? {
-        return this.itemSupplier.createItem()
+        return this.blockMechanics.itemSupplier.createItem()
     }
 
     fun replaceItemDrops(config: LeavesConfig, items: MutableList<Item>) {
-        this.blockDrops.replaceItems(config, this, items)
+        this.blockMechanics.blockDrops.replaceItems(config, this, items)
     }
 
     fun replaceItemStackDrops(config: LeavesConfig, items: MutableList<ItemStack>) {
-        this.blockDrops.replaceItemStacks(config, this, items)
+        this.blockMechanics.blockDrops.replaceItemStacks(config, this, items)
     }
 
     fun getDrops(config: LeavesConfig): List<ItemStack> {
-        return this.blockDrops.getDrops(config, this)
+        return this.blockMechanics.blockDrops.getDrops(config, this)
     }
 
     fun applyPropertiesToState(originalState: WrappedBlockState): WrappedBlockState {

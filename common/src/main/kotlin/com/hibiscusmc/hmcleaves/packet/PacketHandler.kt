@@ -194,7 +194,7 @@ class PacketListener(
         )
         val worldManager = this.plugin.worldManager
         val blockData = worldManager[position] ?: return
-        if (blockData.blockBreakModifier == null) return
+        if (blockData.blockMechanics.blockBreakModifier == null) return
         val blockBreakManager = this.plugin.blockBreakManager
 
         if (diggingAction == DiggingAction.START_DIGGING) {

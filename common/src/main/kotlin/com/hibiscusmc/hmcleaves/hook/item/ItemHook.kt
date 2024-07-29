@@ -1,5 +1,8 @@
 package com.hibiscusmc.hmcleaves.hook.item
 
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.hook.Hook
 import com.hibiscusmc.hmcleaves.util.getChunkPosition
@@ -13,10 +16,13 @@ import io.github.retrooper.packetevents.util.SpigotConversionUtil
 import io.th0rgal.oraxen.OraxenPlugin
 import io.th0rgal.oraxen.api.OraxenBlocks
 import io.th0rgal.oraxen.api.OraxenItems
+import io.th0rgal.oraxen.api.OraxenPack
 import io.th0rgal.oraxen.api.events.OraxenItemsLoadedEvent
+import io.th0rgal.oraxen.api.events.OraxenPackGeneratedEvent
 import io.th0rgal.oraxen.api.events.noteblock.OraxenNoteBlockBreakEvent
 import io.th0rgal.oraxen.api.events.noteblock.OraxenNoteBlockPlaceEvent
 import io.th0rgal.oraxen.items.ItemUpdater
+import io.th0rgal.oraxen.utils.VirtualFile
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.block.Block
@@ -24,11 +30,14 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.inventory.ItemStack
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.IOException
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import kotlin.io.path.name
 
 
 abstract class ItemHook(val id: String) : Hook, Listener {
@@ -49,7 +58,7 @@ abstract class ItemHook(val id: String) : Hook, Listener {
 
     abstract fun load()
 
-    abstract fun transferTextures(file: File)
+    abstract fun reloadTextures()
 
 }
 
@@ -61,6 +70,11 @@ class OraxenHook(private val plugin: HMCLeaves) : ItemHook("Oraxen") {
         .resolve("assets")
         .resolve("minecraft")
         .resolve("blockstates");
+
+    private val modelsPath: Path = Path.of("assets")
+        .resolve("minecraft")
+        .resolve("models");
+
 
     override fun getItemById(itemId: String, hookItemId: String): ItemStack? {
         return ItemUpdater.updateItem(OraxenItems.getItemById(hookItemId)?.build() ?: return null)
@@ -104,12 +118,54 @@ class OraxenHook(private val plugin: HMCLeaves) : ItemHook("Oraxen") {
             ?.remove(location.toPositionInChunk() ?: return, false)
     }
 
+    @EventHandler
+    private fun onOraxenPackGenerate(event: OraxenPackGeneratedEvent) {
+        val files = this.plugin.leavesConfig.loadTextures().associateBy { it.name }
+        for (virtualFile in event.output) {
+            val filePath = Path.of(virtualFile.path)
+            val newFile = files[filePath.name] ?: continue
+            this.combineFiles(virtualFile, newFile)
+        }
+
+        event.output.addAll(
+            this.createModelFiles(
+                files.filter { it.value.path.contains("models") }
+                    .map { it.value }
+                    .toSet()
+            ).toTypedArray()
+        )
+    }
+
+    fun combineFiles(destination: VirtualFile, transferFile: File) {
+        val transferJson = JsonParser.parseReader(transferFile.bufferedReader()).asJsonObject
+        val destinationJson = destination.toJsonObject() ?: return
+
+        val newJson = JsonObject()
+        val variantsObject = JsonObject()
+
+        val transferVariants = transferJson.get("variants").asJsonObject
+        transferVariants.keySet().forEach { key ->
+            variantsObject.add(key, transferVariants.get(key).deepCopy())
+        }
+        val destinationVariants = destinationJson.get("variants").asJsonObject
+        destinationVariants.keySet().forEach { key ->
+            variantsObject.add(key, destinationVariants.get(key).deepCopy())
+        }
+        newJson.add("variants", variantsObject)
+
+        val gson = GsonBuilder()
+            .disableHtmlEscaping()
+            .create()
+
+        val stringJson = gson.toJson(newJson)
+        val inputStream = ByteArrayInputStream(stringJson.toByteArray(StandardCharsets.UTF_8))
+        destination.inputStream = inputStream
+    }
+
     override fun load() {
         val config = this.plugin.leavesConfig
         val items = config.getHookIdsToBlockIds()
         val logger = this.plugin.getLeavesLogger()
-        logger.info("Loaded Oraxen Items")
-        logger.info("Loading ${items.entries.size} hook items")
         for (entry in items.entries) {
             val hookId = entry.key
             val blockDataId = entry.value
@@ -130,22 +186,25 @@ class OraxenHook(private val plugin: HMCLeaves) : ItemHook("Oraxen") {
         }
     }
 
-    override fun transferTextures(file: File) {
-        val texturesFolder: File = this.texturesPath.toFile()
-        if (!texturesFolder.exists()) {
-            plugin.logger.warning("Oraxen textures folder does not exist, creating it now")
-            if (!texturesFolder.mkdirs()) {
-                plugin.logger.warning("Failed to create Oraxen textures folder")
-                return
+    private fun createModelFiles(files: Collection<File>): Collection<VirtualFile> {
+        val virtualFiles = hashSetOf<VirtualFile>()
+        for (file in files) {
+            try {
+                val data = Files.readString(file.toPath())
+                val inputStream = ByteArrayInputStream(data.toByteArray(StandardCharsets.UTF_8))
+                val virtualFile = VirtualFile(this.modelsPath.toString(), file.name, inputStream)
+                virtualFiles.add(virtualFile)
+            } catch (e: IOException) {
+                e.printStackTrace()
             }
         }
-        try {
-            Files.copy(file.toPath(), this.texturesPath.resolve(file.name), StandardCopyOption.REPLACE_EXISTING)
-            plugin.logger.info("Successfully transferred " + file.name + " to Oraxen textures folder")
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
+        return virtualFiles
     }
+
+    override fun reloadTextures() {
+        OraxenPack.reloadPack()
+    }
+
 }
 
 class ItemsAdderHook(private val plugin: HMCLeaves) : ItemHook("ItemsAdder") {
@@ -218,7 +277,7 @@ class ItemsAdderHook(private val plugin: HMCLeaves) : ItemHook("ItemsAdder") {
         }
     }
 
-    override fun transferTextures(file: File) {
+    override fun reloadTextures() {
 
     }
 }

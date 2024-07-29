@@ -24,7 +24,7 @@ class SoundListener(
             val player = event.entity as? Player ?: return
             val position = event.location.clone().subtract(0.0, 1.0, 0.0).toPosition() ?: return
             val blockData = worldManager[position] ?: return
-            val hitSound = blockData.blockSoundData.hitSound ?: return
+            val hitSound = blockData.blockMechanics.blockSoundData.hitSound ?: return
             Bukkit.getScheduler().runTaskAsynchronously(this.plugin, Runnable {
                 sendSound(hitSound, position, listOf(player))
             })
@@ -34,7 +34,7 @@ class SoundListener(
             val player = event.entity as? Player ?: return
             val position = event.location.clone().subtract(0.0, 1.0, 0.0).toPosition() ?: return
             val blockData = worldManager[position] ?: return
-            val stepSound = blockData.blockSoundData.stepSound ?: return
+            val stepSound = blockData.blockMechanics.blockSoundData.stepSound ?: return
             Bukkit.getScheduler().runTaskAsynchronously(this.plugin, Runnable {
                 sendSound(stepSound, position, listOf(player))
             })

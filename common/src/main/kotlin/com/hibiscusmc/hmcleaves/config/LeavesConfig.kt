@@ -7,6 +7,7 @@ import com.hibiscusmc.hmcleaves.block.BlockData
 import com.hibiscusmc.hmcleaves.block.BlockDirection
 import com.hibiscusmc.hmcleaves.block.BlockFamily
 import com.hibiscusmc.hmcleaves.block.BlockIdPlaceCondition
+import com.hibiscusmc.hmcleaves.block.BlockMechanics
 import com.hibiscusmc.hmcleaves.block.BlockSetting
 import com.hibiscusmc.hmcleaves.block.BlockSettings
 import com.hibiscusmc.hmcleaves.block.BlockSoundData
@@ -34,8 +35,9 @@ import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakManager
 import com.hibiscusmc.hmcleaves.packet.mining.BlockBreakModifier
 import com.hibiscusmc.hmcleaves.packet.mining.ToolType
 import com.hibiscusmc.hmcleaves.pdc.PDCUtil
+import com.hibiscusmc.hmcleaves.texture.TextureData
+import com.hibiscusmc.hmcleaves.texture.TextureFileGenerator
 import com.hibiscusmc.hmcleaves.util.parseAsAdventure
-import net.kyori.adventure.sound.Sound
 import org.bukkit.Axis
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -47,6 +49,7 @@ import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.inventory.ItemStack
+import java.io.File
 import java.util.Collections
 import java.util.EnumMap
 import java.util.Locale
@@ -72,7 +75,6 @@ private const val CHUNK_VERSION_KEY = "chunk-version-key"
 private const val USE_CUSTOM_MINING_SPEED_FOR_DEFAULT_LOGS = "custom-mining-speed-for-default-logs"
 private const val BLOCKS_KEY = "blocks"
 private const val TYPE_KEY = "type"
-private const val MODEL_PATH_KEY = "model-path"
 private const val VISUAL_MATERIAL_KEY = "visual-material"
 private const val WORLD_MATERIAL_KEY = "world-material"
 private const val PROPERTIES_KEY = "properties"
@@ -105,17 +107,23 @@ private const val PLACE_CONDITION_ID = "id"
 private const val WHITELISTED_WORLDS_KEY = "whitelisted-worlds"
 private const val USE_WORLD_WHITELIST_KEY = "use-world-whitelist"
 
-private const val STEP_SOUND_PATH = "step-sound"
-private const val HIT_SOUND_PATH = "hit-sound"
-private const val PLACE_SOUND_PATH = "place-sound"
-private const val BREAK_SOUND_PATH = "break-sound"
+private const val STEP_SOUND_KEY = "step-sound"
+private const val HIT_SOUND_KEY = "hit-sound"
+private const val PLACE_SOUND_KEY = "place-sound"
+private const val BREAK_SOUND_KEY = "break-sound"
 
-private const val SOUND_NAME_PATH = "name"
-private const val SOUND_CATEGORY_PATH = "category"
-private const val SOUND_VOLUME_PATH = "volume"
-private const val SOUND_PITCH_PATH = "pitch"
+private const val SOUND_NAME_KEY = "name"
+private const val SOUND_CATEGORY_KEY = "category"
+private const val SOUND_VOLUME_KEY = "volume"
+private const val SOUND_PITCH_KEY = "pitch"
 
-private const val GENERATE_DIRECTIONS_PATH = "generate-directions"
+private const val TEXTURE_PACK_KEY = "texture-pack"
+private const val MODEL_PATH_KEY = "model-path"
+private const val TEXTURE_PROPERTIES_KEY = "properties"
+private const val PARENT_MODEL_KEY = "parent"
+private const val TEXTURES_KEY = "textures"
+
+private const val GENERATE_DIRECTIONS_KEY = "generate-directions"
 
 private const val SEND_DEBUG_MESSAGES_KEY = "debug"
 
@@ -226,7 +234,6 @@ class LeavesConfig(
         this.loadDatabase(config)
         this.loadDefaults()
         this.loadBlocks(config)
-        this.loadTextures()
     }
 
     fun reload() {
@@ -294,7 +301,7 @@ class LeavesConfig(
 
     private fun getAxisType(blockData: BlockData): BlockFamily.Type? {
         for (type in BlockFamily.Type.AXIS_TYPES) {
-            val axisId = blockData.blockFamily.getFamilyId(type)
+            val axisId = blockData.blockMechanics.blockFamily.getFamilyId(type)
             if (axisId != blockData.id) continue
             return type
         }
@@ -307,30 +314,31 @@ class LeavesConfig(
     }
 
     fun getDirectionalBlockData(blockData: BlockData, axis: Axis): BlockData? {
-        val directionalId = blockData.blockFamily.getFamilyId(BlockFamily.Type.fromAxis(axis)) ?: return null
+        val directionalId =
+            blockData.blockMechanics.blockFamily.getFamilyId(BlockFamily.Type.fromAxis(axis)) ?: return null
         return this.getBlockData(directionalId)
     }
 
     fun getNonDirectionalBlockData(blockData: BlockData): BlockData? {
-        val nonDirectionalId = blockData.blockFamily.getFamilyId(BlockFamily.Type.NO_AXIS) ?: return null
+        val nonDirectionalId = blockData.blockMechanics.blockFamily.getFamilyId(BlockFamily.Type.NO_AXIS) ?: return null
         return this.getBlockData(nonDirectionalId)
     }
 
     fun getStrippedBlockData(blockData: BlockData): BlockData? {
-        val strippedId = blockData.blockFamily.getFamilyId(BlockFamily.Type.STRIPPED) ?: return null
+        val strippedId = blockData.blockMechanics.blockFamily.getFamilyId(BlockFamily.Type.STRIPPED) ?: return null
         val axis = getAxisType(blockData) ?: return this.getBlockData(strippedId)
         val strippedData = this.getBlockData(strippedId) ?: return null
-        val strippedDirectionalId = strippedData.blockFamily.getFamilyId(axis) ?: return null
+        val strippedDirectionalId = strippedData.blockMechanics.blockFamily.getFamilyId(axis) ?: return null
         return this.getBlockData(strippedDirectionalId)
     }
 
     fun getPlant(blockData: BlockData): BlockData? {
-        val plantId = blockData.blockFamily.getFamilyId(BlockFamily.Type.PLANT) ?: return null
+        val plantId = blockData.blockMechanics.blockFamily.getFamilyId(BlockFamily.Type.PLANT) ?: return null
         return this.getBlockData(plantId)
     }
 
     fun getNonPlant(blockData: BlockData): BlockData? {
-        val nonPlantId = blockData.blockFamily.getFamilyId(BlockFamily.Type.NOT_PLANT) ?: return null
+        val nonPlantId = blockData.blockMechanics.blockFamily.getFamilyId(BlockFamily.Type.NOT_PLANT) ?: return null
         return this.getBlockData(nonPlantId)
     }
 
@@ -382,16 +390,16 @@ class LeavesConfig(
             val id = getDefaultIdFromMaterial(material)
             val data = BlockData.createLeaves(
                 id,
-                null,
                 material,
                 properties,
-                BlockFamily(),
-                BlockSoundData.EMPTY,
-                ConstantItemSupplier(ItemStack(material), id),
-                SingleBlockDropReplacement(),
-                null,
-                BlockType.LEAVES.defaultSettings,
-                emptyList()
+                BlockMechanics(
+                    BlockFamily(),
+                    BlockSoundData.EMPTY,
+                    ConstantItemSupplier(ItemStack(material), id),
+                    SingleBlockDropReplacement(),
+                    BlockType.LEAVES.defaultSettings,
+                    emptyList(),
+                )
             )
             this.defaultBlockData[material] = data
             this.blockData[id] = data
@@ -405,17 +413,19 @@ class LeavesConfig(
             val id = getDefaultIdFromMaterial(material)
             val data = BlockData.createLog(
                 id,
-                null,
                 material,
                 material,
                 properties,
-                BlockFamily(Pair(BlockFamily.Type.STRIPPED, "stripped_${id}")),
-                BlockSoundData.EMPTY,
-                ConstantItemSupplier(ItemStack(material), id),
-                SingleBlockDropReplacement(),
-                if (this.customMiningSpeedsForDefaultLogs) BlockBreakManager.LOG_BREAK_MODIFIER else null,
-                BlockType.LOG.defaultSettings,
-                emptyList()
+                BlockMechanics(
+                    BlockFamily(Pair(BlockFamily.Type.STRIPPED, "stripped_${id}")),
+                    BlockSoundData.EMPTY,
+                    ConstantItemSupplier(ItemStack(material), id),
+                    SingleBlockDropReplacement(),
+                    BlockType.LOG.defaultSettings,
+                    emptyList(),
+                    null,
+                    if (this.customMiningSpeedsForDefaultLogs) BlockBreakManager.LOG_BREAK_MODIFIER else null,
+                )
             )
             this.defaultBlockData[material] = data
             this.blockData[id] = data
@@ -430,17 +440,19 @@ class LeavesConfig(
             val id = "stripped_${notStrippedId}"
             val data = BlockData.createLog(
                 id,
-                null,
                 material,
                 material,
                 properties,
-                BlockFamily(Pair(BlockFamily.Type.NOT_STRIPPED, notStrippedId)),
-                BlockSoundData.EMPTY,
-                ConstantItemSupplier(ItemStack(material), id),
-                SingleBlockDropReplacement(),
-                if (this.customMiningSpeedsForDefaultLogs) BlockBreakManager.LOG_BREAK_MODIFIER else null,
-                BlockType.LOG.defaultSettings,
-                emptyList()
+                BlockMechanics(
+                    BlockFamily(Pair(BlockFamily.Type.NOT_STRIPPED, notStrippedId)),
+                    BlockSoundData.EMPTY,
+                    ConstantItemSupplier(ItemStack(material), id),
+                    SingleBlockDropReplacement(),
+                    BlockType.LOG.defaultSettings,
+                    emptyList(),
+                    null,
+                    if (this.customMiningSpeedsForDefaultLogs) BlockBreakManager.LOG_BREAK_MODIFIER else null
+                )
             )
             this.defaultBlockData[material] = data
             this.blockData[id] = data
@@ -455,16 +467,17 @@ class LeavesConfig(
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createSugarcane(
             id,
-            null,
             material,
             material,
             properties,
-            BlockFamily(),
-            BlockSoundData.EMPTY,
-            ConstantItemSupplier(ItemStack(material), id),
-            SingleBlockDropReplacement(),
-            BlockType.SUGAR_CANE.defaultSettings,
-            emptyList()
+            BlockMechanics(
+                BlockFamily(),
+                BlockSoundData.EMPTY,
+                ConstantItemSupplier(ItemStack(material), id),
+                SingleBlockDropReplacement(),
+                BlockType.SUGAR_CANE.defaultSettings,
+                emptyList()
+            )
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -477,15 +490,16 @@ class LeavesConfig(
             val id = getDefaultIdFromMaterial(material)
             val data = BlockData.createSapling(
                 id,
-                null,
                 material,
                 properties,
-                BlockFamily(),
-                BlockSoundData.EMPTY,
-                ConstantItemSupplier(ItemStack(material), id),
-                SingleBlockDropReplacement(),
-                BlockType.SAPLING.defaultSettings,
-                emptyList()
+                BlockMechanics(
+                    BlockFamily(),
+                    BlockSoundData.EMPTY,
+                    ConstantItemSupplier(ItemStack(material), id),
+                    SingleBlockDropReplacement(),
+                    BlockType.SAPLING.defaultSettings,
+                    emptyList()
+                )
             )
             this.defaultBlockData[material] = data
             this.blockData[id] = data
@@ -500,17 +514,18 @@ class LeavesConfig(
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createCaveVines(
             id,
-            null,
             material,
             material,
             properties,
-            BlockFamily(Pair(BlockFamily.Type.PLANT, getDefaultIdFromMaterial(Material.CAVE_VINES_PLANT))),
-            BlockSoundData.EMPTY,
-            ConstantItemSupplier(ItemStack(Material.GLOW_BERRIES), id),
-            SingleBlockDropReplacement(),
+            BlockMechanics(
+                BlockFamily(Pair(BlockFamily.Type.PLANT, getDefaultIdFromMaterial(Material.CAVE_VINES_PLANT))),
+                BlockSoundData.EMPTY,
+                ConstantItemSupplier(ItemStack(Material.GLOW_BERRIES), id),
+                SingleBlockDropReplacement(),
+                BlockType.CAVE_VINES.defaultSettings,
+                emptyList()
+            ),
             setOf(getDefaultIdFromMaterial(Material.CAVE_VINES_PLANT)),
-            BlockType.CAVE_VINES.defaultSettings,
-            emptyList()
         )
         this.defaultBlockData[material] = data
         this.defaultBlockData[Material.GLOW_BERRIES] = data
@@ -523,17 +538,18 @@ class LeavesConfig(
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createCaveVinesPlant(
             id,
-            null,
             material,
             material,
             properties,
-            BlockFamily(Pair(BlockFamily.Type.NOT_PLANT, getDefaultIdFromMaterial(Material.CAVE_VINES))),
-            BlockSoundData.EMPTY,
-            ConstantItemSupplier(ItemStack(Material.GLOW_BERRIES), id),
-            SingleBlockDropReplacement(),
+            BlockMechanics(
+                BlockFamily(Pair(BlockFamily.Type.NOT_PLANT, getDefaultIdFromMaterial(Material.CAVE_VINES))),
+                BlockSoundData.EMPTY,
+                ConstantItemSupplier(ItemStack(Material.GLOW_BERRIES), id),
+                SingleBlockDropReplacement(),
+                BlockType.CAVE_VINES_PLANT.defaultSettings,
+                emptyList(),
+            ),
             setOf(getDefaultIdFromMaterial(Material.CAVE_VINES)),
-            BlockType.CAVE_VINES_PLANT.defaultSettings,
-            emptyList()
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -547,17 +563,18 @@ class LeavesConfig(
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createWeepingVines(
             id,
-            null,
             material,
             material,
             properties,
-            BlockFamily(Pair(BlockFamily.Type.PLANT, getDefaultIdFromMaterial(Material.WEEPING_VINES_PLANT))),
-            BlockSoundData.EMPTY,
-            ConstantItemSupplier(ItemStack(material), id),
-            SingleBlockDropReplacement(),
+            BlockMechanics(
+                BlockFamily(Pair(BlockFamily.Type.PLANT, getDefaultIdFromMaterial(Material.WEEPING_VINES_PLANT))),
+                BlockSoundData.EMPTY,
+                ConstantItemSupplier(ItemStack(material), id),
+                SingleBlockDropReplacement(),
+                BlockType.WEEPING_VINES.defaultSettings,
+                emptyList()
+            ),
             setOf(getDefaultIdFromMaterial(Material.WEEPING_VINES_PLANT)),
-            BlockType.WEEPING_VINES.defaultSettings,
-            emptyList()
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -569,17 +586,18 @@ class LeavesConfig(
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createWeepingVinesPlant(
             id,
-            null,
             material,
             material,
             properties,
-            BlockFamily(Pair(BlockFamily.Type.NOT_PLANT, getDefaultIdFromMaterial(Material.WEEPING_VINES))),
-            BlockSoundData.EMPTY,
-            ConstantItemSupplier(ItemStack(Material.WEEPING_VINES), id),
-            SingleBlockDropReplacement(),
+            BlockMechanics(
+                BlockFamily(Pair(BlockFamily.Type.NOT_PLANT, getDefaultIdFromMaterial(Material.WEEPING_VINES))),
+                BlockSoundData.EMPTY,
+                ConstantItemSupplier(ItemStack(Material.WEEPING_VINES), id),
+                SingleBlockDropReplacement(),
+                BlockType.WEEPING_VINES_PLANT.defaultSettings,
+                emptyList()
+            ),
             setOf(getDefaultIdFromMaterial(Material.WEEPING_VINES)),
-            BlockType.WEEPING_VINES_PLANT.defaultSettings,
-            emptyList()
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -593,17 +611,18 @@ class LeavesConfig(
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createTwistingVines(
             id,
-            null,
             material,
             material,
             properties,
-            BlockFamily(Pair(BlockFamily.Type.PLANT, getDefaultIdFromMaterial(Material.TWISTING_VINES_PLANT))),
-            BlockSoundData.EMPTY,
-            ConstantItemSupplier(ItemStack(material), id),
-            SingleBlockDropReplacement(),
+            BlockMechanics(
+                BlockFamily(Pair(BlockFamily.Type.PLANT, getDefaultIdFromMaterial(Material.TWISTING_VINES_PLANT))),
+                BlockSoundData.EMPTY,
+                ConstantItemSupplier(ItemStack(material), id),
+                SingleBlockDropReplacement(),
+                BlockType.TWISTING_VINES.defaultSettings,
+                emptyList()
+            ),
             setOf(getDefaultIdFromMaterial(Material.TWISTING_VINES_PLANT)),
-            BlockType.TWISTING_VINES.defaultSettings,
-            emptyList()
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -615,17 +634,18 @@ class LeavesConfig(
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createTwistingVinesPlant(
             id,
-            null,
             material,
             material,
             properties,
-            BlockFamily(Pair(BlockFamily.Type.NOT_PLANT, getDefaultIdFromMaterial(Material.TWISTING_VINES))),
-            BlockSoundData.EMPTY,
-            ConstantItemSupplier(ItemStack(Material.TWISTING_VINES), id),
-            SingleBlockDropReplacement(),
+            BlockMechanics(
+                BlockFamily(Pair(BlockFamily.Type.NOT_PLANT, getDefaultIdFromMaterial(Material.TWISTING_VINES))),
+                BlockSoundData.EMPTY,
+                ConstantItemSupplier(ItemStack(Material.TWISTING_VINES), id),
+                SingleBlockDropReplacement(),
+                BlockType.TWISTING_VINES_PLANT.defaultSettings,
+                emptyList()
+            ),
             setOf(getDefaultIdFromMaterial(Material.TWISTING_VINES)),
-            BlockType.TWISTING_VINES_PLANT.defaultSettings,
-            emptyList()
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -639,17 +659,18 @@ class LeavesConfig(
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createKelp(
             id,
-            null,
             material,
             material,
             properties,
-            BlockFamily(Pair(BlockFamily.Type.PLANT, getDefaultIdFromMaterial(Material.KELP_PLANT))),
-            BlockSoundData.EMPTY,
-            ConstantItemSupplier(ItemStack(material), id),
-            SingleBlockDropReplacement(),
+            BlockMechanics(
+                BlockFamily(Pair(BlockFamily.Type.PLANT, getDefaultIdFromMaterial(Material.KELP_PLANT))),
+                BlockSoundData.EMPTY,
+                ConstantItemSupplier(ItemStack(material), id),
+                SingleBlockDropReplacement(),
+                BlockSettings.PLACEABLE_IN_ENTITIES,
+                emptyList()
+            ),
             setOf(getDefaultIdFromMaterial(Material.KELP_PLANT)),
-            BlockSettings.PLACEABLE_IN_ENTITIES,
-            emptyList()
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
@@ -661,60 +682,66 @@ class LeavesConfig(
         val id = getDefaultIdFromMaterial(material)
         val data = BlockData.createKelpPlant(
             id,
-            null,
             material,
             material,
             properties,
-            BlockFamily(Pair(BlockFamily.Type.NOT_PLANT, getDefaultIdFromMaterial(Material.KELP))),
-            BlockSoundData.EMPTY,
-            ConstantItemSupplier(ItemStack(Material.KELP), id),
-            SingleBlockDropReplacement(),
+            BlockMechanics(
+                BlockFamily(Pair(BlockFamily.Type.NOT_PLANT, getDefaultIdFromMaterial(Material.KELP))),
+                BlockSoundData.EMPTY,
+                ConstantItemSupplier(ItemStack(Material.KELP), id),
+                SingleBlockDropReplacement(),
+                BlockSettings.PLACEABLE_IN_ENTITIES,
+                emptyList()
+            ),
             setOf(getDefaultIdFromMaterial(Material.KELP)),
-            BlockSettings.PLACEABLE_IN_ENTITIES,
-            emptyList()
         )
         this.defaultBlockData[material] = data
         this.blockData[id] = data
     }
 
-    private fun loadTextures() {
-        this.loadTextures(LEAVES_MATERIALS)
-        this.loadTextures(LOG_MATERIALS + STRIPPED_LOG_MATERIALS, Material.NOTE_BLOCK)
-        this.loadTextures(SAPLING_MATERIALS)
-        this.loadTextures(
-            listOf(
-                Material.SUGAR_CANE,
-                Material.STRING,
-                Material.NOTE_BLOCK,
-                Material.CAVE_VINES,
-                Material.CAVE_VINES_PLANT,
-                Material.WEEPING_VINES,
-                Material.WEEPING_VINES_PLANT,
-                Material.TWISTING_VINES,
-                Material.TWISTING_VINES_PLANT,
-                Material.KELP,
-                Material.KELP_PLANT,
+    fun loadTextures(): List<File> {
+        val files = mutableListOf<File>()
+        files.addAll(this.loadTextures(LEAVES_MATERIALS))
+        files.addAll(this.loadTextures(LOG_MATERIALS + STRIPPED_LOG_MATERIALS, Material.NOTE_BLOCK))
+        files.addAll(this.loadTextures(SAPLING_MATERIALS))
+        files.addAll(
+            this.loadTextures(
+                listOf(
+                    Material.SUGAR_CANE,
+                    Material.STRING,
+                    Material.NOTE_BLOCK,
+                    Material.CAVE_VINES,
+                    Material.CAVE_VINES_PLANT,
+                    Material.WEEPING_VINES,
+                    Material.WEEPING_VINES_PLANT,
+                    Material.TWISTING_VINES,
+                    Material.TWISTING_VINES_PLANT,
+                    Material.KELP,
+                    Material.KELP_PLANT,
+                )
             )
         )
+        return files
     }
 
-    private fun loadTextures(materials: Collection<Material>, overrideMaterial: Material? = null) {
+    private fun loadTextures(materials: Collection<Material>, overrideMaterial: Material? = null): List<File> {
+        val files = mutableListOf<File>()
         if (overrideMaterial != null) {
-            this.loadTextures(overrideMaterial, materials)
-            return
+            files.addAll(this.loadTextures(overrideMaterial, materials))
         }
         for (material in materials) {
-            this.loadTextures(material, listOf(material))
+            files.addAll(this.loadTextures(material, listOf(material)))
         }
+        return files
     }
 
-    private fun loadTextures(material: Material, matchMaterials: Collection<Material>) {
-        this.textureFileGenerator.generateFile(
+    private fun loadTextures(material: Material, matchMaterials: Collection<Material>): Collection<File> {
+        return this.textureFileGenerator.generateFiles(
             material,
             this.blockData.values
-                .filter { blockData -> matchMaterials.contains(blockData.worldMaterial) }
+                .filter { blockData -> matchMaterials.contains(blockData.visualMaterial) }
                 .filter { blockData ->
-                    blockData.modelPath != null
+                    blockData.blockMechanics.textureData?.modelPath != null
                 }
                 .toList(),
             this
@@ -744,21 +771,23 @@ class LeavesConfig(
             val settings = loadBlockSettings(section.getConfigurationSection(BLOCK_SETTINGS_KEY), id, type)
             val placeConditions = loadPlaceConditions(section.getConfigurationSection(PLACE_CONDITIONS_KEY), id)
             val blockSoundData = loadBlockSoundData(section)
-            val modelPath = section.getString(MODEL_PATH_KEY)
+            val textureData = loadTextureData(section)
             val data = type.blockSupplier(
                 id,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 properties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
-                connectsTo,
-                blockBreakModifier,
-                settings,
-                placeConditions
+                BlockMechanics(
+                    blockFamily,
+                    blockSoundData,
+                    itemSupplier,
+                    blockDrops,
+                    settings,
+                    placeConditions,
+                    textureData,
+                    blockBreakModifier
+                ),
+                connectsTo
             )
             blockData[id] = data
 
@@ -766,13 +795,11 @@ class LeavesConfig(
                 this.loadSaplingSchematicData(id, type, section)
             }
 
-
             if (type == BlockType.LOG || type == BlockType.STRIPPED_LOG) {
                 this.loadLogDirectionals(
                     section,
                     id,
                     type,
-                    modelPath,
                     visualMaterial,
                     worldMaterial,
                     properties,
@@ -783,6 +810,7 @@ class LeavesConfig(
                     connectsTo,
                     blockBreakModifier,
                     settings,
+                    textureData,
                     placeConditions
                 )
             }
@@ -805,7 +833,6 @@ class LeavesConfig(
         section: ConfigurationSection,
         id: String,
         type: BlockType,
-        modelPath: String?,
         visualMaterial: Material,
         worldMaterial: Material,
         properties: Map<Property<*>, Any>,
@@ -816,9 +843,10 @@ class LeavesConfig(
         connectsTo: Set<String>,
         blockBreakModifier: BlockBreakModifier?,
         settings: BlockSettings,
+        textureData: TextureData?,
         placeConditions: List<PlaceConditions>
     ) {
-        if (!section.getBoolean(GENERATE_DIRECTIONS_PATH, false)) {
+        if (!section.getBoolean(GENERATE_DIRECTIONS_KEY, false)) {
             return
         }
         // an extra note isn't used for no reason
@@ -830,20 +858,31 @@ class LeavesConfig(
             blockFamily.addFamilyType(BlockFamily.Type.fromAxis(axis), newId)
             val newData = type.blockSupplier(
                 newId,
-                modelPath,
                 visualMaterial,
                 worldMaterial,
                 newProperties,
-                blockFamily,
-                blockSoundData,
-                itemSupplier,
-                blockDrops,
+                BlockMechanics(
+                    blockFamily,
+                    blockSoundData,
+                    itemSupplier,
+                    blockDrops,
+                    settings,
+                    placeConditions,
+                    textureData?.withProperties(this.texturePropertiesFromAxis(axis)),
+                    blockBreakModifier,
+                ),
                 connectsTo,
-                blockBreakModifier,
-                settings,
-                placeConditions
             )
             blockData[newId] = newData
+        }
+    }
+
+    private fun texturePropertiesFromAxis(axis: Axis): Map<String, Pair<Any, TextureData.PropertyWriter>> {
+        val ninetyPair = Pair(90, TextureData.PropertyWriter.INT_WRITER)
+        return when (axis) {
+            Axis.X -> mapOf(Pair("x", ninetyPair), Pair("y", ninetyPair))
+            Axis.Y -> mapOf(Pair("y", ninetyPair), Pair("z", ninetyPair))
+            Axis.Z -> mapOf(Pair("x", ninetyPair), Pair("z", ninetyPair))
         }
     }
 
@@ -1026,20 +1065,41 @@ class LeavesConfig(
 
     private fun loadBlockSoundData(section: ConfigurationSection?): BlockSoundData {
         if (section == null) return BlockSoundData.EMPTY
-        val stepSound = this.loadSoundData(section.getConfigurationSection(STEP_SOUND_PATH))
-        val hitSound = this.loadSoundData(section.getConfigurationSection(HIT_SOUND_PATH))
-        val placeSound = this.loadSoundData(section.getConfigurationSection(PLACE_SOUND_PATH))
-        val breakSound = this.loadSoundData(section.getConfigurationSection(BREAK_SOUND_PATH))
+        val stepSound = this.loadSoundData(section.getConfigurationSection(STEP_SOUND_KEY))
+        val hitSound = this.loadSoundData(section.getConfigurationSection(HIT_SOUND_KEY))
+        val placeSound = this.loadSoundData(section.getConfigurationSection(PLACE_SOUND_KEY))
+        val breakSound = this.loadSoundData(section.getConfigurationSection(BREAK_SOUND_KEY))
         return BlockSoundData(stepSound, hitSound, placeSound, breakSound)
     }
 
     private fun loadSoundData(section: ConfigurationSection?): SoundData? {
         if (section == null) return null
-        val name = section.getString(SOUND_NAME_PATH) ?: return null
-        val category = SoundCategory.valueOf(section.getString(SOUND_CATEGORY_PATH)!!.uppercase(Locale.getDefault()))
-        val volume = section.getDouble(SOUND_VOLUME_PATH, 1.0).toFloat()
-        val pitch = section.getDouble(SOUND_PITCH_PATH, 1.0).toFloat()
+        val name = section.getString(SOUND_NAME_KEY) ?: return null
+        val category = SoundCategory.valueOf(section.getString(SOUND_CATEGORY_KEY)!!.uppercase(Locale.getDefault()))
+        val volume = section.getDouble(SOUND_VOLUME_KEY, 1.0).toFloat()
+        val pitch = section.getDouble(SOUND_PITCH_KEY, 1.0).toFloat()
         return SoundData(name, category, volume, pitch)
+    }
+
+    private fun loadTextureData(section: ConfigurationSection?): TextureData? {
+        val texturePackSection = section?.getConfigurationSection(TEXTURE_PACK_KEY) ?: return null
+        val modelPath = texturePackSection.getString(MODEL_PATH_KEY) ?: return null
+        val texturesPropertiesSection =
+            texturePackSection.getConfigurationSection(TEXTURE_PROPERTIES_KEY)
+        val textureProperties = hashMapOf<String, Pair<Any, TextureData.PropertyWriter>>()
+        if (texturesPropertiesSection != null) {
+            for (key in texturesPropertiesSection.getKeys(false)) {
+                val obj = texturesPropertiesSection.get(key) ?: continue
+                textureProperties[key] = TextureData.PropertyWriter.fromObject(obj)
+            }
+        }
+        val parent = texturePackSection.getString(PARENT_MODEL_KEY) ?: return null
+        val texturesSection = texturePackSection.getConfigurationSection(TEXTURES_KEY) ?: return null
+        val textures = hashMapOf<String, String>()
+        for (key in texturesSection.getKeys(false)) {
+            textures[key] = texturesSection.getString(key) ?: continue
+        }
+        return TextureData(modelPath, textureProperties, parent, textures)
     }
 
 }

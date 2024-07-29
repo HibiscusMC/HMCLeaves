@@ -43,11 +43,11 @@ class BlockBreakManager(
         position: Position,
         blockData: BlockData
     ): Boolean {
-        if (blockData.blockBreakModifier == null) return false
+        if (blockData.blockMechanics.blockBreakModifier == null) return false
         val blockBreakTime = this.calculateBlockBreakTimeInTicks(
             player,
             player.inventory.itemInMainHand,
-            blockData.blockBreakModifier
+            blockData.blockMechanics.blockBreakModifier
         )
         val blockBreakData = BlockBreakData(
             randomRange.random(),
@@ -106,7 +106,7 @@ class BlockBreakManager(
                         ?.get(position.getChunkPosition())
                         ?.remove(position.toPositionInChunk(), false)
                     block.type = Material.AIR
-                    val blockBreakModifier = blockBreakData.blockData.blockBreakModifier!!
+                    val blockBreakModifier = blockBreakData.blockData.blockMechanics.blockBreakModifier!!
                     val heldItem: ItemStack = blockBreakData.breaker.inventory.itemInMainHand
                     val dropItems = blockBreakModifier.hasEnchantment(heldItem) &&
                             (!blockBreakModifier.requiresToolToDrop ||
@@ -136,7 +136,7 @@ class BlockBreakManager(
                     calculateBlockBreakTimeInTicks(
                         player,
                         player.inventory.itemInMainHand,
-                        blockBreakData.blockData.blockBreakModifier!!
+                        blockBreakData.blockData.blockMechanics.blockBreakModifier!!
                     )
                 val percentageToAdd = blockBreakTime.toDouble() / updatedBlockBreakTime
                 blockBreakData.addBreakTimeProgress(percentageToAdd)

@@ -77,7 +77,6 @@ class Hooks {
         fun unload() {
             initialized = false
             itemHook = null
-            init()
         }
 
         fun reload() {
@@ -115,8 +114,8 @@ class Hooks {
             return blockData.worldMaterial == Material.NOTE_BLOCK
         }
 
-        fun transferTextures(file: File) {
-            itemHook?.transferTextures(file)
+        fun reloadTextures() {
+            itemHook?.reloadTextures()
         }
 
         fun trySaveSchematic(player: Player) {

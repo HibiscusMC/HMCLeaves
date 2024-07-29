@@ -90,6 +90,9 @@ class HMCLeaves : JavaPlugin() {
         // softdepend because HMCLeaves must load before the world loads
         Bukkit.getScheduler().runTaskLater(this, Runnable {
             Hooks.init()
+            // load textures after hooks have been initialized
+            Hooks.reloadTextures()
+            this.leavesConfig.loadTextures()
         }, 1)
     }
 

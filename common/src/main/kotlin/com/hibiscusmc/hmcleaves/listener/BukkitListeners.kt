@@ -120,12 +120,12 @@ class BukkitListeners(
             chunk[loc.toPositionInChunk() ?: return@Getter null]
         }
     ): Boolean {
-        for (condition in blockData.placeConditions) {
+        for (condition in blockData.blockMechanics.placeConditions) {
             if (condition.canBePlaced(this.worldManager, world, location, materialGetter, blockDataGetter)) {
                 return true
             }
         }
-        return blockData.placeConditions.isEmpty()
+        return blockData.blockMechanics.placeConditions.isEmpty()
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
@@ -205,7 +205,7 @@ class BukkitListeners(
 
         val world = event.player.world
 
-        if (!data.settings.isEnabled(BlockSetting.PLACEABLE_IN_ENTITIES) && !world.getNearbyEntities(
+        if (!data.blockMechanics.settings.isEnabled(BlockSetting.PLACEABLE_IN_ENTITIES) && !world.getNearbyEntities(
                 relativeBlock.location.clone().add(0.5, 0.5, 0.5),
                 0.5,
                 0.5,
@@ -250,7 +250,7 @@ class BukkitListeners(
         }
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, Runnable {
             sendArmSwing(player, listOf(player))
-            data.blockSoundData.placeSound?.let { sound ->
+            data.blockMechanics.blockSoundData.placeSound?.let { sound ->
                 sendSound(sound, relativeBlock.location.toPosition() ?: return@Runnable, Bukkit.getOnlinePlayers())
             }
         })
@@ -424,7 +424,7 @@ class BukkitListeners(
         Bukkit.getPluginManager().callEvent(leavesBreakEvent);
         if (leavesBreakEvent.isCancelled) return
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, Runnable {
-            val stepSound = result.blockData.blockSoundData.breakSound ?: return@Runnable
+            val stepSound = result.blockData.blockMechanics.blockSoundData.breakSound ?: return@Runnable
             sendSound(stepSound, block.getPosition(), listOf(event.player))
         })
         leavesChunk.remove(position, true)
