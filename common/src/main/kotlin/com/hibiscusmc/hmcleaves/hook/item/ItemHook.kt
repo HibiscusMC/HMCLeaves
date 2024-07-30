@@ -143,11 +143,11 @@ class OraxenHook(private val plugin: HMCLeaves) : ItemHook("Oraxen") {
         val newJson = JsonObject()
         val variantsObject = JsonObject()
 
-        val transferVariants = transferJson.get("variants").asJsonObject
+        val transferVariants = transferJson.get("variants")?.asJsonObject ?: return
         transferVariants.keySet().forEach { key ->
             variantsObject.add(key, transferVariants.get(key).deepCopy())
         }
-        val destinationVariants = destinationJson.get("variants").asJsonObject
+        val destinationVariants = destinationJson.get("variants")?.asJsonObject ?: return
         destinationVariants.keySet().forEach { key ->
             variantsObject.add(key, destinationVariants.get(key).deepCopy())
         }
