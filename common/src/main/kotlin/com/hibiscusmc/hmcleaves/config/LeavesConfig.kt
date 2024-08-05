@@ -50,6 +50,7 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.inventory.ItemStack
 import java.io.File
+import java.nio.file.Path
 import java.util.Collections
 import java.util.EnumMap
 import java.util.Locale
@@ -142,7 +143,7 @@ class LeavesConfig(
     private val textureFileGenerator: TextureFileGenerator = TextureFileGenerator(plugin)
 ) {
 
-    private val filePath = plugin.dataFolder.toPath().resolve("config.yml")
+    private val configFilePath = plugin.dataFolder.toPath().resolve("config.yml")
     private val doNotTouchPath = plugin.dataFolder.toPath().resolve("do-not-touch.yml")
     private var chunkVersion = CURRENT_CHUNK_VERSION
 
@@ -217,8 +218,22 @@ class LeavesConfig(
         return this.hookIdToBlockDataId[hookId]
     }
 
+    private fun loadFiles(folder: File) {
+        if (!folder.isDirectory) {
+            return
+        }
+        val files = folder.listFiles() ?: return
+        for (file in files) {
+            if (file.isDirectory) {
+                this.loadFiles(file)
+                continue
+            }
+            this.loadBlocks(YamlConfiguration.loadConfiguration(file))
+        }
+    }
+
     fun load() {
-        val file = filePath.toFile()
+        val file = this.configFilePath.toFile()
         if (!file.exists()) {
             file.parentFile.mkdirs()
             this.plugin.saveDefaultConfig()
@@ -233,7 +248,13 @@ class LeavesConfig(
 
         this.loadDatabase(config)
         this.loadDefaults()
-        this.loadBlocks(config)
+        config.getConfigurationSection(BLOCKS_KEY)?.let {
+            this.loadBlocks(it)
+        }
+        if (!this.plugin.dataFolder.exists()) {
+            this.plugin.dataFolder.mkdirs()
+        }
+        this.loadFiles(this.plugin.dataFolder.resolve("items"))
     }
 
     fun reload() {
@@ -750,8 +771,7 @@ class LeavesConfig(
         )
     }
 
-    private fun loadBlocks(config: YamlConfiguration) {
-        val blocksSection = config.getConfigurationSection(BLOCKS_KEY) ?: return
+    private fun loadBlocks(blocksSection: ConfigurationSection) {
         for (id in blocksSection.getKeys(false)) {
             val section = blocksSection.getConfigurationSection(id) ?: continue
             val type = section.getString(TYPE_KEY)?.let { BlockType.valueOf(it.uppercase()) }

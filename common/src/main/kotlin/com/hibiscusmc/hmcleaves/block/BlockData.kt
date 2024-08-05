@@ -2,7 +2,11 @@ package com.hibiscusmc.hmcleaves.block
 
 import com.github.retrooper.packetevents.PacketEvents
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState
+import com.github.retrooper.packetevents.protocol.world.states.enums.East
 import com.github.retrooper.packetevents.protocol.world.states.enums.Instrument
+import com.github.retrooper.packetevents.protocol.world.states.enums.North
+import com.github.retrooper.packetevents.protocol.world.states.enums.South
+import com.github.retrooper.packetevents.protocol.world.states.enums.West
 import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.item.BlockDrops
@@ -135,6 +139,66 @@ sealed class Property<T>(val key: String, val converter: (String) -> T) {
         }
     }
 
+    data object NORTH : Property<North>("north", { North.valueOf(it.uppercase()) }) {
+        override fun applyToState(state: WrappedBlockState, value: North) {
+            state.north = value
+        }
+
+        override fun getFromState(state: WrappedBlockState): North {
+            return state.north
+        }
+    }
+
+    data object SOUTH : Property<South>("east", { South.valueOf(it.uppercase()) }) {
+        override fun applyToState(state: WrappedBlockState, value: South) {
+            state.south = value
+        }
+
+        override fun getFromState(state: WrappedBlockState): South {
+            return state.south
+        }
+    }
+
+    data object EAST : Property<East>("east", { East.valueOf(it.uppercase()) }) {
+        override fun applyToState(state: WrappedBlockState, value: East) {
+            state.east = value
+        }
+
+        override fun getFromState(state: WrappedBlockState): East {
+            return state.east
+        }
+    }
+
+    data object WEST : Property<West>("west", { West.valueOf(it.uppercase()) }) {
+        override fun applyToState(state: WrappedBlockState, value: West) {
+            state.west = value
+        }
+
+        override fun getFromState(state: WrappedBlockState): West {
+            return state.west
+        }
+    }
+
+    data object DISARMED : Property<Boolean>("disarmed", { it.toBoolean() }) {
+        override fun applyToState(state: WrappedBlockState, value: Boolean) {
+            state.isDisarmed = value
+        }
+
+        override fun getFromState(state: WrappedBlockState): Boolean {
+            return state.isDisarmed
+        }
+    }
+
+    data object ATTACHED : Property<Boolean>("attached", { it.toBoolean() }) {
+        override fun applyToState(state: WrappedBlockState, value: Boolean) {
+            state.isAttached = value
+        }
+
+        override fun getFromState(state: WrappedBlockState): Boolean {
+            return state.isAttached
+        }
+    }
+
     companion object {
         private val PROPERTY_KEYS by lazy {
             hashMapOf(
@@ -144,7 +208,13 @@ sealed class Property<T>(val key: String, val converter: (String) -> T) {
                 NOTE.key to NOTE,
                 AGE.key to AGE,
                 POWERED.key to POWERED,
-                STAGE.key to STAGE
+                STAGE.key to STAGE,
+                NORTH.key to NORTH,
+                SOUTH.key to SOUTH,
+                EAST.key to EAST,
+                WEST.key to WEST,
+                DISARMED.key to DISARMED,
+                ATTACHED.key to ATTACHED
             )
         }
 
