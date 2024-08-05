@@ -36,15 +36,6 @@ class TextureFileGenerator(
 
         private data class JSONData(val key: String, val textureData: TextureData)
 
-        // leaves
-        private const val DISTANCE_KEY: String = "distance"
-        private const val PERSISTENT_KEY: String = "persistent"
-        private const val INSTRUMENT_KEY: String = "instrument"
-        private const val NOTE_KEY: String = "note"
-
-        // saplings
-        private const val STAGE: String = "stage"
-
         private class VariantsAdapter : TypeAdapter<Variants>() {
             @Throws(IOException::class)
             override fun write(jsonWriter: JsonWriter, variants: Variants) {
@@ -150,20 +141,20 @@ class TextureFileGenerator(
     }
 
     private fun convertDataToString(blockData: BlockData): String {
-        if (blockData.blockType == BlockType.LEAVES) {
-            return "$DISTANCE_KEY=${blockData.properties[Property.DISTANCE].toString()},$PERSISTENT_KEY=${blockData.properties[Property.PERSISTENT]}"
+        var textureString = ""
+        val iterator = blockData.properties.entries.toList()
+            .sortedBy { (property, _) -> property.key }
+            .iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            val property = entry.key
+            val value = entry.value
+            textureString += "${property.key.lowercase()}=${value.toString().lowercase()}"
+            if (iterator.hasNext()) {
+                textureString += ","
+            }
         }
-        if (blockData.blockType == BlockType.SAPLING) {
-            return "$STAGE=${blockData.properties[Property.STAGE]}"
-        }
-        if (blockData.blockType == BlockType.LOG || blockData.blockType == BlockType.STRIPPED_LOG) {
-            val instrument = blockData.properties[Property.INSTRUMENT]
-            if (instrument !is Instrument) return ""
-            return "$INSTRUMENT_KEY=${instrument.name.lowercase()},$NOTE_KEY=${blockData.properties[Property.NOTE]}"
-        }
-        throw IllegalArgumentException(
-            "${blockData.blockType} cannot be converted to a string for texture file!"
-        )
+        return textureString
     }
 
 
