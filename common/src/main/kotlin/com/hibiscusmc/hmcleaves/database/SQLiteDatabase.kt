@@ -162,11 +162,23 @@ class SQLiteDatabase(
 
     override val databaseExecutor = object : DatabaseExecutor {
         override fun executeRead(runnable: Runnable) {
-            readExecutor.execute(runnable)
+            readExecutor.execute {
+                try {
+                    runnable.run()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
 
         override fun executeWrite(runnable: Runnable) {
-            writeExecutor.execute(runnable)
+            writeExecutor.execute {
+                try {
+                    runnable.run()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
 
     }
