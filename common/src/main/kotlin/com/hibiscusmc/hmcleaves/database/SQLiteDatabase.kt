@@ -141,7 +141,7 @@ private const val SELECT_BLOCK_DATA_STATEMENT = "SELECT " +
 private const val DELETE_BLOCK_DATA_STATEMENT = "DELETE FROM " +
         "$BLOCK_DATA_TABLE_NAME " +
         "WHERE " +
-        "$WORLD_UUID_COL = ? AND" +
+        "$WORLD_UUID_COL = ? AND " +
         "$BLOCK_X_COL = ? AND " +
         "$BLOCK_Y_COL = ? AND " +
         "$BLOCK_Z_COL = ? AND " +
@@ -188,7 +188,6 @@ class SQLiteDatabase(
             .expireAfterWrite(30, TimeUnit.SECONDS)
             .removalListener { position: ChunkPosition?, value: Boolean?, cause: RemovalCause ->
                 if (cause == RemovalCause.EXPLICIT) {
-                    this.chunksToRemoveCache.put(position, value)
                     return@removalListener
                 } // don't remove chunk if
                 // it was removed from the cache in handleChunkLoad()
@@ -223,8 +222,8 @@ class SQLiteDatabase(
         chunkPosition: ChunkPosition,
         async: Boolean
     ) {
-        if (worldManager[world.uid]?.get(chunkPosition) != null) return
         this.chunksToRemoveCache.invalidate(chunkPosition)
+        if (this.worldManager[world.uid]?.get(chunkPosition) != null) return
         val connection = this.getConnection() ?: throw IllegalStateException("Invalid connection")
         val worldUUID = world.uid
         val worldUUIDBytes = worldUUID.toBytes()

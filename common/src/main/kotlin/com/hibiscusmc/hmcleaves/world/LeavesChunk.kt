@@ -54,14 +54,15 @@ class LeavesChunk(
     }
 
     fun remove(position: PositionInChunk, addToRemoved: Boolean): BlockData? {
-        val removed = this.blocks.remove(position) ?: this.defaultBlocks.remove(position)
+        val original = this.blocks.remove(position)
+        val removed = original ?: this.defaultBlocks.remove(position)
         if (addToRemoved && removed != null) {
             this.blocksToRemove[position] = removed
         }
         this.dirty = true
-        if (removed != null) {
+        if (original != null) {
             this.database.databaseExecutor.executeWrite {
-                this.database.deleteBlocks(mapOf(position.toPosition(this.position) to removed.id))
+                this.database.deleteBlocks(mapOf(position.toPosition(this.position) to original.id))
             }
         }
         return removed
@@ -70,16 +71,19 @@ class LeavesChunk(
     fun removeAll(positions: Collection<PositionInChunk>, addToRemoved: Boolean) {
         val removedMap = hashMapOf<Position, String>()
         for (position in positions) {
-            val removed = this.blocks.remove(position) ?: this.defaultBlocks.remove(position)
-            if (removed != null) {
-                removedMap[position.toPosition(this.position)] = removed.id
+            val original = this.blocks.remove(position)
+            val removed = original ?: this.defaultBlocks.remove(position)
+            if (original != null) {
+                removedMap[position.toPosition(this.position)] = original.id
             }
             if (addToRemoved && removed != null) {
                 this.blocksToRemove[position] = removed
             }
             this.dirty = true
         }
-        this.database.databaseExecutor.executeWrite { this.database.deleteBlocks(removedMap) }
+        if (removedMap.isNotEmpty()) {
+            this.database.databaseExecutor.executeWrite { this.database.deleteBlocks(removedMap) }
+        }
     }
 
     fun getBlocks(): Map<PositionInChunk, BlockData?> {

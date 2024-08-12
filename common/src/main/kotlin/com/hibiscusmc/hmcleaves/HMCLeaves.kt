@@ -26,7 +26,7 @@ import java.lang.reflect.InvocationTargetException
 class HMCLeaves : JavaPlugin() {
 
     val leavesConfig: LeavesConfig by lazy { LeavesConfig(this) }
-    val worldManager = WorldManager()
+    val worldManager = WorldManager(this)
     private lateinit var database: LeavesDatabase
     val blockBreakManager: BlockBreakManager by lazy { BlockBreakManager(plugin = this) }
     val userManager: UserManager by lazy { UserManager(this) }
