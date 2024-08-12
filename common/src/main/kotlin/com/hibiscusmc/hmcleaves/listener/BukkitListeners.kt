@@ -171,7 +171,7 @@ class BukkitListeners(
         if (data == null && clickedBlockData == null) return
 
         // handled by block place event
-        if (data != null && clickedBlockData != null && itemInHand.type.isBlock) {
+        if (data != null && (!clickedBlock.type.isInteractable || !player.isSneaking) && itemInHand.type.isBlock) {
             return
         }
 
