@@ -3,6 +3,8 @@ package com.hibiscusmc.hmcleaves.world
 import com.hibiscusmc.hmcleaves.block.BlockData
 import com.hibiscusmc.hmcleaves.block.BlockType
 import com.hibiscusmc.hmcleaves.config.LeavesConfig
+import com.hibiscusmc.hmcleaves.database.DatabaseExecutor
+import com.hibiscusmc.hmcleaves.database.LeavesDatabase
 import com.hibiscusmc.hmcleaves.util.Metadata
 import com.hibiscusmc.hmcleaves.util.Metadatable
 import org.bukkit.Bukkit
@@ -11,6 +13,7 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 class LeavesChunk(
+    val database: LeavesDatabase,
     val position: ChunkPosition,
     val world: UUID = position.world,
     private val blocks: MutableMap<PositionInChunk, BlockData> = ConcurrentHashMap(),
@@ -56,7 +59,27 @@ class LeavesChunk(
             this.blocksToRemove[position] = removed
         }
         this.dirty = true
+        if (removed != null) {
+            this.database.databaseExecutor.executeWrite {
+                this.database.deleteBlocks(mapOf(position.toPosition(this.position) to removed.id))
+            }
+        }
         return removed
+    }
+
+    fun removeAll(positions: Collection<PositionInChunk>, addToRemoved: Boolean) {
+        val removedMap = hashMapOf<Position, String>()
+        for (position in positions) {
+            val removed = this.blocks.remove(position) ?: this.defaultBlocks.remove(position)
+            if (removed != null) {
+                removedMap[position.toPosition(this.position)] = removed.id
+            }
+            if (addToRemoved && removed != null) {
+                this.blocksToRemove[position] = removed
+            }
+            this.dirty = true
+        }
+        this.database.databaseExecutor.executeWrite { this.database.deleteBlocks(removedMap) }
     }
 
     fun getBlocks(): Map<PositionInChunk, BlockData?> {

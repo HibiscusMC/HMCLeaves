@@ -2,6 +2,7 @@ package com.hibiscusmc.hmcleaves.database
 
 import com.hibiscusmc.hmcleaves.HMCLeaves
 import com.hibiscusmc.hmcleaves.world.ChunkPosition
+import com.hibiscusmc.hmcleaves.world.Position
 import org.bukkit.ChunkSnapshot
 import org.bukkit.World
 
@@ -32,6 +33,8 @@ interface LeavesDatabase {
     fun loadWorld(world: World, async: Boolean)
 
     fun saveChunk(chunk: ChunkSnapshot, world: World, removeChunk: Boolean)
+
+    fun deleteBlocks(positions: Map<Position, String>)
 
     fun saveWorld(world: World, removeChunks: Boolean)
 

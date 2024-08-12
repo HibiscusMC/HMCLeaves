@@ -9,6 +9,7 @@ import com.hibiscusmc.hmcleaves.config.LeavesConfig
 import com.hibiscusmc.hmcleaves.util.toBytes
 import com.hibiscusmc.hmcleaves.world.ChunkPosition
 import com.hibiscusmc.hmcleaves.world.LeavesChunk
+import com.hibiscusmc.hmcleaves.world.Position
 import com.hibiscusmc.hmcleaves.world.PositionInChunk
 import com.hibiscusmc.hmcleaves.world.WorldManager
 import org.bukkit.Bukkit
@@ -17,6 +18,7 @@ import org.bukkit.World
 import java.io.File
 import java.sql.Connection
 import java.sql.DriverManager
+import java.sql.PreparedStatement
 import java.sql.SQLException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -136,6 +138,15 @@ private const val SELECT_BLOCK_DATA_STATEMENT = "SELECT " +
         "$CHUNK_X_COL=? AND " +
         "$CHUNK_Z_COL=?;"
 
+private const val DELETE_BLOCK_DATA_STATEMENT = "DELETE FROM " +
+        "$BLOCK_DATA_TABLE_NAME " +
+        "WHERE " +
+        "$WORLD_UUID_COL = ? AND" +
+        "$BLOCK_X_COL = ? AND " +
+        "$BLOCK_Y_COL = ? AND " +
+        "$BLOCK_Z_COL = ? AND " +
+        "$BLOCK_ID_COL = ?;"
+
 
 class SQLiteDatabase(
     private val plugin: HMCLeaves,
@@ -223,7 +234,8 @@ class SQLiteDatabase(
                         this.saveBlockGroups(connection, chunkPosition, groups)
                         this.setChunkVersion(connection, worldUUIDBytes, chunkX, chunkZ)
                         connection.commit()
-                        this.plugin.getLeavesLogger().info("Saved chunk on first load: (world=${world}, chunkX=${chunkX}, chunkZ=${chunkZ})")
+                        this.plugin.getLeavesLogger()
+                            .info("Saved chunk on first load: (world=${world}, chunkX=${chunkX}, chunkZ=${chunkZ})")
                     }
                 }
                 return@use
@@ -299,7 +311,8 @@ class SQLiteDatabase(
                         maxZ
                     )
                 )
-                plugin.getLeavesLogger().info("Loaded block group: (world=${worldUUID}, minX=${minX}, minY=${minY}, minZ=${minZ}, maxX=${maxX}, maxY=${maxY}, maxZ=${maxZ})")
+                plugin.getLeavesLogger()
+                    .info("Loaded block group: (world=${worldUUID}, minX=${minX}, minY=${minY}, minZ=${minZ}, maxX=${maxX}, maxY=${maxY}, maxZ=${maxZ})")
             }
         }
 
@@ -317,7 +330,8 @@ class SQLiteDatabase(
                 val blockData = this.config.getBlockData(id) ?: continue
                 val positionInChunk = PositionInChunk(worldUUID, x, y, z)
                 leavesChunk[positionInChunk] = blockData
-                plugin.getLeavesLogger().info("Loaded block data: (world=${worldUUID}, x=${x}, y=${y},  z=${z}, id=${id})")
+                plugin.getLeavesLogger()
+                    .info("Loaded block data: (world=${worldUUID}, x=${x}, y=${y},  z=${z}, id=${id})")
             }
             leavesChunk.setLoaded(true)
             Bukkit.getScheduler().runTask(this.plugin) { _ ->
@@ -363,7 +377,8 @@ class SQLiteDatabase(
                 preparedStatement.setInt(5, position.y)
                 preparedStatement.setInt(6, position.z)
                 preparedStatement.setString(7, data.id)
-                plugin.getLeavesLogger().info("Saving block data: (world=${worldUUID}, chunkX=${chunkX}, chunkZ=${chunkZ}, x=${position.x}, y=${position.y}, z=${position.z}, id=${data.id})")
+                plugin.getLeavesLogger()
+                    .info("Saving block data: (world=${worldUUID}, chunkX=${chunkX}, chunkZ=${chunkZ}, x=${position.x}, y=${position.y}, z=${position.z}, id=${data.id})")
                 preparedStatement.addBatch()
             }
             preparedStatement.executeBatch()
@@ -372,6 +387,21 @@ class SQLiteDatabase(
             this.chunksToRemoveCache.put(chunkPosition, true)
         }
         connection.commit()
+    }
+
+    override fun deleteBlocks(positions: Map<Position, String>) {
+        val connection = this.getConnection() ?: throw IllegalStateException("Invalid state")
+        connection.prepareStatement(DELETE_BLOCK_DATA_STATEMENT).use { preparedStatement ->
+            for (entry in positions.entries) {
+                val position = entry.key
+                val blockId = entry.value
+                preparedStatement.setBytes(1, position.world.toBytes())
+                preparedStatement.setInt(2, position.x)
+                preparedStatement.setInt(3, position.y)
+                preparedStatement.setInt(4, position.z)
+                preparedStatement.setString(5, blockId)
+            }
+        }
     }
 
     override fun saveWorld(world: World, removeChunks: Boolean) {
