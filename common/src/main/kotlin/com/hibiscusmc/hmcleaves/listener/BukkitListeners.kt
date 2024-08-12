@@ -147,8 +147,7 @@ class BukkitListeners(
             ?.get(clickedBlock.getPositionInChunk())
 
         val face = event.blockFace
-        val relativeBlock =
-            if (BLOCKS_PLACEABLE_IN.contains(clickedBlock.type)) clickedBlock else clickedBlock.getRelative(face)
+        val relativeBlock = if (BLOCKS_PLACEABLE_IN.contains(clickedBlock.type)) clickedBlock else clickedBlock.getRelative(face)
 
 
         if (this.config.isDebugStick(itemInHand)) {
@@ -176,14 +175,6 @@ class BukkitListeners(
             return
         }
 
-        if (data == null) {
-            event.setUseItemInHand(Event.Result.ALLOW);
-            event.setUseInteractedBlock(Event.Result.DENY);
-            this.plugin.getNMSHandler()
-                .handleRightClickCustomBlock(player, relativeBlock.getPosition(), event.hand ?: EquipmentSlot.HAND)
-            return
-        }
-
         if (clickedBlockData == null && clickedBlock.type.isInteractable && !player.isSneaking) {
             return
         }
@@ -205,6 +196,15 @@ class BukkitListeners(
                 val newData = result.blockData
                 leavesChunk[position] = newData
             }
+        }
+
+
+        if (data == null) {
+            event.setUseItemInHand(Event.Result.ALLOW);
+            event.setUseInteractedBlock(Event.Result.DENY);
+            this.plugin.getNMSHandler()
+                .handleRightClickCustomBlock(player, relativeBlock.getPosition(), event.hand ?: EquipmentSlot.HAND)
+            return
         }
 
         val replacedState = relativeBlock.state

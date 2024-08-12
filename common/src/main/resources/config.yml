@@ -97,7 +97,7 @@ blocks:
       AXIS_Y: "stripped_aspen_log"
       AXIS_Z: "stripped_aspen_log"
       NOT_STRIPPED: "aspen_log"
-    generate-directions: false
+    generate-directions: true
     properties:
       instrument: flute
       note: 9
