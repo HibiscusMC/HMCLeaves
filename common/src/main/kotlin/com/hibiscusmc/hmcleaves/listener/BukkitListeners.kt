@@ -53,6 +53,7 @@ import org.bukkit.event.player.PlayerHarvestBlockEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.world.StructureGrowEvent
 import org.bukkit.inventory.EquipmentSlot
+import org.bukkit.inventory.ItemStack
 import java.util.EnumSet
 import java.util.LinkedList
 
@@ -171,7 +172,7 @@ class BukkitListeners(
         if (data == null && clickedBlockData == null) return
 
         // handled by block place event
-        if (data != null && (!clickedBlock.type.isInteractable || !player.isSneaking) && itemInHand.type.isBlock) {
+        if (data != null && (!clickedBlock.type.isInteractable || player.isSneaking) && itemInHand.type.isBlock) {
             return
         }
 
@@ -200,6 +201,7 @@ class BukkitListeners(
 
 
         if (data == null) {
+            if (itemInHand.type.isBlock) return
             event.setUseItemInHand(Event.Result.ALLOW);
             event.setUseInteractedBlock(Event.Result.DENY);
             this.plugin.getNMSHandler()
@@ -231,8 +233,10 @@ class BukkitListeners(
             }
             val newBlockData = this.createBlockData()
             if (newBlockData is Waterlogged) {
-                newBlockData.isWaterlogged = isWater
+                newBlockData.isWaterlogged = true
                 relativeBlock.setBlockData(newBlockData, true)
+            } else {
+                relativeBlock.setType(this, true)
             }
         }
 

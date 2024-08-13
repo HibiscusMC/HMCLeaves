@@ -88,16 +88,16 @@ blocks:
     type: stripped_log
     world-material: stripped_oak_log
     visual-material: note_block
+    generate-directions: true
     texture-pack:
       model-path: "stripped_aspen_log"
     # allows directional blocks to be generated,
     # the below values are required for stripped logs
     block-family:
-      AXIS_X: "stripped_aspen_log"
-      AXIS_Y: "stripped_aspen_log"
-      AXIS_Z: "stripped_aspen_log"
+      AXIS_X: "stripped_aspen_log_x"
+      AXIS_Y: "stripped_aspen_log_y"
+      AXIS_Z: "stripped_aspen_log_z"
       NOT_STRIPPED: "aspen_log"
-    generate-directions: true
     properties:
       instrument: flute
       note: 9

@@ -18,6 +18,7 @@ import com.hibiscusmc.hmcleaves.world.PositionInChunk
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
+import org.bukkit.Sound
 import org.bukkit.Tag
 import org.bukkit.World
 import org.bukkit.block.BlockFace
@@ -252,6 +253,10 @@ data object LogStripListener : BlockListener<PlayerInteractEvent>() {
         }
         val strippedData =
             config.getStrippedBlockData(blockData) ?: return ListenResult(blockData, ListenResultType.PASS_THROUGH)
+
+        if (!Tag.LOGS.isTagged(startLocation.block.type)) {
+            world.playSound(startLocation, Sound.ITEM_AXE_STRIP, 1.0f, 1.0f)
+        }
 
         return ListenResult(strippedData, ListenResultType.PASS_THROUGH)
     }
