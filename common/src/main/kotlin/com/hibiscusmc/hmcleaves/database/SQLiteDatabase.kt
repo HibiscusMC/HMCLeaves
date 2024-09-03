@@ -411,6 +411,8 @@ class SQLiteDatabase(
                 preparedStatement.setInt(3, position.y)
                 preparedStatement.setInt(4, position.z)
                 preparedStatement.setString(5, blockId)
+                plugin.getLeavesLogger()
+                    .info("Deleting block data: (world=${position.world}, x=${position.x}, y=${position.y}, z=${position.z}, id=${blockId})")
             }
         }
     }

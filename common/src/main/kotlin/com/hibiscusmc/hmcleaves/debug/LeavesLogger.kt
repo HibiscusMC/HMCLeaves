@@ -12,7 +12,7 @@ interface LeavesLogger {
 
     fun init()
 
-    fun sendSynced(sendSynced: Boolean = true)
+    fun sendSameThread(sendSynced: Boolean = true)
 
     fun info(message: String)
 
@@ -26,7 +26,7 @@ data object DisabledLeavesLogger : LeavesLogger {
 
     override fun init() {}
 
-    override fun sendSynced(sendSynced: Boolean) {}
+    override fun sendSameThread(sendSynced: Boolean) {}
 
     override fun info(message: String) {}
 
@@ -42,10 +42,10 @@ class ActiveLeavesLogger(private val plugin: HMCLeaves) : LeavesLogger {
 
     private lateinit var filePath: Path;
 
-    private var sendSynced = false
+    private var sendSameThread = false
 
-    override fun sendSynced(sendSynced: Boolean) {
-        this.sendSynced = sendSynced
+    override fun sendSameThread(sendSameThread: Boolean) {
+        this.sendSameThread = sendSameThread
     }
 
     override fun init() {
@@ -92,7 +92,7 @@ class ActiveLeavesLogger(private val plugin: HMCLeaves) : LeavesLogger {
                 StandardOpenOption.APPEND
             )
         }
-        if (this.sendSynced) {
+        if (this.sendSameThread) {
             runnable.run()
             return
         }

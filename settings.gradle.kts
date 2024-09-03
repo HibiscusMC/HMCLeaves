@@ -36,6 +36,6 @@ dependencyResolutionManagement {
     }
 }
 include("common")
-include("v1_19")
+//include("v1_19")
 include("v1_20_4")
 include("v1_21")

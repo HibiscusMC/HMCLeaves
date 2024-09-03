@@ -5,7 +5,7 @@ plugins {
 //    id("xyz.jpenilla.run-paper") version "2.2.4"
 //    id("net.minecrell.plugin-yml.bukkit") version "0.6.0"
 //    id("com.github.johnrengelman.shadow") version "8.1.0"
-//    id("io.papermc.paperweight.userdev") version "1.7.1" apply false
+    id("io.papermc.paperweight.userdev") version "1.7.1" apply false
 }
 
 group = "com.hibiscusmc"

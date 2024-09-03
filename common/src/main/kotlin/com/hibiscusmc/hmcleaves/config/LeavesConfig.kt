@@ -50,7 +50,6 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.inventory.ItemStack
 import java.io.File
-import java.nio.file.Path
 import java.util.Collections
 import java.util.EnumMap
 import java.util.Locale

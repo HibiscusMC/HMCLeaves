@@ -101,7 +101,7 @@ class HMCLeaves : JavaPlugin() {
 
     override fun onDisable() {
         this.blockChecker.stop()
-        this.leavesLogger.sendSynced(false)
+        this.leavesLogger.sendSameThread(true)
         PacketEvents.getAPI().terminate()
         for (world in Bukkit.getWorlds()) {
             this.database.saveWorld(world, true)

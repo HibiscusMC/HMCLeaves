@@ -20,10 +20,11 @@ repositories {
 dependencies {
     paperweight.paperDevBundle("1.19-R0.1-SNAPSHOT")
     pluginRemapper("net.fabricmc:tiny-remapper:0.10.4:fat")
-    testImplementation(kotlin("test"))
     compileOnly("org.spigotmc:spigot-api:1.19-R0.1-SNAPSHOT")
     implementation(project(":common"))
 }
+
+paperweight.reobfArtifactConfiguration = io.papermc.paperweight.userdev.ReobfArtifactConfiguration.REOBF_PRODUCTION
 
 kotlin {
     jvmToolchain(21)
