@@ -31,6 +31,7 @@ dependencyResolutionManagement {
         maven("https://oss.sonatype.org/content/repositories/central")
         maven("https://repo.codemc.io/repository/maven-releases/")
         maven("https://repo.oraxen.com/releases")
+        maven("https://repo.oraxen.com/snapshots")
         maven("https://maven.enginehub.org/repo/")
         maven("https://jitpack.io")
     }
