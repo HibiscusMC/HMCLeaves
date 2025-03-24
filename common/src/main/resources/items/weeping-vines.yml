@@ -1,9 +1,0 @@
-weeping-vines:
-  test_weeping_vine:
-    material: paper
-    model-data: 6
-    name: "&6Test Weeping Vine"
-    lore:
-      - "&aLine 1"
-    state-id: 1
-    tipped-state-id: 2

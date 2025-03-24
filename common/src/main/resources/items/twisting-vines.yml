@@ -1,9 +1,0 @@
-twisting-vines:
-  test_twisting_vine:
-    material: paper
-    model-data: 6
-    name: "&6Test Twisting Vine"
-    lore:
-      - "&aLine 1"
-    state-id: 1
-    tipped-state-id: 2

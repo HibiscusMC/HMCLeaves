@@ -1,9 +1,0 @@
-sugar-cane:
-  test_sugar_cane:
-    material: paper
-    model-data: 6
-    name: "&6Test Sugar Cane"
-    lore:
-      - "&aLine 1"
-    state-id: 1
-    stack-limit: 6
