@@ -1,0 +1,26 @@
+name: HMCLeaves
+version: "1.1.2"
+main: com.hibiscusmc.hmcleaves.HMCLeavesPlugin
+softdepend: [ Oraxen, ItemsAdder, MythicCrucible, Nova, WorldEdit, FastAsyncWorldEdit, ProtocolLib, ProtocolSupport, ViaVersion, ViaBackwards, ViaRewind, Geyser-Spigot ]
+api-version: 1.20
+#load: POSTWORLD
+load: STARTUP
+#loadbefore:
+#  - RoseLoot
+#permissions:
+#  hmcleaves.command.item:
+#    description: "Allows the player to use the /hmcleaves give command"
+#    default: op
+#  hmcleaves.command.debugtool:
+#    description: "Allows the player to use the /hmcleaves debugtool command"
+#    default: op
+#  hmcleaves.command.reload:
+#    description: "Allows the player to use the /hmcleaves reload command"
+#    default: op
+#  hmcleaves.command.transformschem:
+#    description: "Allows the player to use the /hmcleaves transformschem command"
+#    default: op
+#commands:
+#  "hmcleaves":
+#    description: "Allows the player to use the /leaf command"
+#    permission: hmcleaves.command.item
