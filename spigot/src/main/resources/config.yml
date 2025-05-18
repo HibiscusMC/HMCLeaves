@@ -1,10 +1,17 @@
-invert-whitelist: true
+# if this is true, whitelisted-worlds is used as a blacklist instead
+invert-whitelist: false
+whitelisted-worlds: [ "World" ]
 
 leaves:
+  # id
   test-leaves:
+    # material sent to the player
     material: OAK_LEAVES
+    # distance sent to the player
     distance: 4
+    # persistence sent to the player
     persistent: true
+    # item used to place the block
     item:
       material: PAPER
       name: "<green>Test Leaves"
@@ -19,11 +26,13 @@ leaves:
         lore:
           - "<gray>This is a test sapling"
         glowing: true
+      # if true, the leaves will drop the item defined in the item section
       drops-self: true
 
 logs:
   test-log:
     material: NOTE_BLOCK
+    # the type of log that is actually placed in the world
     log-material: OAK_LOG
     instrument: BANJO
     powered: true
