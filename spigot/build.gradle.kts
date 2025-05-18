@@ -5,21 +5,24 @@ plugins {
 }
 
 group = "com.hibiscusmc"
-version = "3.0.0-alpha"
+version = "3.0.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
-    maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
+    maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+    maven("https://oss.sonatype.org/content/repositories/snapshots")
+    maven("https://oss.sonatype.org/content/repositories/central")
+    maven("https://oss.sonatype.org/content/groups/public/")
     maven("https://repo.codemc.io/repository/maven-releases/")
-    maven("https://repo.codemc.io/repository/maven-snapshots/")
+    maven("https://repo.aikar.co/content/groups/aikar/")
 }
 
 dependencies {
     implementation("org.jetbrains:annotations:24.0.0")
-    testImplementation(platform("org.junit:junit-bom:5.10.0"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    compileOnly("org.spigotmc:spigot-api:1.20.4-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.20.6-R0.1-SNAPSHOT")
     implementation("com.github.retrooper:packetevents-spigot:2.7.0")
+    implementation("co.aikar:acf-paper:0.5.1-SNAPSHOT")
     implementation(project(":common"))
 }
 
@@ -41,13 +44,16 @@ tasks {
     compileJava {
         options.encoding = Charsets.UTF_8.name()
         options.release.set(21)
+        options.compilerArgs.add("-parameters")
     }
 
     shadowJar {
         mergeServiceFiles()
 
-        relocate("com.github.retrooper.packetevents", "com.hibiscusmc.hmcleaves.packetevents.api")
-        relocate("io.github.retrooper.packetevents", "com.hibiscusmc.hmcleaves.packetevents.impl")
+        relocate("com.github.retrooper.packetevents", "com.hibiscusmc.hmcleaves.paper.packetevents.api")
+        relocate("io.github.retrooper.packetevents", "com.hibiscusmc.hmcleaves.paper.packetevents.impl")
+        relocate("co.aikar.commands", "com.hibiscusmc.hmcleaves.paper.acf")
+        relocate("co.aikar.locales", "com.hibiscusmc.hmcleaves.paper.locales")
 
         archiveFileName.set("hmcleaves-${project.version}.jar")
 
@@ -69,6 +75,6 @@ tasks {
 
 tasks {
     runServer {
-        minecraftVersion("1.20.4")
+        minecraftVersion("1.20.6")
     }
 }
