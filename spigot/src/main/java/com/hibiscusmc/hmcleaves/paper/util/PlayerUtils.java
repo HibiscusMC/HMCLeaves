@@ -30,7 +30,7 @@ public final class PlayerUtils {
         ) <= Math.pow(Bukkit.getViewDistance(), 2);
     }
 
-    public static Collection<? extends Player> getNearbyPlays(UUID worldId, ChunkPosition chunkPosition) {
+    public static Collection<? extends Player> getNearbyPlayers(UUID worldId, ChunkPosition chunkPosition) {
         return Bukkit.getOnlinePlayers().stream()
                 .filter(player -> PlayerUtils.playerInViewDistanceOfChunk(player, worldId, chunkPosition.x(), chunkPosition.z()))
                 .collect(Collectors.toSet());

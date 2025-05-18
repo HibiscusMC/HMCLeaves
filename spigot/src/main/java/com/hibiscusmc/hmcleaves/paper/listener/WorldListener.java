@@ -5,7 +5,6 @@ import com.hibiscusmc.hmcleaves.common.database.LeavesDatabase;
 import com.hibiscusmc.hmcleaves.common.util.Constants;
 import com.hibiscusmc.hmcleaves.common.util.PositionUtils;
 import com.hibiscusmc.hmcleaves.common.world.ChunkPosition;
-import com.hibiscusmc.hmcleaves.common.world.ChunkSectionPosition;
 import com.hibiscusmc.hmcleaves.common.world.LeavesChunk;
 import com.hibiscusmc.hmcleaves.common.world.LeavesWorld;
 import com.hibiscusmc.hmcleaves.common.world.LeavesWorldManager;
@@ -33,7 +32,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 public final class WorldListener implements Listener {
 
@@ -191,7 +189,7 @@ public final class WorldListener implements Listener {
         if (leavesChunk == null) {
             return;
         }
-        final Collection<? extends Player> nearbyPlayers = PlayerUtils.getNearbyPlays(leavesWorld.worldId(), chunkPosition);
+        final Collection<? extends Player> nearbyPlayers = PlayerUtils.getNearbyPlayers(leavesWorld.worldId(), chunkPosition);
         PacketUtil.sendMultiBlockChange(leavesChunk, nearbyPlayers);
     }
 

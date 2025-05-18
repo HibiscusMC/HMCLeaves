@@ -4,7 +4,6 @@ import com.destroystokyo.paper.event.block.BlockDestroyEvent;
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes;
 import com.hibiscusmc.hmcleaves.common.world.ChunkPosition;
-import com.hibiscusmc.hmcleaves.common.world.ChunkSectionPosition;
 import com.hibiscusmc.hmcleaves.common.world.LeavesChunk;
 import com.hibiscusmc.hmcleaves.common.world.LeavesWorld;
 import com.hibiscusmc.hmcleaves.common.world.Position;
@@ -34,7 +33,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -151,7 +149,7 @@ public final class LeavesListener implements Listener {
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> relativeBlock.setBlockData(data), 1);
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
             PacketUtil.sendArmSwing(player);
-            PacketUtil.sendSingleBlockChange(leavesBlock.blockState().get(), position, PlayerUtils.getNearbyPlays(world.getUID(), chunkPosition));
+            PacketUtil.sendSingleBlockChange(leavesBlock.blockState().get(), position, PlayerUtils.getNearbyPlayers(world.getUID(), chunkPosition));
         });
     }
 
@@ -299,7 +297,7 @@ public final class LeavesListener implements Listener {
         }
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
             chunk.removeBlock(position);
-            PacketUtil.sendSingleBlockChange(WrappedBlockState.getDefaultState(StateTypes.AIR), position, PlayerUtils.getNearbyPlays(world.getUID(), chunkPosition));
+            PacketUtil.sendSingleBlockChange(WrappedBlockState.getDefaultState(StateTypes.AIR), position, PlayerUtils.getNearbyPlayers(world.getUID(), chunkPosition));
         }, 1);
     }
 
