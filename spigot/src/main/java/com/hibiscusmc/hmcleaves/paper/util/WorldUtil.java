@@ -1,8 +1,10 @@
 package com.hibiscusmc.hmcleaves.paper.util;
 
 import com.hibiscusmc.hmcleaves.common.world.Position;
+import org.bukkit.Axis;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.BlockFace;
 
 public final class WorldUtil {
 
@@ -27,4 +29,14 @@ public final class WorldUtil {
                 location.getBlockZ()
         );
     }
+
+    public static Axis axisFromBlockFace(BlockFace blockFace) {
+        return switch (blockFace) {
+            case UP, DOWN -> Axis.Y;
+            case NORTH, SOUTH -> Axis.X;
+            case EAST, WEST -> Axis.Z;
+            default -> throw new IllegalArgumentException("Blockface " + blockFace.name() + " does not have an axis");
+        };
+    }
+
 }

@@ -15,7 +15,7 @@ public final class BlockProperties {
     public static final BlockProperty<Instrument> INSTRUMENT = new BlockProperty<>("instrument", Instrument.class);
     public static final BlockProperty<Integer> NOTE = new BlockProperty<>("note", Integer.class);
     public static final BlockProperty<Boolean> POWERED = new BlockProperty<>("powered", Boolean.class);
-
+    public static final BlockProperty<BlockAxis> AXIS = new BlockProperty<>("axis", BlockAxis.class);
 
     private final @Unmodifiable Map<BlockProperty<?>, Object> properties;
 

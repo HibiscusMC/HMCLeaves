@@ -25,6 +25,8 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.PistonMoveReaction;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -83,18 +85,17 @@ public final class LeavesListener implements Listener {
             event.setCancelled(true);
             return;
         }
-
         final Block block = event.getClickedBlock();
         if (block == null) {
             event.setCancelled(true);
             return;
         }
-        final Block relativeBlock = block.getRelative(event.getBlockFace());
 
         final Position position;
         if (block.isReplaceable() || block.getType().isAir() || Tag.REPLACEABLE.isTagged(block.getType())) {
             position = WorldUtil.convertLocation(block.getLocation());
         } else {
+            final Block relativeBlock = block.getRelative(event.getBlockFace());
             position = WorldUtil.convertLocation(relativeBlock.getLocation());
         }
         final ChunkPosition chunkPosition = position.toChunkPosition();
@@ -112,18 +113,21 @@ public final class LeavesListener implements Listener {
         if (leavesBlock == null) {
             return;
         }
-        if (!relativeBlock.getType().isAir() && !relativeBlock.isReplaceable() && !Tag.REPLACEABLE.isTagged(relativeBlock.getType())) {
+        final Block placeBlock = WorldUtil.convertPosition(world, position).getBlock();
+        if (!placeBlock.getType().isAir() && !placeBlock.isReplaceable() && !Tag.REPLACEABLE.isTagged(placeBlock.getType())) {
             event.setCancelled(true);
             return;
         }
         if (!player.isSneaking() && block.getBlockData().getMaterial().isInteractable()) {
             return;
         }
-        final BlockData data = config.getWorldBlockData(leavesBlock.id());
+        final BlockData data = this.config.getWorldBlockData(leavesBlock.id());
         if (data == null) {
             event.setCancelled(true);
-            this.plugin.getLogger().severe("Failed to get block data for " + leavesBlock.id());
             return;
+        }
+        if (data instanceof Orientable orientable) {
+            orientable.setAxis(WorldUtil.axisFromBlockFace(event.getBlockFace()));
         }
         final Location placeLocation = WorldUtil.convertPosition(world, position);
         if (data instanceof final Leaves leaves) {
@@ -146,10 +150,10 @@ public final class LeavesListener implements Listener {
             }
         }
         leavesWorld.editInsertChunk(chunkPosition, leavesChunk -> leavesChunk.setBlock(position, leavesBlock));
-        Bukkit.getScheduler().runTaskLater(this.plugin, () -> relativeBlock.setBlockData(data), 1);
+        Bukkit.getScheduler().runTaskLater(this.plugin, () -> placeBlock.setBlockData(data), 1);
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
             PacketUtil.sendArmSwing(player);
-            PacketUtil.sendSingleBlockChange(leavesBlock.blockState().get(), position, PlayerUtils.getNearbyPlayers(world.getUID(), chunkPosition));
+            PacketUtil.sendSingleBlockChange(leavesBlock.getBlockState(), position, PlayerUtils.getNearbyPlayers(world.getUID(), chunkPosition));
         });
     }
 

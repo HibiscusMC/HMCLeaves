@@ -3,6 +3,7 @@ package com.hibiscusmc.hmcleaves.paper.config;
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import com.github.retrooper.packetevents.protocol.world.states.enums.Instrument;
 import com.hibiscusmc.hmcleaves.common.block.BlockProperties;
+import com.hibiscusmc.hmcleaves.common.block.BlockType;
 import com.hibiscusmc.hmcleaves.common.block.LeavesBlock;
 import com.hibiscusmc.hmcleaves.common.config.LeavesConfig;
 import com.hibiscusmc.hmcleaves.paper.HMCLeavesPlugin;
@@ -31,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 public class LeavesConfigImplementation implements LeavesConfig<BlockData> {
@@ -48,7 +50,7 @@ public class LeavesConfigImplementation implements LeavesConfig<BlockData> {
     private final Map<String, LeavesBlock> blocksById;
     private final Map<Material, LeavesBlock> defaultBlocks;
     private final Map<String, Supplier<BlockData>> worldBlockData;
-    private final Map<String, ItemStack> itemsById;
+    private final Map<String, Supplier<ItemStack>> itemsById;
     private final Map<String, BlockDropConfig> blockDrops;
 
     private final NamespacedKey itemKey;
@@ -65,7 +67,7 @@ public class LeavesConfigImplementation implements LeavesConfig<BlockData> {
             Map<String, LeavesBlock> blocksById,
             Map<Material, LeavesBlock> defaultBlocks,
             Map<String, Supplier<BlockData>> worldBlockData,
-            Map<String, ItemStack> itemsById,
+            Map<String, Supplier<ItemStack>> itemsById,
             Map<String, BlockDropConfig> blockDrops
     ) {
         this.plugin = plugin;
@@ -90,7 +92,7 @@ public class LeavesConfigImplementation implements LeavesConfig<BlockData> {
                 AdventureUtil.MINI_MESSAGE.deserialize("<gray>Right click to get the block data")
         ));
         itemStack.setItemMeta(itemMeta);
-        this.itemsById.put(DEBUG_ITEM_ID, itemStack);
+        this.itemsById.put(DEBUG_ITEM_ID, itemStack::clone);
     }
 
     public boolean isDebugItem(ItemStack itemStack) {
@@ -105,7 +107,7 @@ public class LeavesConfigImplementation implements LeavesConfig<BlockData> {
         player.sendMessage(AdventureUtil.parse("<green>Debug Info:"));
         player.sendMessage(AdventureUtil.parse("<gray>Block ID: " + leavesBlock.id()));
         player.sendMessage(AdventureUtil.parse("<gray>Display Properties:"));
-        for (var entry : leavesBlock.properties().properties().entrySet()) {
+        for (var entry : leavesBlock.visualProperties().properties().entrySet()) {
             player.sendMessage(AdventureUtil.parse("<gray>" + entry.getKey().id() + ": " + entry.getValue()));
         }
         player.sendMessage(AdventureUtil.parse("<green>Real Properties:"));
@@ -123,11 +125,11 @@ public class LeavesConfigImplementation implements LeavesConfig<BlockData> {
     }
 
     public @Nullable ItemStack createItemStack(String id) {
-        final ItemStack itemStack = this.itemsById.get(id);
-        if (itemStack == null) {
+        final Supplier<ItemStack> itemStackSupplier = this.itemsById.get(id);
+        if (itemStackSupplier == null) {
             return null;
         }
-        return itemStack.clone();
+        return itemStackSupplier.get();
     }
 
     public @Nullable LeavesBlock getBlockFromItem(ItemStack itemStack) {
@@ -135,7 +137,10 @@ public class LeavesConfigImplementation implements LeavesConfig<BlockData> {
         if (itemMeta == null) {
             return null;
         }
-        final String blockId = itemMeta.getPersistentDataContainer().get(this.itemKey, PersistentDataType.STRING);
+        String blockId = this.plugin.itemHook().getItemId(itemStack);
+        if (blockId == null) {
+            blockId = itemMeta.getPersistentDataContainer().get(this.itemKey, PersistentDataType.STRING);
+        }
         final Material material = itemStack.getType();
         if (blockId == null) {
             return this.defaultBlocks.get(material);
@@ -204,7 +209,7 @@ public class LeavesConfigImplementation implements LeavesConfig<BlockData> {
             final WrappedBlockState state = SpigotConversionUtil.fromBukkitBlockData(material.createBlockData());
             state.setDistance(distance);
             state.setPersistent(persistent);
-            this.blocksById.put(id, new LeavesBlock(id, properties, state::clone));
+            this.blocksById.put(id, new LeavesBlock(id, BlockType.LEAVES, properties, state.getGlobalId()));
             this.worldBlockData.put(id, material::createBlockData);
             final ConfigurationSection itemStackSection = config.getConfigurationSection(id + ".item");
             if (itemStackSection != null) {
@@ -249,7 +254,7 @@ public class LeavesConfigImplementation implements LeavesConfig<BlockData> {
             state.setInstrument(instrument);
             state.setNote(note);
             state.setPowered(powered);
-            this.blocksById.put(id, new LeavesBlock(id, properties, state::clone));
+            this.blocksById.put(id, new LeavesBlock(id, BlockType.LOG, properties, state.getGlobalId()));
             this.worldBlockData.put(id, logMaterial::createBlockData);
             final ConfigurationSection itemStackSection = config.getConfigurationSection(id + ".item");
             if (itemStackSection != null) {
@@ -269,13 +274,14 @@ public class LeavesConfigImplementation implements LeavesConfig<BlockData> {
                     .addProperty(BlockProperties.PERSISTENT, false)
                     .build();
             final WrappedBlockState state = SpigotConversionUtil.fromBukkitBlockData(material.createBlockData());
-            final LeavesBlock block = new LeavesBlock(material.toString().toLowerCase(), properties, state::clone);
+            final LeavesBlock block = new LeavesBlock(material.toString().toLowerCase(), BlockType.LEAVES, properties, state.getGlobalId());
             state.setDistance(7);
             state.setPersistent(false);
             this.defaultBlocks.put(material, block);
             this.blocksById.put(block.id(), block);
             this.worldBlockData.put(block.id(), material::createBlockData);
-            this.itemsById.put(block.id(), new ItemStack(material));
+            this.blockDrops.put(block.id(), new BlockDropConfig(false, () -> null, () -> new ItemStack(material)));
+            this.registerItem(block.id(), new ItemStack(material));
         }
         for (Material material : LOGS) {
             final BlockProperties properties = BlockProperties.builder()
@@ -283,11 +289,12 @@ public class LeavesConfigImplementation implements LeavesConfig<BlockData> {
                     .addProperty(BlockProperties.PERSISTENT, false)
                     .build();
             final WrappedBlockState state = SpigotConversionUtil.fromBukkitBlockData(material.createBlockData());
-            final LeavesBlock block = new LeavesBlock(material.toString().toLowerCase(), properties, state::clone);
+            final LeavesBlock block = new LeavesBlock(material.toString().toLowerCase(), BlockType.LOG, properties, state.getGlobalId());
             this.defaultBlocks.put(material, block);
             this.blocksById.put(block.id(), block);
             this.worldBlockData.put(block.id(), material::createBlockData);
-            this.itemsById.put(block.id(), new ItemStack(material));
+            this.blockDrops.put(block.id(), new BlockDropConfig(false, () -> null, () -> new ItemStack(material)));
+            this.registerItem(block.id(), new ItemStack(material));
         }
     }
 
@@ -306,7 +313,7 @@ public class LeavesConfigImplementation implements LeavesConfig<BlockData> {
             itemMeta.getPersistentDataContainer().set(this.itemKey, PersistentDataType.STRING, id);
         }
         itemStack.setItemMeta(itemMeta);
-        this.itemsById.put(id, itemStack);
+        this.registerItem(id, itemStack);
     }
 
     private @Nullable ItemStack loadItemStack(ConfigurationSection section) {
@@ -338,18 +345,27 @@ public class LeavesConfigImplementation implements LeavesConfig<BlockData> {
     private void loadDrops(String id, ConfigurationSection config) {
         final boolean requiresShears = config.getBoolean("requires-shears", false);
         final ConfigurationSection saplingSection = config.getConfigurationSection("sapling");
-        ItemStack sapling = null;
-        if (saplingSection != null) {
-            sapling = this.loadItemStack(saplingSection);
-        }
+        final ItemStack sapling = saplingSection == null ? null : this.loadItemStack(saplingSection);
         final boolean dropsSelf = config.getBoolean("drops-self", true);
-        final ItemStack itemStack = this.itemsById.get(id);
-        if (itemStack == null && dropsSelf) {
+        final Supplier<ItemStack> itemStackSupplier = this.itemsById.get(id);
+        if (itemStackSupplier == null && dropsSelf) {
             this.plugin.getLogger().warning("Invalid item stack for item: " + id);
             return;
         }
-        final BlockDropConfig drops = new BlockDropConfig(requiresShears, sapling == null ? null : sapling.clone(), itemStack == null ? null : itemStack.clone());
+        final BlockDropConfig drops = new BlockDropConfig(requiresShears, () -> sapling, itemStackSupplier == null ? () -> null : itemStackSupplier);
         this.blockDrops.put(id, drops);
+    }
+
+    private void registerItem(String id, ItemStack itemStack) {
+        this.itemsById.put(id, () -> {
+            final ItemStack hookItem = this.plugin.itemHook().fromId(id);
+            if (hookItem != null) {
+                this.plugin.log(Level.INFO, "Nexo Item Id: " + id);
+                return hookItem;
+            }
+            this.plugin.log(Level.INFO, "Normal Item Id: " + id);
+            return itemStack.clone();
+        });
     }
 
     private void loadWhitelistedWorlds(ConfigurationSection config) {

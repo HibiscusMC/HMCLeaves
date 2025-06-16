@@ -3,26 +3,33 @@ package com.hibiscusmc.hmcleaves.paper;
 import co.aikar.commands.PaperCommandManager;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.PacketEventsAPI;
+import com.github.retrooper.packetevents.event.EventManager;
 import com.hibiscusmc.hmcleaves.common.HMCLeaves;
 import com.hibiscusmc.hmcleaves.common.database.json.JsonLeavesDatabase;
 import com.hibiscusmc.hmcleaves.common.world.LeavesChunk;
 import com.hibiscusmc.hmcleaves.common.world.LeavesChunkSection;
 import com.hibiscusmc.hmcleaves.common.world.LeavesWorld;
+import com.hibiscusmc.hmcleaves.nms.NMSHandler;
+import com.hibiscusmc.hmcleaves.paper.breaking.BlockBreakManager;
 import com.hibiscusmc.hmcleaves.paper.command.LeavesCommand;
 import com.hibiscusmc.hmcleaves.paper.config.LeavesConfigImplementation;
 import com.hibiscusmc.hmcleaves.common.database.LeavesDatabase;
-import com.hibiscusmc.hmcleaves.common.database.sql.SQLiteLeavesDatabase;
+import com.hibiscusmc.hmcleaves.paper.hook.ItemHook;
+import com.hibiscusmc.hmcleaves.paper.hook.nexo.NexoItemHook;
 import com.hibiscusmc.hmcleaves.paper.listener.LeavesListener;
 import com.hibiscusmc.hmcleaves.paper.listener.WorldListener;
 import com.hibiscusmc.hmcleaves.paper.packet.LeavesPacketListener;
 import com.hibiscusmc.hmcleaves.common.world.LeavesWorldManager;
+import com.hibiscusmc.hmcleaves.paper.packet.PlayerDigListener;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.EnumMap;
@@ -37,12 +44,14 @@ public class HMCLeavesPlugin extends JavaPlugin implements HMCLeaves {
     private LeavesDatabase leavesDatabase;
     private LeavesWorldManager leavesWorldManager;
     private Path configPath;
+    private ItemHook itemHook;
+    private BlockBreakManager breakManager;
+    private NMSHandler nmsHandler;
 
     @Override
     public void onLoad() {
         final PacketEventsAPI<Plugin> api = SpigotPacketEventsBuilder.build(this);
-        api.getSettings().checkForUpdates(false)
-                .reEncodeByDefault(true);
+        api.getSettings().checkForUpdates(false).reEncodeByDefault(true);
         PacketEvents.setAPI(api);
         PacketEvents.getAPI().load();
         this.configPath = this.getDataFolder().toPath().resolve("config.yml");
@@ -51,6 +60,7 @@ public class HMCLeavesPlugin extends JavaPlugin implements HMCLeaves {
         }
         this.leavesConfig = new LeavesConfigImplementation(this, this.configPath, new HashMap<>(), new EnumMap<>(Material.class), new HashMap<>(), new HashMap<>(), new HashMap<>());
         this.leavesConfig.load();
+        this.initializeNMSHandler();
     }
 
     @Override
@@ -73,6 +83,12 @@ public class HMCLeavesPlugin extends JavaPlugin implements HMCLeaves {
                 this.getDataFolder().toPath().resolve("data")
         );
         this.leavesDatabase.init();
+        if (this.getServer().getPluginManager().getPlugin("Nexo") != null) {
+            this.itemHook = new NexoItemHook(this);
+        } else {
+            this.itemHook = ItemHook.EMPTY;
+        }
+        this.breakManager = new BlockBreakManager(this);
         this.registerListeners();
         this.registerPacketListeners();
         this.registerCommands();
@@ -100,6 +116,9 @@ public class HMCLeavesPlugin extends JavaPlugin implements HMCLeaves {
     }
 
     private void registerListeners() {
+        if (this.itemHook instanceof final Listener listener) {
+            Bukkit.getServer().getPluginManager().registerEvents(listener, this);
+        }
         List.of(
                         new WorldListener(this),
                         new LeavesListener(this)
@@ -108,13 +127,35 @@ public class HMCLeavesPlugin extends JavaPlugin implements HMCLeaves {
     }
 
     private void registerPacketListeners() {
-        PacketEvents.getAPI().getEventManager().registerListener(new LeavesPacketListener(this.leavesWorldManager, this.leavesConfig));
+        final EventManager eventManager = PacketEvents.getAPI().getEventManager();
+        eventManager.registerListener(new LeavesPacketListener(this.leavesWorldManager, this.leavesConfig));
+        eventManager.registerListener(new PlayerDigListener(this.breakManager, this.leavesWorldManager, this.leavesConfig));
     }
 
     private void registerCommands() {
         final PaperCommandManager commandManager = new PaperCommandManager(this);
         commandManager.getCommandCompletions().registerCompletion("items", context -> this.leavesConfig.itemIds());
         commandManager.registerCommand(new LeavesCommand(this));
+    }
+
+    private void initializeNMSHandler() {
+        try {
+            final String version = Bukkit.getServer().getVersion();
+            if (version.contains("1.20.5") || version.contains("1.20.6")) {
+                this.createNMSHandler("v1_20_6");
+            } else if (version.contains("1.20.4") || version.contains("1.20.3")) {
+                this.createNMSHandler("v1_20_3");
+            } else if (version.contains("1.20")) {
+                this.createNMSHandler("v1_20");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void createNMSHandler(String packageVersion) throws ClassNotFoundException, IllegalAccessException, InstantiationException, InvocationTargetException {
+        this.nmsHandler = (NMSHandler) Class.forName("com.hibiscusmc.hmcleaves." + packageVersion + ".NMSHandler").getConstructors()[0]
+                .newInstance();
     }
 
     @Override
@@ -132,8 +173,17 @@ public class HMCLeavesPlugin extends JavaPlugin implements HMCLeaves {
         return this.leavesDatabase;
     }
 
+    public ItemHook itemHook() {
+        return this.itemHook;
+    }
+
+    public NMSHandler nmsHandler() {
+        return this.nmsHandler;
+    }
+
     @Override
     public void log(Level level, String message) {
         this.getLogger().log(level, message);
     }
+
 }

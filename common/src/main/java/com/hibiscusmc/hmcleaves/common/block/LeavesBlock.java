@@ -2,8 +2,10 @@ package com.hibiscusmc.hmcleaves.common.block;
 
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 
-import java.util.function.Supplier;
+public record LeavesBlock(String id, BlockType type, BlockProperties visualProperties, int displayBlockGlobalId) {
 
-public record LeavesBlock(String id, BlockProperties properties, Supplier<WrappedBlockState> blockState) {
+    public WrappedBlockState getBlockState() {
+        return WrappedBlockState.getByGlobalId(this.displayBlockGlobalId);
+    }
 
 }

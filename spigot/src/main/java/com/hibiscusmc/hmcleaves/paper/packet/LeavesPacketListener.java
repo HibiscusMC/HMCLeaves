@@ -57,7 +57,6 @@ public final class LeavesPacketListener extends PacketListenerAbstract {
         }
     }
 
-
     /**
      * Requires {@code event.getPacketType() == PacketType.Play.Server.CHUNK_DATA}
      */
@@ -91,9 +90,9 @@ public final class LeavesPacketListener extends PacketListenerAbstract {
             }
             final var blocks = chunkSection.getBlocks();
             for (var entry : blocks.entrySet()) {
-                final var blockData = entry.getValue();
+                final var leavesBlock = entry.getValue();
                 final var position = entry.getKey();
-                final WrappedBlockState state = blockData.blockState().get();
+                final WrappedBlockState state = leavesBlock.getBlockState();
                 if (BlockTags.LEAVES.contains(state.getType())) {
                     final BlockData block = world.getBlockData(position.x(), position.y(), position.z());
                     if (block instanceof final Waterlogged waterlogged) {
@@ -136,11 +135,11 @@ public final class LeavesPacketListener extends PacketListenerAbstract {
         if (chunkSection == null) {
             return;
         }
-        final var blockData = chunkSection.getBlock(position);
-        if (blockData == null) {
+        final var leavesBlock = chunkSection.getBlock(position);
+        if (leavesBlock == null) {
             return;
         }
-        final WrappedBlockState state = blockData.blockState().get();
+        final WrappedBlockState state = leavesBlock.getBlockState();
         if (BlockTags.LEAVES.contains(state.getType())) {
             final BlockData block = world.getBlockData(position.x(), position.y(), position.z());
             if (block instanceof final Waterlogged waterlogged) {
@@ -180,7 +179,7 @@ public final class LeavesPacketListener extends PacketListenerAbstract {
             if (blockData == null) {
                 continue;
             }
-            block.setBlockState(blockData.blockState().get());
+            block.setBlockState(blockData.getBlockState());
         }
     }
 

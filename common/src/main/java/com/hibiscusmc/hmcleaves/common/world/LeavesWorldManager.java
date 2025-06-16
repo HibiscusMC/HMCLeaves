@@ -1,5 +1,6 @@
 package com.hibiscusmc.hmcleaves.common.world;
 
+import com.hibiscusmc.hmcleaves.common.block.LeavesBlock;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnmodifiableView;
 
@@ -40,6 +41,18 @@ public final class LeavesWorldManager {
 
     public @UnmodifiableView Map<UUID, LeavesWorld> getWorlds() {
         return Collections.unmodifiableMap(this.worlds);
+    }
+
+    public @Nullable LeavesBlock removeBlock(UUID worldId, Position position) {
+        final LeavesWorld world = this.worlds.get(worldId);
+        if (world == null) {
+            return null;
+        }
+        final LeavesChunk leavesChunk = world.getChunk(position.toChunkPosition());
+        if (leavesChunk == null) {
+            return null;
+        }
+        return leavesChunk.removeBlock(position);
     }
 
 }

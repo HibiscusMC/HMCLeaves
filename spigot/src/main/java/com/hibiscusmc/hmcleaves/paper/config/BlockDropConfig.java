@@ -3,16 +3,18 @@ package com.hibiscusmc.hmcleaves.paper.config;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.function.Supplier;
+
 public final class BlockDropConfig {
 
     private final boolean requiresShears;
-    private final ItemStack sapling;
-    private final ItemStack leavesItem;
+    private final Supplier<@Nullable ItemStack> saplingSupplier;
+    private final Supplier<@Nullable ItemStack> leavesItemSupplier;
 
-    public BlockDropConfig(boolean requiresShears, @Nullable ItemStack sapling, @Nullable ItemStack leavesItem) {
+    public BlockDropConfig(boolean requiresShears, Supplier<@Nullable ItemStack> saplingSupplier, Supplier<@Nullable ItemStack> leavesItemSupplier) {
         this.requiresShears = requiresShears;
-        this.sapling = sapling;
-        this.leavesItem = leavesItem;
+        this.saplingSupplier = saplingSupplier;
+        this.leavesItemSupplier = leavesItemSupplier;
     }
 
     public boolean requiresShears() {
@@ -20,17 +22,11 @@ public final class BlockDropConfig {
     }
 
     public @Nullable ItemStack copySapling() {
-        if (this.sapling == null) {
-            return null;
-        }
-        return this.sapling.clone();
+        return this.saplingSupplier.get();
     }
 
     public @Nullable ItemStack copyLeavesItem() {
-        if (this.leavesItem == null) {
-            return null;
-        }
-        return this.leavesItem.clone();
+        return this.leavesItemSupplier.get();
     }
 
 }
