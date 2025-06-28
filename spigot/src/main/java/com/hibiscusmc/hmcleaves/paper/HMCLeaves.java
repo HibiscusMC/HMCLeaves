@@ -139,7 +139,7 @@ public class HMCLeaves extends JavaPlugin {
     private void initializeNMSHandler() {
         try {
             final String version = Bukkit.getServer().getVersion();
-            if (version.contains("1.21.4")) {
+            if (version.contains("1.21")) {
                 this.createNMSHandler("v1_21.4");
             } else if (version.contains("1.20.5") || version.contains("1.20.6")) {
                 this.createNMSHandler("v1_20_6");

@@ -80,6 +80,6 @@ tasks {
 
 tasks {
     runServer {
-        minecraftVersion("1.20.6")
+        minecraftVersion("1.21.6")
     }
 }
