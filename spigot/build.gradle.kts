@@ -25,7 +25,6 @@ dependencies {
     compileOnly("com.nexomc:nexo:0.7.0")
     implementation("com.github.retrooper:packetevents-spigot:2.7.0")
     implementation("co.aikar:acf-paper:0.5.1-SNAPSHOT")
-    implementation(project(":common"))
     implementation(project(":nms"))
     implementation(project(path = ":v1_20", configuration = "reobf"))
     implementation(project(path = ":v1_20_3", configuration = "reobf"))

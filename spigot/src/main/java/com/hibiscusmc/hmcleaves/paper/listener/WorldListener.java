@@ -1,23 +1,26 @@
 package com.hibiscusmc.hmcleaves.paper.listener;
 
-import com.hibiscusmc.hmcleaves.common.config.LeavesConfig;
-import com.hibiscusmc.hmcleaves.common.database.LeavesDatabase;
-import com.hibiscusmc.hmcleaves.common.util.Constants;
-import com.hibiscusmc.hmcleaves.common.util.PositionUtils;
-import com.hibiscusmc.hmcleaves.common.world.ChunkPosition;
-import com.hibiscusmc.hmcleaves.common.world.LeavesChunk;
-import com.hibiscusmc.hmcleaves.common.world.LeavesWorld;
-import com.hibiscusmc.hmcleaves.common.world.LeavesWorldManager;
-import com.hibiscusmc.hmcleaves.common.world.Position;
-import com.hibiscusmc.hmcleaves.paper.HMCLeavesPlugin;
+import com.hibiscusmc.hmcleaves.paper.HMCLeaves;
+import com.hibiscusmc.hmcleaves.paper.block.CustomBlock;
+import com.hibiscusmc.hmcleaves.paper.block.LogBlock;
+import com.hibiscusmc.hmcleaves.paper.config.LeavesConfig;
+import com.hibiscusmc.hmcleaves.paper.database.LeavesDatabase;
 import com.hibiscusmc.hmcleaves.paper.packet.PacketUtil;
+import com.hibiscusmc.hmcleaves.paper.util.Constants;
 import com.hibiscusmc.hmcleaves.paper.util.PlayerUtils;
+import com.hibiscusmc.hmcleaves.paper.util.PositionUtils;
+import com.hibiscusmc.hmcleaves.paper.util.WorldUtil;
+import com.hibiscusmc.hmcleaves.paper.world.ChunkPosition;
+import com.hibiscusmc.hmcleaves.paper.world.LeavesChunk;
+import com.hibiscusmc.hmcleaves.paper.world.LeavesWorld;
+import com.hibiscusmc.hmcleaves.paper.world.LeavesWorldManager;
+import com.hibiscusmc.hmcleaves.paper.world.Position;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
+import org.bukkit.Location;
 import org.bukkit.Tag;
 import org.bukkit.World;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -29,19 +32,21 @@ import org.bukkit.event.world.WorldSaveEvent;
 
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class WorldListener implements Listener {
 
-    private final HMCLeavesPlugin plugin;
-    private final LeavesConfig<BlockData> leavesConfig;
+    private final HMCLeaves plugin;
+    private final LeavesConfig leavesConfig;
     private final LeavesWorldManager worldManager;
     private final LeavesDatabase database;
 
     public WorldListener(
-            HMCLeavesPlugin plugin
+            HMCLeaves plugin
     ) {
         this.plugin = plugin;
         this.leavesConfig = plugin.leavesConfig();
@@ -110,28 +115,26 @@ public final class WorldListener implements Listener {
         }
     }
 
-    private static final Map<ChunkPosition, Integer> chunkLoadCount = new ConcurrentHashMap<>();
 
     private void loadChunk(World world, ChunkSnapshot chunk) {
         final UUID worldId = world.getUID();
         final LeavesWorld leavesWorld = this.worldManager.getOrAddWorld(worldId);
         final ChunkPosition chunkPosition = new ChunkPosition(worldId, chunk.getX(), chunk.getZ());
+        final Map<Position, CustomBlock> customBlockMap = new HashMap<>();
         this.database.executeRead(() -> {
-            chunkLoadCount.merge(chunkPosition, 1, Integer::sum);
             try {
                 if (leavesWorld.isLoadingChunk(chunkPosition)) {
                     return;
                 }
                 leavesWorld.setLoadingChunk(chunkPosition);
                 if (this.database.hasChunkBeenScanned(worldId, chunkPosition)) {
-                    final LeavesChunk leavesChunk = this.database.loadChunk(worldId, chunkPosition);
-                    if (leavesChunk == null) {
+                    customBlockMap.putAll(this.database.loadChunk(worldId, chunkPosition));
+                    if (customBlockMap.isEmpty()) {
                         leavesWorld.removeLoadingChunk(chunkPosition);
                         return;
                     }
-                    leavesWorld.setChunk(leavesChunk);
                     leavesWorld.removeLoadingChunk(chunkPosition);
-                    Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> this.sendChunkToNearbyPlayers(leavesWorld, chunkPosition));
+                    Bukkit.getScheduler().runTask(this.plugin, () -> this.updateBlockStates(world, leavesWorld, chunkPosition, customBlockMap));
                     return;
                 }
                 Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> this.loadNewChunk(world, leavesWorld, chunk, chunkPosition));
@@ -146,15 +149,16 @@ public final class WorldListener implements Listener {
         final UUID worldId = world.getUID();
         final int minY = world.getMinHeight();
         final int maxY = world.getMaxHeight();
+        final Map<Position, CustomBlock> customBlockMap = new HashMap<>();
         for (int y = minY; y < maxY; y++) {
             for (int x = 0; x <= Constants.CHUNK_MAX_X; x++) {
                 for (int z = 0; z <= Constants.CHUNK_MAX_Z; z++) {
                     final var block = chunk.getBlockData(x, y, z);
 
-                    final var leavesBlock = this.leavesConfig.getLeavesBlockFromWorldBlockData(block);
-                    if (leavesBlock == null) {
+                    final var customBlock = this.leavesConfig.getCustomBlockFromWorldBlockData(block);
+                    if (customBlock == null) {
                         if (Tag.LEAVES.isTagged(block.getMaterial())) {
-                            plugin.getLogger().warning("Found leaves block in chunk " + chunkPosition + " but it is not in the config: " + block.getMaterial());
+                            this.plugin.getLogger().warning("Found custom block in chunk " + chunkPosition + " but it is not in the config: " + block.getMaterial());
                         }
                         continue;
                     }
@@ -164,13 +168,21 @@ public final class WorldListener implements Listener {
                             y,
                             PositionUtils.chunkCoordToCoord(chunkPosition.z(), z)
                     );
-                    leavesWorld.editInsertChunk(
-                            chunkPosition,
-                            leavesChunk -> leavesChunk.setBlock(position, leavesBlock)
-                    );
+                    customBlockMap.put(position, customBlock);
+//                    leavesWorld.editInsertChunk(
+//                            chunkPosition,
+//                            leavesChunk -> leavesChunk.setBlock(position, customBlock)
+//                    );
                 }
             }
         }
+        Bukkit.getScheduler().runTask(this.plugin, () -> {
+            final LeavesChunk leavesChunk = leavesWorld.getChunk(chunkPosition);
+            if (leavesChunk == null) {
+                return;
+            }
+            this.updateBlockStates(world, leavesWorld, chunkPosition, customBlockMap);
+        });
         this.database.executeWrite(() -> {
             try {
                 this.database.setChunkScanned(worldId, chunkPosition);
@@ -180,17 +192,23 @@ public final class WorldListener implements Listener {
                 e.printStackTrace();
             }
         });
-        this.sendChunkToNearbyPlayers(leavesWorld, chunkPosition);
     }
 
 
-    private void sendChunkToNearbyPlayers(LeavesWorld leavesWorld, ChunkPosition chunkPosition) {
-        final LeavesChunk leavesChunk = leavesWorld.getChunk(chunkPosition);
-        if (leavesChunk == null) {
+    private void updateBlockStates(World bukkitWorld, LeavesWorld world, ChunkPosition chunkPosition, Map<Position, CustomBlock> customBlockMap) {
+        world.editInsertChunk(chunkPosition, chunk -> customBlockMap.forEach(((position, customBlock) -> {
+            final Location location = WorldUtil.convertPosition(bukkitWorld, position);
+            chunk.setBlock(position, customBlock.getBlockStateFromWorldBlock(location.getBlock().getBlockData()));
+        })));
+        final LeavesChunk chunk = world.getChunk(chunkPosition);
+        if (chunk == null) {
             return;
         }
-        final Collection<? extends Player> nearbyPlayers = PlayerUtils.getNearbyPlayers(leavesWorld.worldId(), chunkPosition);
-        PacketUtil.sendMultiBlockChange(leavesChunk, nearbyPlayers);
+        chunk.setDirty(false);
+        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
+            final Collection<? extends Player> nearbyPlayers = PlayerUtils.getNearbyPlayers(world.worldId(), chunkPosition);
+            PacketUtil.sendMultiBlockChange(chunk, nearbyPlayers);
+        });
     }
 
 }

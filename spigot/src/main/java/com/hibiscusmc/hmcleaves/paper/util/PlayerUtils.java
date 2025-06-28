@@ -1,8 +1,6 @@
 package com.hibiscusmc.hmcleaves.paper.util;
 
-import com.hibiscusmc.hmcleaves.common.util.MathUtils;
-import com.hibiscusmc.hmcleaves.common.util.PositionUtils;
-import com.hibiscusmc.hmcleaves.common.world.ChunkPosition;
+import com.hibiscusmc.hmcleaves.paper.world.ChunkPosition;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;

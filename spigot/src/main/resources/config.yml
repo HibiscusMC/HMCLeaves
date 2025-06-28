@@ -1,10 +1,14 @@
 # if this is true, whitelisted-worlds is used as a blacklist instead
 invert-whitelist: false
-whitelisted-worlds: [ "World" ]
+whitelisted-worlds: [ "world" ]
 
-leaves:
+handle-mining: true
+debug-mode: false
+
+blocks:
   # id
   test-leaves:
+    type: "leaves"
     # material sent to the player
     material: OAK_LEAVES
     # distance sent to the player
@@ -29,19 +33,30 @@ leaves:
       # if true, the leaves will drop the item defined in the item section
       drops-self: true
 
-logs:
   test-log:
+    type: "log"
     material: NOTE_BLOCK
     # the type of log that is actually placed in the world
     log-material: OAK_LOG
-    instrument: BANJO
-    powered: true
+    orientations:
+      Y:
+        instrument: BANJO
+        powered: true
+        note: 1
+      X:
+        instrument: BANJO
+        powered: true
+        note: 2
+      Z:
+        instrument: BANJO
+        powered: true
+        note: 3
     item:
       material: Paper
       name: "<green>Test Logs"
       lore:
         - "<gray>This is a test item"
       glowing: false
-  drops:
-    requires-shears: false
-    drops-self: true
+    drops:
+      requires-shears: false
+      drops-self: true

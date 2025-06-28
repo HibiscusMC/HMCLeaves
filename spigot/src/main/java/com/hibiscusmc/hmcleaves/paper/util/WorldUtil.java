@@ -1,6 +1,6 @@
 package com.hibiscusmc.hmcleaves.paper.util;
 
-import com.hibiscusmc.hmcleaves.common.world.Position;
+import com.hibiscusmc.hmcleaves.paper.world.Position;
 import org.bukkit.Axis;
 import org.bukkit.Location;
 import org.bukkit.World;

@@ -7,13 +7,14 @@ import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
 import com.github.retrooper.packetevents.protocol.player.DiggingAction;
 import com.github.retrooper.packetevents.util.Vector3i;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerDigging;
-import com.hibiscusmc.hmcleaves.common.block.LeavesBlock;
-import com.hibiscusmc.hmcleaves.common.world.LeavesChunk;
-import com.hibiscusmc.hmcleaves.common.world.LeavesWorld;
-import com.hibiscusmc.hmcleaves.common.world.LeavesWorldManager;
-import com.hibiscusmc.hmcleaves.common.world.Position;
+import com.hibiscusmc.hmcleaves.paper.block.CustomBlock;
+import com.hibiscusmc.hmcleaves.paper.block.CustomBlockState;
+import com.hibiscusmc.hmcleaves.paper.world.LeavesChunk;
+import com.hibiscusmc.hmcleaves.paper.world.LeavesWorld;
+import com.hibiscusmc.hmcleaves.paper.world.LeavesWorldManager;
+import com.hibiscusmc.hmcleaves.paper.world.Position;
 import com.hibiscusmc.hmcleaves.paper.breaking.BlockBreakManager;
-import com.hibiscusmc.hmcleaves.paper.config.LeavesConfigImplementation;
+import com.hibiscusmc.hmcleaves.paper.config.LeavesConfig;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 
@@ -23,9 +24,9 @@ public final class PlayerDigListener extends PacketListenerAbstract {
 
     private final LeavesWorldManager leavesWorldManager;
     private final BlockBreakManager blockBreakManager;
-    private final LeavesConfigImplementation config;
+    private final LeavesConfig config;
 
-    public PlayerDigListener(BlockBreakManager blockBreakManager, LeavesWorldManager leavesWorldManager, LeavesConfigImplementation config) {
+    public PlayerDigListener(BlockBreakManager blockBreakManager, LeavesWorldManager leavesWorldManager, LeavesConfig config) {
         this.blockBreakManager = blockBreakManager;
         this.leavesWorldManager = leavesWorldManager;
         this.config = config;
@@ -61,8 +62,8 @@ public final class PlayerDigListener extends PacketListenerAbstract {
         if (leavesChunk == null) {
             return;
         }
-        final LeavesBlock leavesBlock = leavesChunk.getBlock(position);
-        if (leavesBlock == null) {
+        final CustomBlockState customBlockState = leavesChunk.getBlock(position);
+        if (customBlockState == null) {
             return;
         }
         if (diggingAction == DiggingAction.START_DIGGING) {
@@ -70,7 +71,7 @@ public final class PlayerDigListener extends PacketListenerAbstract {
             this.blockBreakManager.startBlockBreak(
                     player,
                     position,
-                    leavesBlock
+                    customBlockState
             );
             return;
         }

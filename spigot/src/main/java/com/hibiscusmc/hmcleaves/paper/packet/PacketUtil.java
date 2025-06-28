@@ -10,13 +10,16 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEn
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityEffect;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMultiBlockChange;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerRemoveEntityEffect;
-import com.hibiscusmc.hmcleaves.common.util.PositionUtils;
-import com.hibiscusmc.hmcleaves.common.world.LeavesChunk;
-import com.hibiscusmc.hmcleaves.common.world.Position;
+import com.hibiscusmc.hmcleaves.paper.HMCLeaves;
+import com.hibiscusmc.hmcleaves.paper.block.LogBlock;
+import com.hibiscusmc.hmcleaves.paper.util.PositionUtils;
+import com.hibiscusmc.hmcleaves.paper.world.LeavesChunk;
+import com.hibiscusmc.hmcleaves.paper.world.Position;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import java.util.Collection;
+import java.util.logging.Level;
 
 public final class PacketUtil {
 
@@ -40,7 +43,7 @@ public final class PacketUtil {
             for (var entry : blocks.entrySet()) {
                 final var position = entry.getKey();
                 encodedBlocks[i++] = new WrapperPlayServerMultiBlockChange.EncodedBlock(
-                        entry.getValue().displayBlockGlobalId(),
+                        entry.getValue().getBlockState(),
                         PositionUtils.coordToCoordInChunk(position.x()),
                         PositionUtils.coordToCoordInChunk(position.y()),
                         PositionUtils.coordToCoordInChunk(position.z())

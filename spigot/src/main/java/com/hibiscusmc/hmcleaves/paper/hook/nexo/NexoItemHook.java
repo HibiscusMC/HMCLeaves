@@ -1,6 +1,6 @@
 package com.hibiscusmc.hmcleaves.paper.hook.nexo;
 
-import com.hibiscusmc.hmcleaves.paper.HMCLeavesPlugin;
+import com.hibiscusmc.hmcleaves.paper.HMCLeaves;
 import com.hibiscusmc.hmcleaves.paper.hook.ItemHook;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.api.events.custom_block.NexoBlockPlaceEvent;
@@ -13,9 +13,9 @@ import org.jetbrains.annotations.Nullable;
 
 public final class NexoItemHook implements ItemHook, Listener {
 
-    private final HMCLeavesPlugin plugin;
+    private final HMCLeaves plugin;
 
-    public NexoItemHook(HMCLeavesPlugin plugin) {
+    public NexoItemHook(HMCLeaves plugin) {
         this.plugin = plugin;
     }
 

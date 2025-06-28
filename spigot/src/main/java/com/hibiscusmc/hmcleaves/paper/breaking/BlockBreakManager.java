@@ -1,18 +1,18 @@
 package com.hibiscusmc.hmcleaves.paper.breaking;
 
-import com.hibiscusmc.hmcleaves.common.block.BlockType;
-import com.hibiscusmc.hmcleaves.common.block.LeavesBlock;
-import com.hibiscusmc.hmcleaves.common.world.LeavesWorld;
-import com.hibiscusmc.hmcleaves.common.world.LeavesWorldManager;
-import com.hibiscusmc.hmcleaves.common.world.Position;
-import com.hibiscusmc.hmcleaves.paper.HMCLeavesPlugin;
+import com.hibiscusmc.hmcleaves.paper.block.CustomBlock;
+import com.hibiscusmc.hmcleaves.paper.block.CustomBlockState;
+import com.hibiscusmc.hmcleaves.paper.world.LeavesWorldManager;
+import com.hibiscusmc.hmcleaves.paper.world.Position;
+import com.hibiscusmc.hmcleaves.paper.HMCLeaves;
 import com.hibiscusmc.hmcleaves.paper.config.BlockDropConfig;
-import com.hibiscusmc.hmcleaves.paper.config.LeavesConfigImplementation;
+import com.hibiscusmc.hmcleaves.paper.config.LeavesConfig;
 import com.hibiscusmc.hmcleaves.paper.packet.PacketUtil;
 import com.hibiscusmc.hmcleaves.paper.util.WorldUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -29,13 +29,13 @@ public final class BlockBreakManager {
 
     private static final SplittableRandom RANDOM = new SplittableRandom();
 
-    private final HMCLeavesPlugin plugin;
-    private final LeavesConfigImplementation leavesConfig;
+    private final HMCLeaves plugin;
+    private final LeavesConfig leavesConfig;
     private final LeavesWorldManager worldManager;
     private final Map<UUID, BlockBreakData> blockBreakDataMap;
 
 
-    public BlockBreakManager(HMCLeavesPlugin plugin) {
+    public BlockBreakManager(HMCLeaves plugin) {
         this.blockBreakDataMap = new ConcurrentHashMap<>();
         this.plugin = plugin;
         this.leavesConfig = this.plugin.leavesConfig();
@@ -47,13 +47,17 @@ public final class BlockBreakManager {
         return this.blockBreakDataMap.get(uuid);
     }
 
-    public void startBlockBreak(Player player, Position position, LeavesBlock leavesBlock) {
-        if (leavesBlock.type() != BlockType.LOG) {
+    public void startBlockBreak(Player player, Position position, CustomBlockState customBlockState) {
+        if (!this.leavesConfig.handleMining()) {
+            return;
+        }
+        final CustomBlock customBlock = customBlockState.customBlock();
+        if (Tag.LOGS.isTagged(customBlock.worldMaterial())) {
             return;
         }
         final BlockBreakData blockBreakData = new BlockBreakData(
                 RANDOM.nextInt(10_000, 20_000),
-                leavesBlock,
+                customBlockState,
                 player,
                 position,
                 this.createScheduler(player.getUniqueId())
@@ -100,7 +104,7 @@ public final class BlockBreakManager {
                             PacketUtil.sendBlockBroken(
                                     player,
                                     blockBreakData.position(),
-                                    blockBreakData.leavesBlock().displayBlockGlobalId()
+                                    blockBreakData.customBlockState().globalStateId()
                             );
                         });
                         final World world = blockBreakData.world();
@@ -108,8 +112,8 @@ public final class BlockBreakManager {
                         BlockBreakManager.this.worldManager.removeBlock(world.getUID(), blockBreakData.position());
                         PacketUtil.removeMiningFatigue(player);
                         block.setType(Material.AIR);
-                        final LeavesBlock leavesBlock = blockBreakData.leavesBlock;
-                        final BlockDropConfig drops = this.leavesConfig.getBlockDrops(leavesBlock.id());
+                        final CustomBlock customBlock = blockBreakData.customBlockState().customBlock();
+                        final BlockDropConfig drops = this.leavesConfig.getBlockDrops(customBlock.id());
                         if (drops != null) {
                             final ItemStack drop = drops.copyLeavesItem();
                             if (drop != null) {
@@ -123,7 +127,7 @@ public final class BlockBreakManager {
     }
 
     private byte calculateBlockBreakTimeInTicks(Player player, ItemStack inHand, Block block, int ticksPassed) {
-        return this.plugin.nmsHandler().calculateBreakSpeed(player, inHand, block, ticksPassed);
+        return (byte) (block.getDestroySpeed(inHand, true) * 10);
     }
 
     private static class BlockBreakData {
@@ -131,7 +135,7 @@ public final class BlockBreakManager {
         public static final byte MAX_DAMAGE = 10;
 
         private final int entityId;
-        private final LeavesBlock leavesBlock;
+        private final CustomBlockState customBlockState;
         private final Player breaker;
         private final World world;
         private final Position position;
@@ -140,13 +144,13 @@ public final class BlockBreakManager {
 
         public BlockBreakData(
                 int entityId,
-                LeavesBlock leavesBlock,
+                CustomBlockState customBlockState,
                 Player breaker,
                 Position position,
                 BukkitTask breakTask
         ) {
             this.entityId = entityId;
-            this.leavesBlock = leavesBlock;
+            this.customBlockState = customBlockState;
             this.breaker = breaker;
             this.world = this.breaker.getWorld();
             this.position = position;
@@ -157,8 +161,8 @@ public final class BlockBreakManager {
             return this.entityId;
         }
 
-        public LeavesBlock leavesBlock() {
-            return this.leavesBlock;
+        public CustomBlockState customBlockState() {
+            return this.customBlockState;
         }
 
         public Player breaker() {
