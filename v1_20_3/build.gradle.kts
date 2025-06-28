@@ -3,7 +3,7 @@ plugins {
     id("io.papermc.paperweight.userdev") version "2.0.0-beta.17"
 }
 
-group = "com.hibiscuscmc.hmcleaves.v1_20"
+group = "com.hibiscuscmc.hmcleaves.v1_20_3"
 
 repositories {
     mavenCentral()
@@ -14,8 +14,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
-    paperweight.paperDevBundle("1.20.1-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.20.3-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.20.3-R0.1-SNAPSHOT")
     compileOnly(project(":nms"))
 }
 
