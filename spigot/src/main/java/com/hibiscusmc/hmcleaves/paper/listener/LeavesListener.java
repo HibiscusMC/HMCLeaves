@@ -3,16 +3,17 @@ package com.hibiscusmc.hmcleaves.paper.listener;
 import com.destroystokyo.paper.event.block.BlockDestroyEvent;
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes;
-import com.hibiscusmc.hmcleaves.common.world.ChunkPosition;
-import com.hibiscusmc.hmcleaves.common.world.ChunkSectionPosition;
-import com.hibiscusmc.hmcleaves.common.world.LeavesChunk;
-import com.hibiscusmc.hmcleaves.common.world.LeavesWorld;
-import com.hibiscusmc.hmcleaves.common.world.Position;
-import com.hibiscusmc.hmcleaves.paper.HMCLeavesPlugin;
-import com.hibiscusmc.hmcleaves.common.block.LeavesBlock;
+import com.hibiscusmc.hmcleaves.paper.block.BlockPlaceData;
+import com.hibiscusmc.hmcleaves.paper.block.CustomBlock;
+import com.hibiscusmc.hmcleaves.paper.block.CustomBlockState;
+import com.hibiscusmc.hmcleaves.paper.world.ChunkPosition;
+import com.hibiscusmc.hmcleaves.paper.world.LeavesChunk;
+import com.hibiscusmc.hmcleaves.paper.world.LeavesWorld;
+import com.hibiscusmc.hmcleaves.paper.world.Position;
+import com.hibiscusmc.hmcleaves.paper.HMCLeaves;
 import com.hibiscusmc.hmcleaves.paper.config.BlockDropConfig;
-import com.hibiscusmc.hmcleaves.paper.config.LeavesConfigImplementation;
-import com.hibiscusmc.hmcleaves.common.world.LeavesWorldManager;
+import com.hibiscusmc.hmcleaves.paper.config.LeavesConfig;
+import com.hibiscusmc.hmcleaves.paper.world.LeavesWorldManager;
 import com.hibiscusmc.hmcleaves.paper.packet.PacketUtil;
 import com.hibiscusmc.hmcleaves.paper.util.PlayerUtils;
 import com.hibiscusmc.hmcleaves.paper.util.WorldUtil;
@@ -26,6 +27,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.PistonMoveReaction;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -34,7 +36,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -48,15 +49,16 @@ import org.bukkit.inventory.ItemStack;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public final class LeavesListener implements Listener {
 
-    private final HMCLeavesPlugin plugin;
+    private final HMCLeaves plugin;
     private final LeavesWorldManager worldManager;
-    private final LeavesConfigImplementation config;
+    private final LeavesConfig config;
 
-    public LeavesListener(HMCLeavesPlugin plugin) {
+    public LeavesListener(HMCLeaves plugin) {
         this.plugin = plugin;
         this.worldManager = plugin.worldManager();
         this.config = plugin.leavesConfig();
@@ -85,74 +87,65 @@ public final class LeavesListener implements Listener {
             event.setCancelled(true);
             return;
         }
-
         final Block block = event.getClickedBlock();
         if (block == null) {
             event.setCancelled(true);
             return;
         }
-        final Block relativeBlock = block.getRelative(event.getBlockFace());
 
         final Position position;
         if (block.isReplaceable() || block.getType().isAir() || Tag.REPLACEABLE.isTagged(block.getType())) {
             position = WorldUtil.convertLocation(block.getLocation());
         } else {
+            final Block relativeBlock = block.getRelative(event.getBlockFace());
             position = WorldUtil.convertLocation(relativeBlock.getLocation());
         }
         final ChunkPosition chunkPosition = position.toChunkPosition();
-        final LeavesChunk chunk = leavesWorld.getChunk(chunkPosition);
-        if (chunk != null && this.config.isDebugItem(itemStack)) {
-            final LeavesBlock leavesBlock = chunk.getBlock(WorldUtil.convertLocation(block.getLocation()));
-            if (leavesBlock != null && player.hasPermission(LeavesConfigImplementation.PLACE_DECAYABLE_PERMISSION)) {
-                this.config.sendDebugInfo(player, leavesBlock, block.getBlockData());
+        final LeavesChunk clickChunk = leavesWorld.getChunk(WorldUtil.convertLocation(block.getLocation()).toChunkPosition());
+        if (this.config.isDebugItem(itemStack) && clickChunk != null) {
+            final CustomBlockState customBlock = clickChunk.getBlock(WorldUtil.convertLocation(block.getLocation()));
+            if (customBlock != null && player.hasPermission(LeavesConfig.PLACE_DECAYABLE_PERMISSION)) {
+                this.config.sendDebugInfo(player, customBlock, block.getBlockData());
             }
             event.setCancelled(true);
             return;
         }
 
-        final LeavesBlock leavesBlock = this.config.getBlockFromItem(itemStack);
-        if (leavesBlock == null) {
+        final CustomBlock customBlock = this.config.getBlockFromItem(itemStack);
+        if (customBlock == null) {
             return;
         }
-        if (!relativeBlock.getType().isAir() && !relativeBlock.isReplaceable() && !Tag.REPLACEABLE.isTagged(relativeBlock.getType())) {
+        final Block placeBlock = WorldUtil.convertPosition(world, position).getBlock();
+        if (!placeBlock.getType().isAir() && !placeBlock.isReplaceable() && !Tag.REPLACEABLE.isTagged(placeBlock.getType())) {
             event.setCancelled(true);
             return;
         }
         if (!player.isSneaking() && block.getBlockData().getMaterial().isInteractable()) {
             return;
         }
-        final BlockData data = config.getWorldBlockData(leavesBlock.id());
-        if (data == null) {
-            event.setCancelled(true);
-            this.plugin.getLogger().severe("Failed to get block data for " + leavesBlock.id());
-            return;
-        }
         final Location placeLocation = WorldUtil.convertPosition(world, position);
-        if (data instanceof final Leaves leaves) {
-            leaves.setPersistent(!this.config.isPlacingDecayable(player));
-            if (placeLocation.getBlock().getType() == Material.WATER) {
-                leaves.setWaterlogged(true);
-            }
-        }
         final Location center = placeLocation.clone().add(0.5, 0.5, 0.5);
         if (!world.getNearbyEntities(center, 0.5, 0.5, 0.5, LivingEntity.class::isInstance).isEmpty()) {
             event.setCancelled(true);
             return;
         }
-        if (player.getGameMode() != GameMode.CREATIVE) {
-            final int amount = itemStack.getAmount();
-            if (amount <= 1) {
-                player.getInventory().setItemInMainHand(null);
-            } else {
-                itemStack.setAmount(amount - 1);
+        if (!customBlock.placeBlock(this.config, new BlockPlaceData(player, placeLocation, event.getClickedBlock(), event.getBlockFace()), customBlockState -> {
+            if (player.getGameMode() != GameMode.CREATIVE) {
+                final int amount = itemStack.getAmount();
+                if (amount <= 1) {
+                    player.getInventory().setItemInMainHand(null);
+                } else {
+                    itemStack.setAmount(amount - 1);
+                }
             }
+            leavesWorld.editInsertChunk(chunkPosition, leavesChunk -> leavesChunk.setBlock(position, customBlockState));
+            Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
+                PacketUtil.sendArmSwing(player);
+                PacketUtil.sendSingleBlockChange(customBlockState.getBlockState(), position, PlayerUtils.getNearbyPlayers(world.getUID(), chunkPosition));
+            });
+        })) {
+            event.setCancelled(true);
         }
-        leavesWorld.editInsertChunk(chunkPosition, leavesChunk -> leavesChunk.setBlock(position, leavesBlock));
-        Bukkit.getScheduler().runTaskLater(this.plugin, () -> relativeBlock.setBlockData(data), 1);
-        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
-            PacketUtil.sendArmSwing(player);
-            PacketUtil.sendSingleBlockChange(leavesBlock.blockState().get(), position, PlayerUtils.getNearbyPlays(world.getUID(), chunkPosition));
-        });
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
@@ -163,11 +156,8 @@ public final class LeavesListener implements Listener {
             return;
         }
         final ItemStack itemStack = event.getItemInHand();
-        if (itemStack == null) {
-            return;
-        }
-        final LeavesBlock leavesBlock = this.config.getBlockFromItem(itemStack);
-        if (leavesBlock == null) {
+        final CustomBlock customBlock = this.config.getBlockFromItem(itemStack);
+        if (customBlock == null) {
             return;
         }
         event.setCancelled(true);
@@ -175,20 +165,20 @@ public final class LeavesListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onBlockBreak(BlockBreakEvent event) {
-        this.removeBlock(event.getBlock(), leavesBlock -> {
+        this.removeBlock(event.getBlock(), customBlockState -> {
             if (!event.isDropItems()) {
                 return;
             }
             event.setDropItems(false);
             final Block block = event.getBlock();
             final Location location = block.getLocation();
-            final BlockDropConfig drops = this.config.getBlockDrops(leavesBlock.id());
+            final BlockDropConfig drops = this.config.getBlockDrops(customBlockState.customBlock().id());
             if (drops == null) {
                 return;
             }
             final Player player = event.getPlayer();
             final ItemStack itemStack = player.getInventory().getItemInMainHand();
-            if ((itemStack == null || itemStack.getType() != Material.SHEARS) && drops.requiresShears()) {
+            if (itemStack.getType() != Material.SHEARS && drops.requiresShears()) {
                 return;
             }
             final ItemStack dropItem = drops.copyLeavesItem();
@@ -196,7 +186,7 @@ public final class LeavesListener implements Listener {
                 return;
             }
             final World world = block.getWorld();
-            world.dropItem(location, dropItem);
+            Bukkit.getScheduler().runTaskLater(this.plugin, () -> world.dropItemNaturally(location.clone(), dropItem), 1);
         });
     }
 
@@ -218,16 +208,18 @@ public final class LeavesListener implements Listener {
         if (leavesWorld == null) {
             return;
         }
-        final Map<Position, LeavesBlock> insert = new HashMap<>();
+        final Map<Position, CustomBlockState> insert = new HashMap<>();
+        final Map<Position, BlockData> bukkitData = new HashMap<>();
         for (Block block : blocks) {
-            final Position position = WorldUtil.convertLocation(block.getLocation());
+            final Location location = block.getLocation();
+            final Position position = WorldUtil.convertLocation(location);
             final ChunkPosition chunkPosition = position.toChunkPosition();
             final LeavesChunk chunk = leavesWorld.getChunk(chunkPosition);
             if (chunk == null) {
                 continue;
             }
-            final LeavesBlock leavesBlock = chunk.getBlock(position);
-            if (leavesBlock == null) {
+            final CustomBlockState customBlockState = chunk.getBlock(position);
+            if (customBlockState == null) {
                 continue;
             }
             final PistonMoveReaction reaction = block.getPistonMoveReaction();
@@ -242,16 +234,16 @@ public final class LeavesListener implements Listener {
                 final Position newPosition = position.add(direction.getModX(), direction.getModY(), direction.getModZ());
                 leavesWorld.editInsertChunk(chunkPosition, leavesChunk -> {
                     leavesChunk.removeBlock(position);
-                    insert.put(newPosition, leavesBlock);
+                    insert.put(newPosition, customBlockState);
+                    bukkitData.put(position, block.getBlockData());
                 });
             }
         }
-        for (Map.Entry<Position, LeavesBlock> entry : insert.entrySet()) {
+        for (Map.Entry<Position, CustomBlockState> entry : insert.entrySet()) {
             final Position position = entry.getKey();
             final ChunkPosition chunkPosition = position.toChunkPosition();
-            leavesWorld.editInsertChunk(chunkPosition, leavesChunk -> {
-                leavesChunk.setBlock(position, entry.getValue());
-            });
+            final CustomBlockState customBlockState = entry.getValue();
+            leavesWorld.editInsertChunk(chunkPosition, leavesChunk -> leavesChunk.setBlock(position, customBlockState));
         }
     }
 
@@ -262,7 +254,7 @@ public final class LeavesListener implements Listener {
             return;
         }
         event.getBlocks().forEach(block -> {
-            final LeavesBlock defaultBlock = this.config.getLeavesBlockFromWorldBlockData(block.getBlockData());
+            final CustomBlock defaultBlock = this.config.getCustomBlockFromWorldBlockData(block.getBlockData());
             if (defaultBlock == null) {
                 return;
             }
@@ -272,7 +264,8 @@ public final class LeavesListener implements Listener {
             if (chunk == null) {
                 return;
             }
-            chunk.setBlock(position, defaultBlock);
+            final CustomBlockState customBlockState = defaultBlock.getBlockStateFromWorldBlock(block.getBlockData());
+            chunk.setBlock(position, customBlockState);
         });
     }
 
@@ -293,13 +286,13 @@ public final class LeavesListener implements Listener {
         if (chunk == null) {
             return;
         }
-        final LeavesBlock leavesBlock = chunk.getBlock(position);
-        if (leavesBlock == null) {
+        final CustomBlockState customBlockState = chunk.getBlock(position);
+        if (customBlockState == null) {
             return;
         }
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
             chunk.removeBlock(position);
-            PacketUtil.sendSingleBlockChange(WrappedBlockState.getDefaultState(StateTypes.AIR), position, PlayerUtils.getNearbyPlays(world.getUID(), chunkPosition));
+            PacketUtil.sendSingleBlockChange(WrappedBlockState.getDefaultState(StateTypes.AIR), position, PlayerUtils.getNearbyPlayers(world.getUID(), chunkPosition));
         }, 1);
     }
 
@@ -318,11 +311,11 @@ public final class LeavesListener implements Listener {
         if (chunk == null) {
             return;
         }
-        final LeavesBlock leavesBlock = chunk.getBlock(position);
-        if (leavesBlock == null) {
+        final CustomBlockState customBlockState = chunk.getBlock(position);
+        if (customBlockState == null) {
             return;
         }
-        final BlockDropConfig drops = this.config.getBlockDrops(leavesBlock.id());
+        final BlockDropConfig drops = this.config.getBlockDrops(customBlockState.customBlock().id());
         if (drops == null) {
             return;
         }
@@ -354,14 +347,14 @@ public final class LeavesListener implements Listener {
         if (chunk == null) {
             return;
         }
-        final LeavesBlock leavesBlock = chunk.getBlock(position);
-        if (leavesBlock == null) {
+        final CustomBlockState customBlockState = chunk.getBlock(position);
+        if (customBlockState == null) {
             return;
         }
         leavesWorld.editInsertChunk(chunkPosition, leavesChunk -> leavesChunk.removeBlock(position));
     }
 
-    private boolean removeBlock(Block block, Consumer<LeavesBlock> dropHandler) {
+    private boolean removeBlock(Block block, Consumer<CustomBlockState> dropHandler) {
         final World world = block.getWorld();
         if (!this.config.isWorldWhitelisted(world.getName())) {
             return true;
@@ -376,12 +369,12 @@ public final class LeavesListener implements Listener {
         if (chunk == null) {
             return false;
         }
-        final LeavesBlock leavesBlock = chunk.getBlock(position);
-        if (leavesBlock == null) {
+        final CustomBlockState customBlockState = chunk.getBlock(position);
+        if (customBlockState == null) {
             return false;
         }
         leavesWorld.editInsertChunk(chunkPosition, leavesChunk -> leavesChunk.removeBlock(position));
-        dropHandler.accept(leavesBlock);
+        dropHandler.accept(customBlockState);
         return true;
     }
 

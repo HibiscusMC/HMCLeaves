@@ -8,20 +8,19 @@ import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
 import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import com.github.retrooper.packetevents.protocol.world.states.defaulttags.BlockTags;
-import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBlockChange;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerChunkData;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMultiBlockChange;
-import com.hibiscusmc.hmcleaves.common.config.LeavesConfig;
-import com.hibiscusmc.hmcleaves.common.util.Constants;
-import com.hibiscusmc.hmcleaves.common.util.PositionUtils;
-import com.hibiscusmc.hmcleaves.common.world.ChunkPosition;
-import com.hibiscusmc.hmcleaves.common.world.ChunkSectionPosition;
-import com.hibiscusmc.hmcleaves.common.world.LeavesWorld;
-import com.hibiscusmc.hmcleaves.common.world.LeavesWorldManager;
-import com.hibiscusmc.hmcleaves.common.world.Position;
+import com.hibiscusmc.hmcleaves.paper.block.CustomBlockState;
+import com.hibiscusmc.hmcleaves.paper.config.LeavesConfig;
+import com.hibiscusmc.hmcleaves.paper.util.Constants;
+import com.hibiscusmc.hmcleaves.paper.util.PositionUtils;
+import com.hibiscusmc.hmcleaves.paper.world.ChunkPosition;
+import com.hibiscusmc.hmcleaves.paper.world.ChunkSectionPosition;
+import com.hibiscusmc.hmcleaves.paper.world.LeavesWorld;
+import com.hibiscusmc.hmcleaves.paper.world.LeavesWorldManager;
+import com.hibiscusmc.hmcleaves.paper.world.Position;
 import org.bukkit.Bukkit;
-import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.entity.Player;
@@ -31,9 +30,9 @@ import java.util.UUID;
 public final class LeavesPacketListener extends PacketListenerAbstract {
 
     private final LeavesWorldManager leavesWorldManager;
-    private final LeavesConfig<BlockData> config;
+    private final LeavesConfig config;
 
-    public LeavesPacketListener(LeavesWorldManager leavesWorldManager, LeavesConfig<BlockData> config) {
+    public LeavesPacketListener(LeavesWorldManager leavesWorldManager, LeavesConfig config) {
         this.leavesWorldManager = leavesWorldManager;
         this.config = config;
     }
@@ -56,7 +55,6 @@ public final class LeavesPacketListener extends PacketListenerAbstract {
             }
         }
     }
-
 
     /**
      * Requires {@code event.getPacketType() == PacketType.Play.Server.CHUNK_DATA}
@@ -91,21 +89,14 @@ public final class LeavesPacketListener extends PacketListenerAbstract {
             }
             final var blocks = chunkSection.getBlocks();
             for (var entry : blocks.entrySet()) {
-                final var blockData = entry.getValue();
+                final var customBlockState = entry.getValue();
                 final var position = entry.getKey();
-                final WrappedBlockState state = blockData.blockState().get();
-                if (BlockTags.LEAVES.contains(state.getType())) {
-                    final BlockData block = world.getBlockData(position.x(), position.y(), position.z());
-                    if (block instanceof final Waterlogged waterlogged) {
-                        state.setWaterlogged(waterlogged.isWaterlogged());
-                    }
-                }
                 chunk.set(
                         PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
                         PositionUtils.coordToCoordInChunk(position.x()),
                         PositionUtils.coordToCoordInChunk(position.y()),
                         PositionUtils.coordToCoordInChunk(position.z()),
-                        state.getGlobalId()
+                        customBlockState.globalStateId()
                 );
             }
         }
@@ -136,20 +127,13 @@ public final class LeavesPacketListener extends PacketListenerAbstract {
         if (chunkSection == null) {
             return;
         }
-        final var blockData = chunkSection.getBlock(position);
-        if (blockData == null) {
+        final CustomBlockState customBlockState = chunkSection.getBlock(position);
+        if (customBlockState == null) {
             return;
-        }
-        final WrappedBlockState state = blockData.blockState().get();
-        if (BlockTags.LEAVES.contains(state.getType())) {
-            final BlockData block = world.getBlockData(position.x(), position.y(), position.z());
-            if (block instanceof final Waterlogged waterlogged) {
-                state.setWaterlogged(waterlogged.isWaterlogged());
-            }
         }
         final var newPacket = new WrapperPlayServerBlockChange(
                 packet.getBlockPosition(),
-                state.getGlobalId()
+                customBlockState.globalStateId()
         );
         event.setCancelled(true);
         PacketEvents.getAPI().getPlayerManager().sendPacketSilently(event.getPlayer(), newPacket);
@@ -176,11 +160,11 @@ public final class LeavesPacketListener extends PacketListenerAbstract {
             if (chunkSection == null) {
                 continue;
             }
-            final var blockData = chunkSection.getBlock(position);
-            if (blockData == null) {
+            final CustomBlockState customBlockState = chunkSection.getBlock(position);
+            if (customBlockState == null) {
                 continue;
             }
-            block.setBlockState(blockData.blockState().get());
+            block.setBlockState(customBlockState.getBlockState());
         }
     }
 

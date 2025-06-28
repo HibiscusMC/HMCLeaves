@@ -1,8 +1,6 @@
 package com.hibiscusmc.hmcleaves.paper.util;
 
-import com.hibiscusmc.hmcleaves.common.util.MathUtils;
-import com.hibiscusmc.hmcleaves.common.util.PositionUtils;
-import com.hibiscusmc.hmcleaves.common.world.ChunkPosition;
+import com.hibiscusmc.hmcleaves.paper.world.ChunkPosition;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -30,7 +28,7 @@ public final class PlayerUtils {
         ) <= Math.pow(Bukkit.getViewDistance(), 2);
     }
 
-    public static Collection<? extends Player> getNearbyPlays(UUID worldId, ChunkPosition chunkPosition) {
+    public static Collection<? extends Player> getNearbyPlayers(UUID worldId, ChunkPosition chunkPosition) {
         return Bukkit.getOnlinePlayers().stream()
                 .filter(player -> PlayerUtils.playerInViewDistanceOfChunk(player, worldId, chunkPosition.x(), chunkPosition.z()))
                 .collect(Collectors.toSet());

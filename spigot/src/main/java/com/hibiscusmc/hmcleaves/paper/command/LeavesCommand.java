@@ -7,8 +7,8 @@ import co.aikar.commands.annotation.CommandCompletion;
 import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.HelpCommand;
 import co.aikar.commands.annotation.Subcommand;
-import com.hibiscusmc.hmcleaves.paper.HMCLeavesPlugin;
-import com.hibiscusmc.hmcleaves.paper.config.LeavesConfigImplementation;
+import com.hibiscusmc.hmcleaves.paper.HMCLeaves;
+import com.hibiscusmc.hmcleaves.paper.config.LeavesConfig;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -17,10 +17,10 @@ import org.bukkit.inventory.ItemStack;
 @CommandAlias("leaves")
 public final class LeavesCommand extends BaseCommand {
 
-    private final HMCLeavesPlugin plugin;
-    private final LeavesConfigImplementation config;
+    private final HMCLeaves plugin;
+    private final LeavesConfig config;
 
-    public LeavesCommand(HMCLeavesPlugin plugin) {
+    public LeavesCommand(HMCLeaves plugin) {
         this.plugin = plugin;
         this.config = plugin.leavesConfig();
     }
@@ -32,7 +32,7 @@ public final class LeavesCommand extends BaseCommand {
 
     @Subcommand("give")
     @CommandCompletion("@items")
-    @CommandPermission(LeavesConfigImplementation.GIVE_ITEM_PERMISSION)
+    @CommandPermission(LeavesConfig.GIVE_ITEM_PERMISSION)
     public void onGive(Player player, String itemId, int amount) {
         if (amount <= 0) {
             player.sendMessage(MiniMessage.miniMessage().deserialize("<red>Amount must be greater than 0"));
@@ -54,7 +54,7 @@ public final class LeavesCommand extends BaseCommand {
     }
 
     @Subcommand("placedecayable")
-    @CommandPermission(LeavesConfigImplementation.PLACE_DECAYABLE_PERMISSION)
+    @CommandPermission(LeavesConfig.PLACE_DECAYABLE_PERMISSION)
     public void onPlaceDecayable(Player player) {
         final boolean placingDecayable = this.plugin.leavesConfig().isPlacingDecayable(player);
         if (placingDecayable) {

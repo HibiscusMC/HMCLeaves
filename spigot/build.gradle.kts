@@ -4,7 +4,7 @@ plugins {
     id("xyz.jpenilla.run-paper") version "2.3.1"
 }
 
-group = "com.hibiscusmc"
+group = "com.hibiscusmc.hmcleaves.spigot"
 version = "3.0.0-SNAPSHOT"
 
 repositories {
@@ -16,14 +16,19 @@ repositories {
     maven("https://oss.sonatype.org/content/groups/public/")
     maven("https://repo.codemc.io/repository/maven-releases/")
     maven("https://repo.aikar.co/content/groups/aikar/")
+    maven("https://repo.nexomc.com/releases")
 }
 
 dependencies {
     implementation("org.jetbrains:annotations:24.0.0")
     compileOnly("io.papermc.paper:paper-api:1.20.6-R0.1-SNAPSHOT")
+    compileOnly("com.nexomc:nexo:0.7.0")
     implementation("com.github.retrooper:packetevents-spigot:2.7.0")
     implementation("co.aikar:acf-paper:0.5.1-SNAPSHOT")
-    implementation(project(":common"))
+    implementation(project(":nms"))
+    implementation(project(path = ":v1_20", configuration = "reobf"))
+    implementation(project(path = ":v1_20_3", configuration = "reobf"))
+    implementation(project(path = ":v1_20_6", configuration = "reobf"))
 }
 
 tasks.test {
