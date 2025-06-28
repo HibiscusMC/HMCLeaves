@@ -238,6 +238,7 @@ public class SQLiteLeavesDatabase implements LeavesDatabase {
                 final PreparedStatement deleteStatement = connection.prepareStatement(DELETE_CHUNK_BLOCKS_STATEMENT);
                 final PreparedStatement insertStatement = connection.prepareStatement(INSERT_BLOCK_STATEMENT);
         ) {
+            // todo don't delete the whole chunk, just the blocks that are not in the new chunk
             deleteStatement.setBytes(1, DatabaseUtils.uuidToBytes(chunk.chunkPosition().worldId()));
             final long chunkKey = PositionUtils.getChunkKey(chunk.chunkPosition().x(), chunk.chunkPosition().z());
             deleteStatement.setLong(2, chunkKey);
