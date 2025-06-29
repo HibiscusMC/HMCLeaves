@@ -10,8 +10,6 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEn
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityEffect;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMultiBlockChange;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerRemoveEntityEffect;
-import com.hibiscusmc.hmcleaves.paper.HMCLeaves;
-import com.hibiscusmc.hmcleaves.paper.block.LogBlock;
 import com.hibiscusmc.hmcleaves.paper.util.PositionUtils;
 import com.hibiscusmc.hmcleaves.paper.world.LeavesChunk;
 import com.hibiscusmc.hmcleaves.paper.world.Position;
@@ -19,7 +17,6 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import java.util.Collection;
-import java.util.logging.Level;
 
 public final class PacketUtil {
 

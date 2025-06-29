@@ -1,6 +1,7 @@
 name: HMCLeaves
 version: "3.0.0-SNAPSHOT"
 main: com.hibiscusmc.hmcleaves.paper.HMCLeaves
-softdepend: [ Nexo, ProtocolLib, ProtocolSupport, ViaVersion, ViaBackwards, ViaRewind, Geyser-Spigot ]
+depend: [ packetevents ]
+softdepend: [ Nexo ]
 api-version: 1.20
 load: STARTUP

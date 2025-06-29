@@ -16,6 +16,7 @@ import com.hibiscusmc.hmcleaves.paper.world.Position;
 import com.hibiscusmc.hmcleaves.paper.breaking.BlockBreakManager;
 import com.hibiscusmc.hmcleaves.paper.config.LeavesConfig;
 import org.bukkit.GameMode;
+import org.bukkit.Tag;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
@@ -64,6 +65,9 @@ public final class PlayerDigListener extends PacketListenerAbstract {
         }
         final CustomBlockState customBlockState = leavesChunk.getBlock(position);
         if (customBlockState == null) {
+            return;
+        }
+        if (!Tag.LOGS.isTagged(customBlockState.customBlock().worldMaterial())) {
             return;
         }
         if (diggingAction == DiggingAction.START_DIGGING) {
