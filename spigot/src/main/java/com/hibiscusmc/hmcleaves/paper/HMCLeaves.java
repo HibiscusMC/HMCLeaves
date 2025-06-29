@@ -49,10 +49,6 @@ public class HMCLeaves extends JavaPlugin {
 
     @Override
     public void onLoad() {
-        final PacketEventsAPI<Plugin> api = SpigotPacketEventsBuilder.build(this);
-        api.getSettings().checkForUpdates(false).reEncodeByDefault(true);
-        PacketEvents.setAPI(api);
-        PacketEvents.getAPI().load();
         this.configPath = this.getDataFolder().toPath().resolve("config.yml");
         if (!this.configPath.toFile().exists()) {
             this.saveResource("config.yml", false);
@@ -64,7 +60,6 @@ public class HMCLeaves extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        PacketEvents.getAPI().init();
         this.leavesWorldManager = new LeavesWorldManager(
                 new ConcurrentHashMap<>(),
                 worldId -> new LeavesWorld(
@@ -140,7 +135,7 @@ public class HMCLeaves extends JavaPlugin {
         try {
             final String version = Bukkit.getServer().getVersion();
             if (version.contains("1.21")) {
-                this.createNMSHandler("v1_21.4");
+                this.createNMSHandler("v1_21_4");
             } else if (version.contains("1.20.5") || version.contains("1.20.6")) {
                 this.createNMSHandler("v1_20_6");
             } else if (version.contains("1.20.4") || version.contains("1.20.3")) {

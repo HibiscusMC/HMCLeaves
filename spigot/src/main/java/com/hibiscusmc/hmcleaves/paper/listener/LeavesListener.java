@@ -36,10 +36,13 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockBurnEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.StructureGrowEvent;
@@ -48,6 +51,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -191,6 +195,51 @@ public final class LeavesListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onLeavesBurn(BlockBurnEvent event) {
+        this.removeBlock(event.getBlock(), customBlockState -> {
+        });
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onBlockExplode(BlockExplodeEvent event) {
+        this.handleExplosion(event.blockList());
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onBlockExplode(EntityExplodeEvent event) {
+        this.handleExplosion(event.blockList());
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void handleExplosion(List<Block> blocks) {
+        Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
+            for (Block block : blocks) {
+                final World world = block.getWorld();
+                if (!this.config.isWorldWhitelisted(world.getName())) {
+                    return;
+                }
+                final LeavesWorld leavesWorld = this.worldManager.getWorld(world.getUID());
+                if (leavesWorld == null) {
+                    continue;
+                }
+                final Position position = WorldUtil.convertLocation(block.getLocation());
+                final ChunkPosition chunkPosition = position.toChunkPosition();
+                final LeavesChunk chunk = leavesWorld.getChunk(chunkPosition);
+                if (chunk == null) {
+                    continue;
+                }
+                final CustomBlockState customBlockState = chunk.getBlock(position);
+                if (customBlockState == null) {
+                    continue;
+                }
+                chunk.removeBlock(position);
+                PacketUtil.sendSingleBlockChange(WrappedBlockState.getDefaultState(StateTypes.AIR), position, PlayerUtils.getNearbyPlayers(world.getUID(), chunkPosition));
+            }
+        }, 1);
+    }
+
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onPistonExtend(BlockPistonExtendEvent event) {
         this.onPistonEvent(event.getBlock().getWorld(), event.getBlocks(), event.getDirection());
     }
@@ -317,6 +366,13 @@ public final class LeavesListener implements Listener {
         }
         final BlockDropConfig drops = this.config.getBlockDrops(customBlockState.customBlock().id());
         if (drops == null) {
+            return;
+        }
+        if (Tag.LOGS.isTagged(itemStack.getType())) {
+            final ItemStack created = this.config.createItemStack(customBlockState.customBlock().id());
+            if (created != null) {
+                event.getEntity().setItemStack(created);
+            }
             return;
         }
         if (!Tag.SAPLINGS.isTagged(itemStack.getType())) {
