@@ -2,9 +2,19 @@ package com.hibiscusmc.hmcleaves.paper;
 
 import co.aikar.commands.PaperCommandManager;
 import com.github.retrooper.packetevents.PacketEvents;
-import com.github.retrooper.packetevents.PacketEventsAPI;
 import com.github.retrooper.packetevents.event.EventManager;
 import com.hibiscusmc.hmcleaves.paper.database.sql.SQLiteLeavesDatabase;
+import com.hibiscusmc.hmcleaves.paper.listener.BlockBreakListener;
+import com.hibiscusmc.hmcleaves.paper.listener.BlockBurnListener;
+import com.hibiscusmc.hmcleaves.paper.listener.BlockDecayListener;
+import com.hibiscusmc.hmcleaves.paper.listener.BlockDestroyListener;
+import com.hibiscusmc.hmcleaves.paper.listener.BlockDropItemListener;
+import com.hibiscusmc.hmcleaves.paper.listener.BlockExplodeListener;
+import com.hibiscusmc.hmcleaves.paper.listener.BlockPistonListener;
+import com.hibiscusmc.hmcleaves.paper.listener.BlockPlaceListener;
+import com.hibiscusmc.hmcleaves.paper.listener.BlockWaterlogListener;
+import com.hibiscusmc.hmcleaves.paper.listener.CustomBlockListener;
+import com.hibiscusmc.hmcleaves.paper.listener.TreeGrowListener;
 import com.hibiscusmc.hmcleaves.paper.world.LeavesChunk;
 import com.hibiscusmc.hmcleaves.paper.world.LeavesChunkSection;
 import com.hibiscusmc.hmcleaves.paper.world.LeavesWorld;
@@ -15,17 +25,14 @@ import com.hibiscusmc.hmcleaves.paper.config.LeavesConfig;
 import com.hibiscusmc.hmcleaves.paper.database.LeavesDatabase;
 import com.hibiscusmc.hmcleaves.paper.hook.ItemHook;
 import com.hibiscusmc.hmcleaves.paper.hook.nexo.NexoItemHook;
-import com.hibiscusmc.hmcleaves.paper.listener.LeavesListener;
 import com.hibiscusmc.hmcleaves.paper.listener.WorldListener;
 import com.hibiscusmc.hmcleaves.paper.packet.LeavesPacketListener;
 import com.hibiscusmc.hmcleaves.paper.world.LeavesWorldManager;
 import com.hibiscusmc.hmcleaves.paper.packet.PlayerDigListener;
-import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.event.Listener;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.reflect.InvocationTargetException;
@@ -35,6 +42,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.logging.Level;
 
 public class HMCLeaves extends JavaPlugin {
@@ -111,10 +119,22 @@ public class HMCLeaves extends JavaPlugin {
             Bukkit.getServer().getPluginManager().registerEvents(listener, this);
         }
         List.of(
-                        new WorldListener(this),
-                        new LeavesListener(this)
-                )
-                .forEach(listener -> Bukkit.getServer().getPluginManager().registerEvents(listener, this));
+                new WorldListener(this),
+                this.createListener(BlockBreakListener::new),
+                this.createListener(BlockBurnListener::new),
+                this.createListener(BlockDecayListener::new),
+                this.createListener(BlockDestroyListener::new),
+                this.createListener(BlockDropItemListener::new),
+                this.createListener(BlockExplodeListener::new),
+                this.createListener(BlockPistonListener::new),
+                this.createListener(BlockPlaceListener::new),
+                this.createListener(BlockWaterlogListener::new),
+                this.createListener(TreeGrowListener::new)
+        ).forEach(listener -> Bukkit.getServer().getPluginManager().registerEvents(listener, this));
+    }
+
+    private Listener createListener(Function<HMCLeaves, CustomBlockListener> constructor) {
+        return constructor.apply(this);
     }
 
     private void registerPacketListeners() {
