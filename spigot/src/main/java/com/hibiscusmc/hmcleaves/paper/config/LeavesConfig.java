@@ -11,6 +11,7 @@ import com.hibiscusmc.hmcleaves.paper.block.LogBlock;
 import com.hibiscusmc.hmcleaves.paper.util.AdventureUtil;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Axis;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -109,21 +110,21 @@ public class LeavesConfig {
 
     public void sendDebugInfo(Player player, CustomBlockState customBlockState, BlockData blockData) {
         final CustomBlock customBlock = customBlockState.customBlock();
-        player.sendMessage(AdventureUtil.parse("<green>Debug Info:"));
-        player.sendMessage(AdventureUtil.parse("<gray>Block ID: " + customBlock.id()));
-        player.sendMessage(AdventureUtil.parse("<gray>Display Properties:"));
+        player.sendMessage(Component.text("Debug Info:").color(NamedTextColor.GREEN));
+        player.sendMessage(Component.text("Block ID: " + customBlock.id()).color(NamedTextColor.GRAY));
+        player.sendMessage(Component.text("Display Properties:").color(NamedTextColor.GRAY));
         for (var entry : customBlockState.getPropertiesByName().entrySet()) {
-            player.sendMessage(AdventureUtil.parse("<gray>" + entry.getKey() + ": " + entry.getValue()));
+            player.sendMessage(Component.text(entry.getKey() + ": " + entry.getValue()).color(NamedTextColor.GRAY));
         }
-        player.sendMessage(AdventureUtil.parse("<green>Real Properties:"));
-        player.sendMessage(AdventureUtil.parse("<gray>Material: " + blockData.getMaterial()));
+        player.sendMessage(Component.text("Real Properties:").color(NamedTextColor.GREEN));
+        player.sendMessage(Component.text("Material: " + blockData.getMaterial()).color(NamedTextColor.GRAY));
         if (blockData instanceof Leaves leaves) {
-            player.sendMessage(AdventureUtil.parse("<gray>Distance: " + leaves.getDistance()));
-            player.sendMessage(AdventureUtil.parse("<gray>Persistent: " + leaves.isPersistent()));
-            player.sendMessage(AdventureUtil.parse("<gray>Waterlogged: " + leaves.isWaterlogged()));
+            player.sendMessage(Component.text("Distance: " + leaves.getDistance()).color(NamedTextColor.GRAY));
+            player.sendMessage(Component.text("Persistent: " + leaves.isPersistent()).color(NamedTextColor.GRAY));
+            player.sendMessage(Component.text("Waterlogged: " + leaves.isWaterlogged()).color(NamedTextColor.GRAY));
         }
         if (blockData instanceof Orientable orientable) {
-            player.sendMessage(AdventureUtil.parse("<gray>Axis: " + orientable.getAxis()));
+            player.sendMessage(Component.text("Axis: " + orientable.getAxis()).color(NamedTextColor.GRAY));
         }
     }
 
@@ -280,7 +281,7 @@ public class LeavesConfig {
         } else {
             strippedAxisStates = this.loadLogBlockStates(strippedOrientationsSection);
         }
-        this.blocksById.put(id, new LogBlock(id,logMaterial, axisStates, strippedAxisStates));
+        this.blocksById.put(id, new LogBlock(id, logMaterial, axisStates, strippedAxisStates));
         final ConfigurationSection itemStackSection = section.getConfigurationSection("item");
         if (itemStackSection != null) {
             this.loadItemStack(id, itemStackSection);
