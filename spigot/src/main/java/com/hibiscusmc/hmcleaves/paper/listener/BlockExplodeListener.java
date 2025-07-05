@@ -37,7 +37,6 @@ public final class BlockExplodeListener extends CustomBlockListener {
         this.handleExplosion(event.blockList());
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void handleExplosion(List<Block> blocks) {
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
             for (Block block : blocks) {

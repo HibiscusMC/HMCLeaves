@@ -51,6 +51,19 @@ blocks:
         instrument: BANJO
         powered: true
         note: 3
+    stripped-orientations:
+      Y:
+        instrument: BANJO
+        powered: true
+        note: 4
+      X:
+        instrument: BANJO
+        powered: true
+        note: 5
+      Z:
+        instrument: BANJO
+        powered: true
+        note: 6
     item:
       material: Paper
       name: "<green>Test Logs"

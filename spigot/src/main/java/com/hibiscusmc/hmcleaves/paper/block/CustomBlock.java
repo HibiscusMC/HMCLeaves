@@ -20,7 +20,7 @@ public interface CustomBlock {
      */
     boolean placeBlock(LeavesConfig leavesConfig, BlockPlaceData placeData, Consumer<CustomBlockState> beforePlaceIfSuccessful);
 
-    Map<String, Object> getPropertiesByName(WrappedBlockState state);
+    Map<String, String> getPropertiesByName(WrappedBlockState state);
 
     Material worldMaterial();
 

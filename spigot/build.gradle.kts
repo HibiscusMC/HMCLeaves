@@ -17,6 +17,7 @@ repositories {
     maven("https://repo.codemc.io/repository/maven-releases/")
     maven("https://repo.aikar.co/content/groups/aikar/")
     maven("https://repo.nexomc.com/releases")
+    maven("https://maven.enginehub.org/repo/")
 }
 
 dependencies {
@@ -24,6 +25,7 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.20.6-R0.1-SNAPSHOT")
     compileOnly("com.nexomc:nexo:0.7.0")
     compileOnly("com.github.retrooper:packetevents-spigot:2.7.0")
+    compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.4.0-SNAPSHOT")
     implementation("co.aikar:acf-paper:0.5.1-SNAPSHOT")
     implementation(project(":nms"))
     implementation(project(path = ":v1_20", configuration = "reobf"))

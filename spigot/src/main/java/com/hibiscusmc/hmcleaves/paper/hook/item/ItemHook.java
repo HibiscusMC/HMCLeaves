@@ -1,4 +1,4 @@
-package com.hibiscusmc.hmcleaves.paper.hook;
+package com.hibiscusmc.hmcleaves.paper.hook.item;
 
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;

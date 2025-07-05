@@ -1,6 +1,5 @@
 package com.hibiscusmc.hmcleaves.paper.block;
 
-import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;

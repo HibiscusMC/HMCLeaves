@@ -74,7 +74,7 @@ public final class BlockPlaceListener extends CustomBlockListener {
         final LeavesChunk clickChunk = leavesWorld.getChunk(WorldUtil.convertLocation(block.getLocation()).toChunkPosition());
         if (this.config.isDebugItem(itemStack) && clickChunk != null) {
             final CustomBlockState customBlock = clickChunk.getBlock(WorldUtil.convertLocation(block.getLocation()));
-            if (customBlock != null && player.hasPermission(LeavesConfig.PLACE_DECAYABLE_PERMISSION)) {
+            if (customBlock != null && player.hasPermission(LeavesConfig.DEBUG_ITEM_PERMISSION)) {
                 this.config.sendDebugInfo(player, customBlock, block.getBlockData());
             }
             event.setCancelled(true);

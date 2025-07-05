@@ -1,7 +1,7 @@
-package com.hibiscusmc.hmcleaves.paper.hook.nexo;
+package com.hibiscusmc.hmcleaves.paper.hook.item.nexo;
 
 import com.hibiscusmc.hmcleaves.paper.HMCLeaves;
-import com.hibiscusmc.hmcleaves.paper.hook.ItemHook;
+import com.hibiscusmc.hmcleaves.paper.hook.item.ItemHook;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.api.events.custom_block.NexoBlockPlaceEvent;
 import com.nexomc.nexo.items.ItemBuilder;

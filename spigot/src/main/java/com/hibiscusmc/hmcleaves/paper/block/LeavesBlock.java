@@ -63,11 +63,11 @@ public final class LeavesBlock implements CustomBlock {
     }
 
     @Override
-    public Map<String, Object> getPropertiesByName(WrappedBlockState state) {
+    public Map<String, String> getPropertiesByName(WrappedBlockState state) {
         return Map.of(
-                "distance", state.getDistance(),
-                "persistent", state.isPersistent(),
-                "waterlogged", state.isWaterlogged()
+                "distance", String.valueOf(state.getDistance()),
+                "persistent", String.valueOf(state.isPersistent()),
+                "waterlogged", String.valueOf(state.isWaterlogged())
         );
     }
 

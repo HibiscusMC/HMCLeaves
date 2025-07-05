@@ -4,8 +4,10 @@ import co.aikar.commands.PaperCommandManager;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.EventManager;
 import com.hibiscusmc.hmcleaves.paper.database.sql.SQLiteLeavesDatabase;
+import com.hibiscusmc.hmcleaves.paper.hook.worldedit.WorldEditHook;
 import com.hibiscusmc.hmcleaves.paper.listener.BlockBreakListener;
 import com.hibiscusmc.hmcleaves.paper.listener.BlockBurnListener;
+import com.hibiscusmc.hmcleaves.paper.listener.BlockChangeListener;
 import com.hibiscusmc.hmcleaves.paper.listener.BlockDecayListener;
 import com.hibiscusmc.hmcleaves.paper.listener.BlockDestroyListener;
 import com.hibiscusmc.hmcleaves.paper.listener.BlockDropItemListener;
@@ -23,8 +25,8 @@ import com.hibiscusmc.hmcleaves.paper.breaking.BlockBreakManager;
 import com.hibiscusmc.hmcleaves.paper.command.LeavesCommand;
 import com.hibiscusmc.hmcleaves.paper.config.LeavesConfig;
 import com.hibiscusmc.hmcleaves.paper.database.LeavesDatabase;
-import com.hibiscusmc.hmcleaves.paper.hook.ItemHook;
-import com.hibiscusmc.hmcleaves.paper.hook.nexo.NexoItemHook;
+import com.hibiscusmc.hmcleaves.paper.hook.item.ItemHook;
+import com.hibiscusmc.hmcleaves.paper.hook.item.nexo.NexoItemHook;
 import com.hibiscusmc.hmcleaves.paper.listener.WorldListener;
 import com.hibiscusmc.hmcleaves.paper.packet.LeavesPacketListener;
 import com.hibiscusmc.hmcleaves.paper.world.LeavesWorldManager;
@@ -33,7 +35,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.event.Listener;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
@@ -52,6 +56,7 @@ public class HMCLeaves extends JavaPlugin {
     private LeavesWorldManager leavesWorldManager;
     private Path configPath;
     private ItemHook itemHook;
+    private WorldEditHook worldEditHook;
     private BlockBreakManager breakManager;
     private NMSHandler nmsHandler;
 
@@ -91,6 +96,12 @@ public class HMCLeaves extends JavaPlugin {
         this.registerListeners();
         this.registerPacketListeners();
         this.registerCommands();
+
+        final PluginManager pluginManager = this.getServer().getPluginManager();
+        if (pluginManager.getPlugin("WorldEdit") != null || pluginManager.getPlugin("FastAsyncWorldEdit") != null) {
+            this.worldEditHook = new WorldEditHook(this);
+            this.worldEditHook.load();
+        }
     }
 
     @Override
@@ -129,7 +140,8 @@ public class HMCLeaves extends JavaPlugin {
                 this.createListener(BlockPistonListener::new),
                 this.createListener(BlockPlaceListener::new),
                 this.createListener(BlockWaterlogListener::new),
-                this.createListener(TreeGrowListener::new)
+                this.createListener(TreeGrowListener::new),
+                this.createListener(BlockChangeListener::new)
         ).forEach(listener -> Bukkit.getServer().getPluginManager().registerEvents(listener, this));
     }
 
@@ -187,6 +199,10 @@ public class HMCLeaves extends JavaPlugin {
 
     public ItemHook itemHook() {
         return this.itemHook;
+    }
+
+    public @Nullable WorldEditHook worldEditHook() {
+        return this.worldEditHook;
     }
 
     public NMSHandler nmsHandler() {

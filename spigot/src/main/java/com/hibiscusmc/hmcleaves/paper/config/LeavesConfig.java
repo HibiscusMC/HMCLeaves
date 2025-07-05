@@ -44,10 +44,10 @@ public class LeavesConfig {
     public static final String DEBUG_ITEM_PERMISSION = "hmcleaves.debug";
     public static final String GIVE_ITEM_PERMISSION = "hmcleaves.give";
     public static final String PLACE_DECAYABLE_PERMISSION = "hmcleaves.placedecayable";
+
     public static final String DEBUG_ITEM_ID = "debug-item";
 
     private static final List<Material> LEAVES = Arrays.stream(Material.values()).filter(Tag.LEAVES::isTagged).toList();
-    private static final List<Material> LOGS = Arrays.stream(Material.values()).filter(Tag.LOGS::isTagged).toList();
 
     private final HMCLeaves plugin;
     private final Path filePath;
@@ -266,21 +266,21 @@ public class LeavesConfig {
             this.plugin.getLogger().warning("Invalid material for log block: " + id);
             return;
         }
-        final Map<Axis, WrappedBlockState> axisStates = new HashMap<>();
         final ConfigurationSection orientationsSection = section.getConfigurationSection("orientations");
-        if (orientationsSection != null) {
-            for (String axisString : orientationsSection.getKeys(false)) {
-                final Axis axis = Axis.valueOf(axisString.toUpperCase());
-                final ConfigurationSection axisSection = orientationsSection.getConfigurationSection(axisString);
-                if (axisSection == null) {
-                    this.plugin.getLogger().warning("Invalid configuration for axis: " + axisString + " in log block: " + id);
-                    continue;
-                }
-                final WrappedBlockState axisState = this.loadLogBlockState(id, axisSection);
-                axisStates.put(axis, axisState);
-            }
+        final ConfigurationSection strippedOrientationsSection = section.getConfigurationSection("stripped-orientations");
+        final Map<Axis, WrappedBlockState> axisStates;
+        if (orientationsSection == null) {
+            axisStates = new HashMap<>();
+        } else {
+            axisStates = this.loadLogBlockStates(orientationsSection);
         }
-        this.blocksById.put(id, new LogBlock(id,logMaterial, axisStates));
+        final Map<Axis, WrappedBlockState> strippedAxisStates;
+        if (strippedOrientationsSection == null) {
+            strippedAxisStates = new HashMap<>();
+        } else {
+            strippedAxisStates = this.loadLogBlockStates(strippedOrientationsSection);
+        }
+        this.blocksById.put(id, new LogBlock(id,logMaterial, axisStates, strippedAxisStates));
         final ConfigurationSection itemStackSection = section.getConfigurationSection("item");
         if (itemStackSection != null) {
             this.loadItemStack(id, itemStackSection);
@@ -289,6 +289,23 @@ public class LeavesConfig {
         if (dropsSection != null) {
             this.loadDrops(id, dropsSection);
         }
+    }
+
+    private Map<Axis, WrappedBlockState> loadLogBlockStates(ConfigurationSection section) {
+        final Map<Axis, WrappedBlockState> axisStates = new HashMap<>();
+        for (String axisString : section.getKeys(false)) {
+            final Axis axis = Axis.valueOf(axisString.toUpperCase());
+            final ConfigurationSection axisSection = section.getConfigurationSection(axisString);
+            if (axisSection == null) {
+                this.plugin.getLogger().warning("Invalid configuration for axis: " + axisString + " in log block");
+                continue;
+            }
+            final WrappedBlockState axisState = this.loadLogBlockState(axisString, axisSection);
+            if (axisState != null) {
+                axisStates.put(axis, axisState);
+            }
+        }
+        return axisStates;
     }
 
     private @Nullable WrappedBlockState loadLogBlockState(String id, ConfigurationSection section) {

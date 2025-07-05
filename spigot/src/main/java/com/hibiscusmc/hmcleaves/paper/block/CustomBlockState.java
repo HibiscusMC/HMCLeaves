@@ -11,7 +11,7 @@ public record CustomBlockState(CustomBlock customBlock, int globalStateId) {
         return WrappedBlockState.getByGlobalId(this.globalStateId);
     }
 
-    public Map<String, Object> getPropertiesByName() {
+    public Map<String, String> getPropertiesByName() {
         return this.customBlock.getPropertiesByName(
                 WrappedBlockState.getByGlobalId(PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(), this.globalStateId, false)
         );
