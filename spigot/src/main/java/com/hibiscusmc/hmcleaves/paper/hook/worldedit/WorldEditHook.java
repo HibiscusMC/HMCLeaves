@@ -1,6 +1,5 @@
 package com.hibiscusmc.hmcleaves.paper.hook.worldedit;
 
-import com.google.common.eventbus.Subscribe;
 import com.hibiscusmc.hmcleaves.paper.HMCLeaves;
 import com.hibiscusmc.hmcleaves.paper.block.CustomBlock;
 import com.hibiscusmc.hmcleaves.paper.block.CustomBlockState;
@@ -20,6 +19,7 @@ import com.sk89q.worldedit.extent.clipboard.Clipboard;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.session.ClipboardHolder;
+import com.sk89q.worldedit.util.eventbus.Subscribe;
 import com.sk89q.worldedit.world.block.BaseBlock;
 import com.sk89q.worldedit.world.block.BlockState;
 import com.sk89q.worldedit.world.block.BlockStateHolder;

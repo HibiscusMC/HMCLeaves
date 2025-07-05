@@ -159,6 +159,7 @@ public class HMCLeaves extends JavaPlugin {
 
     private void registerCommands() {
         final PaperCommandManager commandManager = new PaperCommandManager(this);
+        commandManager.enableUnstableAPI("help");
         commandManager.getCommandCompletions().registerCompletion("items", context -> this.leavesConfig.itemIds());
         commandManager.registerCommand(new LeavesCommand(this));
     }
