@@ -23,7 +23,7 @@ repositories {
 dependencies {
     implementation("org.jetbrains:annotations:24.0.0")
     compileOnly("io.papermc.paper:paper-api:1.20.6-R0.1-SNAPSHOT")
-    compileOnly("com.nexomc:nexo:0.7.0")
+    compileOnly("com.nexomc:nexo:1.6.0")
     compileOnly("com.github.retrooper:packetevents-spigot:2.7.0")
     compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.4.0-SNAPSHOT")
     compileOnly("co.aikar:acf-paper:0.5.1-SNAPSHOT")
