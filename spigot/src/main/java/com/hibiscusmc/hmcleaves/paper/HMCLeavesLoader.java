@@ -25,5 +25,3 @@ public class HMCLeavesLoader implements PluginLoader {
         pluginClasspathBuilder.addLibrary(resolver);
     }
 }
-
-record Repo(String id, String url) {}
