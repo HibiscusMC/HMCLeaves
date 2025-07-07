@@ -1,10 +1,9 @@
 name: HMCLeaves
 version: "3.0.0-SNAPSHOT"
 main: com.hibiscusmc.hmcleaves.paper.HMCLeaves
-depend: [ packetevents ]
-softdepend: [ Nexo, WorldEdit ]
-api-version: 1.20
+api-version: "1.20"
 load: STARTUP
+loader: com.hibiscusmc.hmcleaves.paper.HMCLeavesLoader
 permissions:
   "hmcleaves.command.transformschematic":
     description: Allows the player to use the /transformschematic command
@@ -18,3 +17,14 @@ permissions:
   "hmcleaves.placedecayable":
     description: Allows the player to place decayable leaves
     default: op
+dependencies:
+  server:
+    packetevents:
+      load: BEFORE
+      required: true
+    Nexo:
+      load: BEFORE
+      required: false
+    WorldEdit:
+      load: BEFORE
+      required: false
