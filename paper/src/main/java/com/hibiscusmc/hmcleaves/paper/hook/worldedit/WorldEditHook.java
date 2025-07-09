@@ -26,10 +26,15 @@ import com.sk89q.worldedit.world.block.BlockStateHolder;
 import com.sk89q.worldedit.world.block.BlockTypes;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Axis;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Orientable;
+import org.bukkit.block.data.type.Leaves;
 import org.bukkit.entity.Player;
+import org.enginehub.linbus.tree.LinByteTag;
 import org.enginehub.linbus.tree.LinCompoundTag;
+import org.enginehub.linbus.tree.LinIntTag;
 import org.enginehub.linbus.tree.LinStringTag;
 import org.enginehub.linbus.tree.LinTagType;
 
@@ -40,7 +45,13 @@ import java.util.logging.Level;
 
 public final class WorldEditHook {
 
+    private static final String DISTANCE_PROPERTY = "distance";
+    private static final String WATERLOGGED_PROPERTY = "waterlogged";
+    private static final String PERSISTENT_PROPERTY = "persistent";
+    private static final String AXIS_PROPERTY = "axis";
+
     private static final String BLOCK_ID = "hmcleaves:block_id";
+    public static final String PROPERTIES_TAG = "hmcleaves:block_properties";
 
     private final LeavesConfig leavesConfig;
     private final LeavesWorldManager worldManager;
@@ -96,7 +107,6 @@ public final class WorldEditHook {
                         if (customBlockState == null) {
                             continue;
                         }
-                        final BlockState state = clipboard.getBlock(BlockVector3.at(x, y, z));
                         final BaseBlock furnaceBlock = BlockTypes.FURNACE.getDefaultState().toBaseBlock();
                         LinCompoundTag baseNBT = furnaceBlock.getNbt();
                         if (baseNBT == null) {
@@ -108,8 +118,29 @@ public final class WorldEditHook {
                         } else {
                             bukkitTag = tag;
                         }
+
+                        final LinCompoundTag.Builder propertiesBuilder = LinCompoundTag.builder();
+                        final BlockState state = clipboard.getBlock(BlockVector3.at(x, y, z));
+                        final BlockData blockData = BukkitAdapter.adapt(state);
+                        switch (blockData) {
+                            case Leaves leaves -> {
+                                final int distance = leaves.getDistance();
+                                final boolean persistent = leaves.isPersistent();
+                                final boolean waterlogged = leaves.isWaterlogged();
+                                propertiesBuilder.put(DISTANCE_PROPERTY, LinIntTag.of(distance));
+                                propertiesBuilder.put(PERSISTENT_PROPERTY, LinByteTag.of(persistent ? (byte) 1 : (byte) 0));
+                                propertiesBuilder.put(WATERLOGGED_PROPERTY, LinByteTag.of(waterlogged ? (byte) 1 : (byte) 0));
+                            }
+                            case Orientable orientable -> {
+                                final Axis axis = orientable.getAxis();
+                                propertiesBuilder.put(AXIS_PROPERTY, LinStringTag.of(axis.name()));
+                            }
+                            default -> {
+                            }
+                        }
                         final LinCompoundTag.Builder newBukkitValuesTagBuilder = bukkitTag.toBuilder();
                         newBukkitValuesTagBuilder.put(BLOCK_ID, LinStringTag.of(customBlockState.customBlock().id()));
+                        newBukkitValuesTagBuilder.put(PROPERTIES_TAG, propertiesBuilder.build());
                         clipboard.setBlock(BlockVector3.at(x, y, z), furnaceBlock.toBaseBlock(
                                 baseNBT.toBuilder()
                                         .put(BUKKIT_NBT_TAG, newBukkitValuesTagBuilder.build())
@@ -131,7 +162,6 @@ public final class WorldEditHook {
 
     @Subscribe
     public void onEditSession(EditSessionEvent event) {
-        HMCLeaves.getPlugin(HMCLeaves.class).log(Level.INFO, "WorldEdit EditSessionEvent triggered for world: " + event.getWorld().getName());
         event.setExtent(new AbstractDelegateExtent(event.getExtent()) {
             @Override
             public <T extends BlockStateHolder<T>> boolean setBlock(BlockVector3 pos, T block) throws WorldEditException {
@@ -150,12 +180,10 @@ public final class WorldEditHook {
                     return super.setBlock(pos, block);
                 }
                 final LinStringTag blockIdTag = bukkitTag.getTag(BLOCK_ID, LinTagType.stringTag());
-                HMCLeaves.getPlugin(HMCLeaves.class).log(Level.INFO, "Block ID tag: " + blockIdTag);
                 if (blockIdTag == null) {
                     return super.setBlock(pos, block);
                 }
                 final String blockId = blockIdTag.value();
-                HMCLeaves.getPlugin(HMCLeaves.class).log(Level.INFO, "Block ID: " + blockId);
                 if (blockId == null) {
                     return super.setBlock(pos, block);
                 }
@@ -174,7 +202,35 @@ public final class WorldEditHook {
                 }
                 final ChunkPosition chunkPosition = position.toChunkPosition();
                 leavesWorld.editInsertChunk(chunkPosition, leavesChunk -> leavesChunk.setBlock(position, customBlockState));
-                return super.setBlock(pos, BukkitAdapter.adapt(customBlock.worldMaterial().createBlockData()));
+                final BlockData blockData = customBlock.worldMaterial().createBlockData();
+                final LinCompoundTag propertiesTag = bukkitTag.getTag(PROPERTIES_TAG, LinTagType.compoundTag());
+                if (propertiesTag != null) {
+                    switch (blockData) {
+                        case Leaves leaves -> {
+                            final LinIntTag distanceStringTag = propertiesTag.findTag(DISTANCE_PROPERTY, LinTagType.intTag());
+                            if (distanceStringTag != null) {
+                                leaves.setDistance(distanceStringTag.value());
+                            }
+                            final LinByteTag waterloggedStringTag = propertiesTag.findTag(WATERLOGGED_PROPERTY, LinTagType.byteTag());
+                            if (waterloggedStringTag != null) {
+                                leaves.setWaterlogged(waterloggedStringTag.value() == 1);
+                            }
+                            final LinByteTag persistentTag = propertiesTag.findTag(PERSISTENT_PROPERTY, LinTagType.byteTag());
+                            if (persistentTag != null) {
+                                leaves.setPersistent(persistentTag.value() == 1);
+                            }
+                        }
+                        case Orientable orientable -> {
+                            final LinStringTag axisTag = propertiesTag.findTag(AXIS_PROPERTY, LinTagType.stringTag());
+                            if (axisTag != null) {
+                                orientable.setAxis(Axis.valueOf(axisTag.value()));
+                            }
+                        }
+                        default -> {
+                        }
+                    }
+                }
+                return super.setBlock(pos, BukkitAdapter.adapt(blockData));
             }
         });
     }
