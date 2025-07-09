@@ -1,5 +1,5 @@
 rootProject.name = "HMCLeaves"
-include("spigot")
+include("paper")
 
 include("v1_21_4")
 include("v1_20_6")
