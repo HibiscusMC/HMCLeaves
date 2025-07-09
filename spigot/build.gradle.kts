@@ -23,10 +23,10 @@ repositories {
 dependencies {
     implementation("org.jetbrains:annotations:24.0.0")
     compileOnly("io.papermc.paper:paper-api:1.20.6-R0.1-SNAPSHOT")
-    compileOnly("com.nexomc:nexo:0.7.0")
+    compileOnly("com.nexomc:nexo:1.6.0")
     compileOnly("com.github.retrooper:packetevents-spigot:2.7.0")
     compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.4.0-SNAPSHOT")
-    implementation("co.aikar:acf-paper:0.5.1-SNAPSHOT")
+    compileOnly("co.aikar:acf-paper:0.5.1-SNAPSHOT")
     implementation(project(":nms"))
     implementation(project(path = ":v1_20", configuration = "reobf"))
     implementation(project(path = ":v1_20_3", configuration = "reobf"))
@@ -57,8 +57,6 @@ tasks {
 
     shadowJar {
         mergeServiceFiles()
-        relocate("co.aikar.commands", "com.hibiscusmc.hmcleaves.paper.acf")
-        relocate("co.aikar.locales", "com.hibiscusmc.hmcleaves.paper.locales")
 
         archiveFileName.set("hmcleaves-${project.version}.jar")
 
