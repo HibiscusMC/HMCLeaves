@@ -1,5 +1,6 @@
 package com.hibiscusmc.hmcleaves.paper.breaking;
 
+import com.hibiscusmc.hmcleaves.paper.api.HMCLeavesBreakEvent;
 import com.hibiscusmc.hmcleaves.paper.block.CustomBlock;
 import com.hibiscusmc.hmcleaves.paper.block.CustomBlockState;
 import com.hibiscusmc.hmcleaves.paper.world.LeavesWorldManager;
@@ -52,27 +53,31 @@ public final class BlockBreakManager {
             return;
         }
         final CustomBlock customBlock = customBlockState.customBlock();
-        if (Tag.LOGS.isTagged(customBlock.worldMaterial())) {
+        if (!Tag.LOGS.isTagged(customBlock.worldMaterial())) {
             return;
         }
-        final BlockBreakData blockBreakData = new BlockBreakData(
-                RANDOM.nextInt(10_000, 20_000),
-                customBlockState,
-                player,
-                position,
-                this.createScheduler(player.getUniqueId())
-        );
-        this.blockBreakDataMap.put(player.getUniqueId(), blockBreakData);
+        Bukkit.getScheduler().runTask(this.plugin, () -> {
+            final BlockBreakData blockBreakData = new BlockBreakData(
+                    RANDOM.nextInt(10_000, 20_000),
+                    customBlockState,
+                    player,
+                    position,
+                    this.createScheduler(player.getUniqueId())
+            );
+            this.blockBreakDataMap.put(player.getUniqueId(), blockBreakData);
+        });
     }
 
     public void cancelBlockBreak(Player player) {
-        final BlockBreakData blockBreakData = this.blockBreakDataMap.get(player.getUniqueId());
-        if (blockBreakData == null) {
-            return;
-        }
-        PacketUtil.sendBlockBreakAnimation(player, blockBreakData.getLocation(), blockBreakData.entityId(), (byte) -1);
-        blockBreakData.breakTask().cancel();
-        this.blockBreakDataMap.remove(player.getUniqueId());
+        Bukkit.getScheduler().runTask(this.plugin, () -> {
+            final BlockBreakData blockBreakData = this.blockBreakDataMap.get(player.getUniqueId());
+            if (blockBreakData == null) {
+                return;
+            }
+            PacketUtil.sendBlockBreakAnimation(player, blockBreakData.getLocation(), blockBreakData.entityId(), (byte) -1);
+            blockBreakData.breakTask().cancel();
+            this.blockBreakDataMap.remove(player.getUniqueId());
+        });
     }
 
     private BukkitTask createScheduler(UUID uuid) {
@@ -91,43 +96,63 @@ public final class BlockBreakManager {
                             blockBreakData.currentTick()
                     );
                     if (blockBreakData.isBroken(damage)) {
-                        blockBreakData.breakTask.cancel();
-                        final Location location = blockBreakData.getLocation();
-                        final Block block = location.getBlock();
-                        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
-                            PacketUtil.sendBlockBreakAnimation(
-                                    blockBreakData.breaker(),
-                                    location,
-                                    blockBreakData.entityId(),
-                                    (byte) -1
-                            );
-                            PacketUtil.sendBlockBroken(
-                                    player,
-                                    blockBreakData.position(),
-                                    blockBreakData.customBlockState().globalStateId()
-                            );
-                        });
-                        final World world = blockBreakData.world();
-                        BlockBreakManager.this.blockBreakDataMap.remove(uuid);
-                        BlockBreakManager.this.worldManager.removeBlock(world.getUID(), blockBreakData.position());
-                        PacketUtil.removeMiningFatigue(player);
-                        block.setType(Material.AIR);
-                        final CustomBlock customBlock = blockBreakData.customBlockState().customBlock();
-                        final BlockDropConfig drops = this.leavesConfig.getBlockDrops(customBlock.id());
-                        if (drops != null) {
-                            final ItemStack drop = drops.copyLeavesItem();
-                            if (drop != null) {
-                                world.dropItemNaturally(location, drop);
-                            }
-                        }
+                        this.breakBlock(blockBreakData, player, uuid);
                         return;
                     }
                     blockBreakData.send(damage);
                 }, 1, 1);
     }
 
+    public void finishDigging(Player player) {
+        Bukkit.getScheduler().runTask(this.plugin, () -> {
+            final UUID uuid = player.getUniqueId();
+            final BlockBreakData blockBreakData = this.blockBreakDataMap.get(uuid);
+            this.breakBlock(blockBreakData, player, uuid);
+        });
+    }
+
+    private void breakBlock(BlockBreakData blockBreakData, Player player, UUID uuid) {
+        blockBreakData.breakTask.cancel();
+        final Location location = blockBreakData.getLocation();
+        final Block block = location.getBlock();
+        final HMCLeavesBreakEvent event = new HMCLeavesBreakEvent(block, player);
+        if (!event.callEvent()) {
+            BlockBreakManager.this.blockBreakDataMap.remove(uuid);
+            return;
+        }
+        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
+            PacketUtil.sendBlockBreakAnimation(
+                    blockBreakData.breaker(),
+                    location,
+                    blockBreakData.entityId(),
+                    (byte) -1
+            );
+            PacketUtil.sendBlockBroken(
+                    player,
+                    blockBreakData.position(),
+                    blockBreakData.customBlockState().globalStateId()
+            );
+        });
+        final World world = blockBreakData.world();
+        BlockBreakManager.this.blockBreakDataMap.remove(uuid);
+        BlockBreakManager.this.worldManager.removeBlock(world.getUID(), blockBreakData.position());
+        PacketUtil.removeMiningFatigue(player);
+        block.setType(Material.AIR);
+        final CustomBlock customBlock = blockBreakData.customBlockState().customBlock();
+        final BlockDropConfig drops = this.leavesConfig.getBlockDrops(customBlock.id());
+        if (drops != null) {
+            final ItemStack drop = drops.copyLeavesItem();
+            if (drop != null) {
+                world.dropItemNaturally(location, drop);
+            }
+        }
+    }
+
     private byte calculateBlockBreakTimeInTicks(Player player, ItemStack inHand, Block block, int ticksPassed) {
-        return (byte) (block.getDestroySpeed(inHand, true) * 10);
+        final float destroySpeed = block.getDestroySpeed(inHand, true);
+        final float hardness = block.getType().getHardness();
+        final boolean isCorrectTool = !block.getDrops(inHand).isEmpty();
+        return (byte) ((destroySpeed / hardness / (isCorrectTool ? 30 : 100)) * ticksPassed * 10);
     }
 
     private static class BlockBreakData {

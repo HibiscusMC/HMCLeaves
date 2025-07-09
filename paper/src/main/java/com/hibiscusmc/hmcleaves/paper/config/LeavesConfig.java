@@ -17,6 +17,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Tag;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Leaves;
@@ -106,6 +107,18 @@ public class LeavesConfig {
             return false;
         }
         return itemMeta.getPersistentDataContainer().has(this.debugItemKey, PersistentDataType.BOOLEAN);
+    }
+
+    public boolean usesCustomMining(Block block) {
+        return this.usesCustomMining(block.getType());
+    }
+
+    public boolean usesCustomMining(BlockData blockData) {
+        return this.usesCustomMining(blockData.getMaterial());
+    }
+
+    public boolean usesCustomMining(Material material) {
+        return this.handleMining && Tag.LOGS.isTagged(material);
     }
 
     public void sendDebugInfo(Player player, CustomBlockState customBlockState, BlockData blockData) {
@@ -392,7 +405,6 @@ public class LeavesConfig {
                 this.plugin.log(Level.INFO, "Nexo Item Id: " + id);
                 return hookItem;
             }
-            this.plugin.log(Level.INFO, "Normal Item Id: " + id);
             return itemStack.clone();
         });
     }

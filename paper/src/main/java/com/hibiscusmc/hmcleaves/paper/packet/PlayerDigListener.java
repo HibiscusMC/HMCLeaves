@@ -17,7 +17,9 @@ import com.hibiscusmc.hmcleaves.paper.breaking.BlockBreakManager;
 import com.hibiscusmc.hmcleaves.paper.config.LeavesConfig;
 import org.bukkit.GameMode;
 import org.bukkit.Tag;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.UUID;
 
@@ -67,7 +69,7 @@ public final class PlayerDigListener extends PacketListenerAbstract {
         if (customBlockState == null) {
             return;
         }
-        if (!Tag.LOGS.isTagged(customBlockState.customBlock().worldMaterial())) {
+        if (!this.config.usesCustomMining(customBlockState.customBlock().worldMaterial())) {
             return;
         }
         if (diggingAction == DiggingAction.START_DIGGING) {
@@ -85,8 +87,22 @@ public final class PlayerDigListener extends PacketListenerAbstract {
             return;
         }
         if (diggingAction == DiggingAction.FINISHED_DIGGING) {
-            this.blockBreakManager.cancelBlockBreak(player);
-            PacketUtil.removeMiningFatigue(player);
+            this.blockBreakManager.finishDigging(player);
+            final Block target = player.getTargetBlockExact(5);
+            if (target == null) {
+                PacketUtil.removeMiningFatigue(player);
+                return;
+            }
+            final Position targetPosition = Position.at(world, target.getX(), target.getY(), target.getZ());
+            final LeavesChunk targetedChunk = leavesWorld.getChunk(targetPosition.toChunkPosition());
+            if (targetedChunk == null) {
+                PacketUtil.removeMiningFatigue(player);
+                return;
+            }
+            final CustomBlockState state = targetedChunk.getBlock(targetPosition);
+            if (state == null || !this.config.usesCustomMining(state.customBlock().worldMaterial())) {
+                PacketUtil.removeMiningFatigue(player);
+            }
         }
     }
 

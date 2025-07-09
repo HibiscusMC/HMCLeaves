@@ -120,7 +120,7 @@ public final class PacketUtil {
                 player.getEntityId(),
                 PotionTypes.MINING_FATIGUE,
                 -1,
-                Integer.MAX_VALUE,
+                -1,
                 (byte) 0
         );
         PacketEvents.getAPI().getPlayerManager().sendPacket(
