@@ -143,7 +143,7 @@ public final class BlockBreakManager {
         if (drops != null) {
             final ItemStack drop = drops.copyLeavesItem();
             if (drop != null) {
-                world.dropItemNaturally(location, drop);
+                world.dropItemNaturally(location.toCenterLocation(), drop);
             }
         }
     }
