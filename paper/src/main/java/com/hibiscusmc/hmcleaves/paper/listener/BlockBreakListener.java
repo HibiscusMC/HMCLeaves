@@ -60,7 +60,7 @@ public final class BlockBreakListener extends CustomBlockListener {
                 return;
             }
             final World world = block.getWorld();
-            Bukkit.getScheduler().runTaskLater(this.plugin, () -> world.dropItemNaturally(location.clone(), dropItem), 1);
+            Bukkit.getScheduler().runTaskLater(this.plugin, () -> world.dropItemNaturally(location.clone().toCenterLocation(), dropItem), 1);
         });
     }
 
